@@ -1,49 +1,250 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BPC Animasyon</title>
-  <style>
-    * { box-sizing: border-box }
-    body{
-      margin:0; height:100vh; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; gap:28px;
-      background:#0b0b0b; color:#eaeaea; font-family:system-ui, Arial, sans-serif;
-    }
-    .badge{letter-spacing:.14em; opacity:.8; font-size:12px; text-transform:uppercase}
-    .orb{
-      width:140px; height:140px; border-radius:50%;
-      background: conic-gradient(from 0deg, #00ffd5, #7f00ff, #00ffd5);
-      filter: drop-shadow(0 0 24px rgba(0,255,213,.35));
-      animation: float 2.6s ease-in-out infinite alternate, spin 6s linear infinite;
-      position: relative; overflow:hidden;
-    }
-    .orb::after{
-      content:""; position:absolute; inset:10px; border-radius:50%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.3), transparent 45%);
-      mix-blend-mode: screen;
-    }
-    h1{margin:0; font-size:28px}
-    .cta{display:flex; gap:10px}
-    .btn{
-      padding:10px 14px; border-radius:12px; border:1px solid #2a2a2a; text-decoration:none; color:#eaeaea;
-    }
-    .btn:hover{border-color:#555}
-    @keyframes float{from{transform:translateY(0) scale(1)} to{transform:translateY(-22px) scale(1.08)}}
-    @keyframes spin{to{transform:rotate(360deg)}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BPC Kısa Animasyon Üretici</title>
+<style>
+  :root{--bg:#0b0b0b;--fg:#eaeaea;--accent:#00ffd5;--accent2:#7f00ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Arial,sans-serif;display:grid;min-height:100svh;grid-template-rows:auto 1fr auto}
+  header,footer{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #1e1e1e}
+  footer{border-top:1px solid #1e1e1e;border-bottom:none;justify-content:center;gap:18px}
+  h1{font-size:18px;margin:0;letter-spacing:.06em;opacity:.85}
+  .wrap{display:grid;grid-template-columns:1fr;gap:14px;padding:14px}
+  .panel{background:#0f0f0f;border:1px solid #1e1e1e;border-radius:14px;padding:12px;display:grid;gap:10px}
+  label{font-size:13px;opacity:.88}
+  input[type="text"],input[type="number"],input[type="color"],select{
+    width:100%;background:#121212;color:var(--fg);border:1px solid #2a2a2a;border-radius:10px;padding:10px 12px
+  }
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button{
+    background:#151515;border:1px solid #2a2a2a;color:var(--fg);
+    padding:10px 14px;border-radius:12px;cursor:pointer
+  }
+  button:hover{border-color:#5a5a5a;transform:translateY(-1px)}
+  #startRec{border-color:#2f5;box-shadow:0 0 0 0 rgba(0,255,85,.15);animation:pulse 2.2s infinite}
+  @keyframes pulse{to{box-shadow:0 0 0 14px rgba(0,255,85,0)}}
+  .canvasBox{position:relative;display:grid;place-items:center;background:#000;border-radius:16px;overflow:hidden}
+  #cv{width:100%;max-width:720px;aspect-ratio:1/1}
+  .hint{font-size:12px;opacity:.7}
+  .pill{font-size:12px;padding:6px 10px;border:1px solid #2a2a2a;border-radius:999px}
+  .links{display:flex;gap:10px;flex-wrap:wrap}
+</style>
 </head>
 <body>
-  <div class="badge">BabyPeacock • BPC</div>
-  <div class="orb" title="BPC is flying"></div>
-  <h1>Animasyon</h1>
-  <div>BPC animasyon denemesi</div>
-  <div class="cta">
-    <a class="btn" href="https://t.me/..." target="_blank" rel="noopener">Telegram</a>
-    <a class="btn" href="https://x.com/..." target="_blank" rel="noopener">X (Twitter)</a>
-    <a class="btn" href="https://dexscreener.com/solana/AZRKvpc91mpJmnKiMRfYRBMqZpoYB3Bk8Dz3dEEKcZ2i" target="_blank" rel="noopener">Dexscreener</a>
+<header>
+  <h1>🦚 BPC Kısa Animasyon Üretici</h1>
+  <div class="links">
+    <span class="pill">Canvas → WEBM</span>
+    <span class="pill">Offline çalışır</span>
   </div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <div class="row">
+      <div>
+        <label>Başlık (orta yazı)</label>
+        <input id="titleText" type="text" value="BabyPeacock • BPC">
+      </div>
+      <div>
+        <label>Süre (saniye, 3–10)</label>
+        <input id="dur" type="number" value="6" min="3" max="10">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Renk 1</label>
+        <input id="c1" type="color" value="#00ffd5">
+      </div>
+      <div>
+        <label>Renk 2</label>
+        <input id="c2" type="color" value="#7f00ff">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Arka plan</label>
+        <input id="bg" type="color" value="#0b0b0b">
+      </div>
+      <div>
+        <label>Çıkış fps</label>
+        <input id="fps" type="number" value="60" min="24" max="60">
+      </div>
+    </div>
+
+    <div class="links">
+      <button id="preview">Önizlemeyi Başlat</button>
+      <button id="startRec">🎬  Kaydı Al (WEBM indir)</button>
+      <a id="dl" class="pill" style="display:none" download="bpc-anim.webm">İndir: bpc-anim.webm</a>
+      <span class="hint" id="status"></span>
+    </div>
+  </section>
+
+  <section class="canvasBox panel">
+    <canvas id="cv" width="1024" height="1024"></canvas>
+  </section>
+</main>
+
+<footer>
+  <span class="hint">İpucu: Renkleri değiştir → “Kaydı Al” de. Çıktı <strong>.webm</strong> olur. İstersen sonra MP4’e dönüştürürüz.</span>
+</footer>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const ui = {
+    title: document.getElementById('titleText'),
+    dur: document.getElementById('dur'),
+    c1: document.getElementById('c1'),
+    c2: document.getElementById('c2'),
+    bg: document.getElementById('bg'),
+    fps: document.getElementById('fps'),
+    preview: document.getElementById('preview'),
+    startRec: document.getElementById('startRec'),
+    dl: document.getElementById('dl'),
+    status: document.getElementById('status'),
+  };
+
+  let rafId = null;
+  let t0 = 0;
+
+  function draw(t) {
+    const W = cv.width, H = cv.height;
+    const now = (t - t0) / 1000; // saniye
+    const bg = ui.bg.value;
+    const c1 = ui.c1.value;
+    const c2 = ui.c2.value;
+
+    // Arka plan + yumuşak vinyet
+    cx.clearRect(0,0,W,H);
+    cx.fillStyle = bg;
+    cx.fillRect(0,0,W,H);
+    const grdV = cx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.55);
+    grdV.addColorStop(0, "rgba(0,255,213,0.08)");
+    grdV.addColorStop(1, "rgba(0,0,0,0)");
+    cx.fillStyle = grdV;
+    cx.fillRect(0,0,W,H);
+
+    // Dönen konik degrade disk
+    const r = W*0.28;
+    cx.save();
+    cx.translate(W/2, H/2 - 40);
+    cx.rotate(now * 0.8);
+    // disk
+    for(let i=0;i<360;i+=1){
+      const a = (i/180)*Math.PI;
+      const next = ((i+1)/180)*Math.PI;
+      const mix = (Math.sin((i/360)*Math.PI*2 + now*2)+1)/2;
+      const col = lerpColor(c1, c2, mix);
+      cx.beginPath();
+      cx.moveTo(0,0);
+      cx.arc(0,0,r,a,next);
+      cx.closePath();
+      cx.fillStyle = col;
+      cx.fill();
+    }
+    // parlama
+    const grd = cx.createRadialGradient( -r*0.3, -r*0.3, r*0.1, 0, 0, r*1.05 );
+    grd.addColorStop(0, "rgba(255,255,255,.28)");
+    grd.addColorStop(1, "rgba(255,255,255,0)");
+    cx.globalCompositeOperation = "screen";
+    cx.fillStyle = grd; cx.beginPath(); cx.arc(0,0,r*1.05,0,Math.PI*2); cx.fill();
+    cx.globalCompositeOperation = "source-over";
+    cx.restore();
+
+    // Başlık
+    cx.fillStyle = "rgba(234,234,234,.92)";
+    cx.font = "48px system-ui, Segoe UI, Arial"; cx.textAlign = "center";
+    cx.fillText("Animasyon", W/2, H*0.70);
+    // Alt metin
+    cx.font = "28px system-ui, Segoe UI, Arial";
+    cx.globalAlpha = .85;
+    cx.fillText("BPC animasyon denemesi", W/2, H*0.77);
+    cx.globalAlpha = 1;
+
+    // Üst rozet
+    cx.font = "22px system-ui, Segoe UI, Arial";
+    cx.globalAlpha = .8;
+    cx.fillText(ui.title.value.toUpperCase(), W/2, H*0.12);
+    cx.globalAlpha = 1;
+
+    rafId = requestAnimationFrame(draw);
+  }
+
+  function startPreview(){
+    stopPreview();
+    t0 = performance.now();
+    rafId = requestAnimationFrame(draw);
+    ui.status.textContent = "Önizleme açık";
+  }
+
+  function stopPreview(){
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    ui.status.textContent = "";
+  }
+
+  async function record(){
+    stopPreview(); // temiz başlasın
+    const fps = clamp(+ui.fps.value || 60, 24, 60);
+    const secs = clamp(+ui.dur.value || 6, 3, 10);
+
+    const stream = cv.captureStream(fps);
+    const rec = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9'});
+    const chunks = [];
+    rec.ondataavailable = (e)=>{ if(e.data.size) chunks.push(e.data) };
+
+    let elapsed = 0;
+    t0 = performance.now();
+    rafId = requestAnimationFrame(draw);
+
+    const timer = setInterval(()=>{
+      elapsed += 0.1;
+      ui.status.textContent = `Kaydediliyor… ${elapsed.toFixed(1)}s / ${secs}s`;
+      if(elapsed >= secs){
+        clearInterval(timer);
+        if(rafId) cancelAnimationFrame(rafId);
+        rec.stop();
+        ui.status.textContent = "İşleniyor…";
+      }
+    }, 100);
+
+    rec.start();
+    rec.onstop = async ()=>{
+      const blob = new Blob(chunks, {type:'video/webm'});
+      const url = URL.createObjectURL(blob);
+      ui.dl.href = url;
+      ui.dl.style.display = 'inline-block';
+      ui.status.textContent = "Hazır: bpc-anim.webm";
+    };
+  }
+
+  function clamp(v,min,max){return Math.max(min, Math.min(max,v))}
+  function hexToRgb(hex){
+    const h = hex.replace('#','');
+    const bigint = parseInt(h,16);
+    if(h.length===6) return {r:(bigint>>16)&255,g:(bigint>>8)&255,b:bigint&255};
+    // short #abc
+    return {r:((bigint>>8)&15)*17,g:((bigint>>4)&15)*17,b:(bigint&15)*17};
+  }
+  function lerp(a,b,t){return a+(b-a)*t}
+  function lerpColor(h1,h2,t){
+    const c1 = hexToRgb(h1), c2 = hexToRgb(h2);
+    const r = Math.round(lerp(c1.r,c2.r,t));
+    const g = Math.round(lerp(c1.g,c2.g,t));
+    const b = Math.round(lerp(c1.b,c2.b,t));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // UI events
+  ui.preview.onclick = startPreview;
+  ui.startRec.onclick = record;
+})();
+</script>
 </body>
 </html>
