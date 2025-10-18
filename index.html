@@ -1,102 +1,253 @@
-async function record(){
-  stopPreview();
-  setCanvasSize(ui.res.value);
-  const secs = clamp(+ui.dur.value || 6, 3, 10);
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BPC Animasyon Üretici • MP4</title>
+<meta name="description" content="BabyPeacock (BPC) — kısa animasyon kaydet ve MP4 indir.">
+<style>
+  :root { --bg:#0b0b0b; --fg:#eaeaea; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Arial,sans-serif;display:grid;min-height:100svh;grid-template-rows:auto 1fr auto}
+  header,footer{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #1e1e1e}
+  footer{border-top:1px solid #1e1e1e;border-bottom:none;justify-content:center}
+  h1{font-size:18px;margin:0;letter-spacing:.06em;opacity:.9}
+  .wrap{display:grid;grid-template-columns:1fr;gap:14px;padding:14px}
+  .panel{background:#0f0f0f;border:1px solid #1e1e1e;border-radius:14px;padding:12px;display:grid;gap:10px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{font-size:13px;opacity:.85}
+  input[type="number"],input[type="color"],input[type="text"]{width:100%;background:#121212;color:var(--fg);border:1px solid #2a2a2a;border-radius:10px;padding:10px 12px}
+  button{background:#151515;border:1px solid #2a2a2a;color:var(--fg);padding:10px 14px;border-radius:12px;cursor:pointer}
+  button:hover{border-color:#5a5a5a;transform:translateY(-1px)}
+  .prim{border-color:#2f5;box-shadow:0 0 0 0 rgba(0,255,85,.15);animation:pulse 2.2s infinite}
+  @keyframes pulse{to{box-shadow:0 0 0 14px rgba(0,255,85,0)}}
+  .pill{font-size:12px;padding:6px 10px;border:1px solid #2a2a2a;border-radius:999px}
+  .hint{font-size:12px;opacity:.75}
+  .stage{position:relative;display:grid;place-items:center;background:#000;border-radius:16px;overflow:hidden}
+  #cv{width:100%;max-width:1080px;aspect-ratio:1/1}
+  .links{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .ok{color:#7CFC00}
+</style>
+</head>
+<body>
+<header>
+  <h1>🦚 BPC Animasyon Üretici • MP4</h1>
+  <div class="links"><span class="pill">1080p • 60fps</span><span class="pill">Watermark yok</span></div>
+</header>
 
-  ui.status.textContent = "Hazırlanıyor…";
-  const mp4Mime = pickSupportedMp4Mime();
-  const stream = cv.captureStream(FPS);
+<main class="wrap">
+  <section class="panel">
+    <div class="row">
+      <div>
+        <label>Başlık</label>
+        <input id="titleText" type="text" value="BabyPeacock • BPC">
+      </div>
+      <div>
+        <label>Süre (3–10 sn)</label>
+        <input id="dur" type="number" value="6" min="3" max="10">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Renk 1</label>
+        <input id="c1" type="color" value="#00ffd5">
+      </div>
+      <div>
+        <label>Renk 2</label>
+        <input id="c2" type="color" value="#7f00ff">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Arka plan</label>
+        <input id="bg" type="color" value="#0b0b0b">
+      </div>
+      <div>
+        <label>Çözünürlük</label>
+        <input id="res" type="text" value="1080" />
+      </div>
+    </div>
 
-  let chunks = [], mime = mp4Mime || 'video/webm;codecs=vp9';
+    <div class="links">
+      <button id="preview">Önizlemeyi Başlat</button>
+      <button id="record" class="prim">🎬 Kaydı Al (MP4)</button>
+      <a id="dl" class="pill" style="display:none" download="bpc-anim.mp4">İndir: bpc-anim.mp4</a>
+      <span id="status" class="hint"></span>
+    </div>
+  </section>
 
-  let rec;
-  try {
-    rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
-  } catch(e) {
-    mime = 'video/webm;codecs=vp9';
-    rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
+  <section class="panel stage">
+    <canvas id="cv" width="1080" height="1080"></canvas>
+  </section>
+</main>
+
+<footer>
+  <span class="hint">İpucu: Destekleyen tarayıcılarda doğrudan MP4; diğerlerinde WebM→MP4 dönüşümünü sayfa içinde yapar.</span>
+</footer>
+
+<!-- ffmpeg.wasm (yerel dönüşüm için) -->
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const ui = {
+    title: document.getElementById('titleText'),
+    dur: document.getElementById('dur'),
+    c1: document.getElementById('c1'),
+    c2: document.getElementById('c2'),
+    bg: document.getElementById('bg'),
+    res: document.getElementById('res'),
+    preview: document.getElementById('preview'),
+    record: document.getElementById('record'),
+    dl: document.getElementById('dl'),
+    status: document.getElementById('status'),
+  };
+
+  let rafId = null, t0 = 0;
+  const FPS = 60;
+
+  function setCanvasSize(side){
+    const s = Math.max(360, Math.min(2160, parseInt(side||1080,10)));
+    cv.width = s; cv.height = s;
   }
 
-  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  function draw(t){
+    const W=cv.width, H=cv.height;
+    const now=((t - t0)/1000)||0;
 
-  // --- Kayıt başlat
-  chunks = [];
-  rec.start();
-  t0 = performance.now();
-  rafId = requestAnimationFrame(draw);
+    cx.fillStyle = ui.bg.value; cx.fillRect(0,0,W,H);
+    const vign = cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.55);
+    vign.addColorStop(0, "rgba(255,255,255,.06)");
+    vign.addColorStop(1, "rgba(0,0,0,0)");
+    cx.fillStyle = vign; cx.fillRect(0,0,W,H);
 
-  // UI sayacı
-  let elapsed = 0;
-  const uiTimer = setInterval(() => {
-    elapsed += 0.1;
-    ui.status.textContent = `Kaydediliyor… ${elapsed.toFixed(1)}s / ${secs}s`;
-  }, 100);
-
-  // Süre dolunca durdur (kesin durdurma)
-  const hardStop = setTimeout(() => {
-    if (rec.state !== 'inactive') rec.stop();
-  }, secs * 1000);
-
-  // Emniyet: 2 sn sonra hâlâ kapanmadıysa zorla kapat
-  const safety = setTimeout(() => {
-    if (rec.state !== 'inactive') rec.stop();
-  }, secs * 1000 + 2000);
-
-  // Bittiğinde işler
-  rec.onstop = async () => {
-    clearInterval(uiTimer);
-    clearTimeout(hardStop);
-    clearTimeout(safety);
-    if (rafId) cancelAnimationFrame(rafId);
-
-    const blob = new Blob(chunks, { type: mime });
-
-    // WEBM'i hemen indirilebilir yap (anında link)
-    const webmUrl = URL.createObjectURL(blob);
-    ui.dl.href = webmUrl;
-    ui.dl.download = mime.startsWith('video/mp4') ? 'bpc-anim.mp4' : 'bpc-anim.webm';
-    ui.dl.textContent = `İndir: ${ui.dl.download}`;
-    ui.dl.style.display = 'inline-block';
-
-    if (mime.startsWith('video/mp4')) {
-      ui.status.textContent = "MP4 indirildi.";
-      return;
+    const r=W*0.28;
+    cx.save(); cx.translate(W/2,H/2-40); cx.rotate(now*0.5); /* daha yavaş */
+    for(let i=0;i<360;i+=1){
+      const a=i*Math.PI/180, b=(i+1)*Math.PI/180;
+      const mix=(Math.sin((i/360)*Math.PI*2 + now*1.5)+1)/2;
+      cx.beginPath(); cx.moveTo(0,0); cx.arc(0,0,r,a,b); cx.closePath();
+      cx.fillStyle = lerpColor(ui.c1.value, ui.c2.value, mix);
+      cx.fill();
     }
+    const g = cx.createRadialGradient(-r*0.3,-r*0.3,r*0.1,0,0,r*1.05);
+    g.addColorStop(0,"rgba(255,255,255,.28)"); g.addColorStop(1,"rgba(255,255,255,0)");
+    cx.globalCompositeOperation="screen"; cx.fillStyle=g; cx.beginPath();
+    cx.arc(0,0,r*1.05,0,Math.PI*2); cx.fill();
+    cx.globalCompositeOperation="source-over";
+    cx.restore();
 
-    // WEBM → MP4 dönüşüm
-    try {
-      ui.status.textContent = "MP4’e dönüştürülüyor… (ilk kullanımda biraz sürebilir)";
-      const { createFFmpeg } = FFmpeg;
-      const ffmpeg = createFFmpeg({
-        log: false,
-        corePath: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js'
-      });
-      await ffmpeg.load();
+    cx.fillStyle="rgba(234,234,234,.92)"; cx.textAlign="center";
+    cx.font = Math.round(W*0.044)+"px system-ui,Segoe UI,Arial";
+    cx.fillText("Animasyon", W/2, H*0.70);
+    cx.globalAlpha=.85;
+    cx.font = Math.round(W*0.026)+"px system-ui,Segoe UI,Arial";
+    cx.fillText("BPC animasyon denemesi", W/2, H*0.77);
+    cx.globalAlpha=1;
+    cx.globalAlpha=.8;
+    cx.font = Math.round(W*0.022)+"px system-ui,Segoe UI,Arial";
+    cx.fillText(ui.title.value.toUpperCase(), W/2, H*0.12);
+    cx.globalAlpha=1;
 
-      const data = new Uint8Array(await blob.arrayBuffer());
-      ffmpeg.FS('writeFile', 'in.webm', data);
-      await ffmpeg.run(
-        '-i','in.webm',
-        '-c:v','libx264','-pix_fmt','yuv420p','-preset','veryfast','-crf','18',
-        '-r', String(FPS),
-        'out.mp4'
-      );
-      const out = ffmpeg.FS('readFile','out.mp4');
-      const mp4Blob = new Blob([out.buffer], { type: 'video/mp4' });
+    rafId = requestAnimationFrame(draw);
+  }
 
-      // MP4 için ikinci link
-      const a = document.createElement('a');
-      a.className = 'pill';
-      a.href = URL.createObjectURL(mp4Blob);
-      a.download = 'bpc-anim.mp4';
-      a.textContent = 'İndir: bpc-anim.mp4 (dönüştürüldü)';
-      a.style.marginLeft = '8px';
-      ui.dl.insertAdjacentElement('afterend', a);
+  function startPreview(){
+    stopPreview();
+    setCanvasSize(ui.res.value);
+    t0 = performance.now();
+    rafId = requestAnimationFrame(draw);
+    ui.status.textContent = "Önizleme açık";
+  }
+  function stopPreview(){ if(rafId) cancelAnimationFrame(rafId); rafId=null; ui.status.textContent=""; }
 
-      ui.status.textContent = "MP4 hazır.";
-    } catch (err) {
-      console.error(err);
-      ui.status.textContent = "Dönüştürme başarısız. Yeniden dene ya da çözünürlüğü 720 yap.";
-    }
-  };
-}
+  function pickSupportedMp4Mime(){
+    const tries = [
+      'video/mp4;codecs=avc1.640028','video/mp4;codecs=avc1.4d0028','video/mp4;codecs=avc1.42E01E','video/mp4'
+    ];
+    for(const t of tries){ if(MediaRecorder.isTypeSupported?.(t)) return t; }
+    return null;
+  }
+  function clamp(v,min,max){return Math.max(min, Math.min(max,v))}
+  function hexToRgb(hex){ const h=hex.replace('#',''); const b=parseInt(h,16);
+    if(h.length===6) return {r:(b>>16)&255,g:(b>>8)&255,b:b&255};
+    return {r:((b>>8)&15)*17,g:((b>>4)&15)*17,b:(b&15)*17};
+  }
+  function lerp(a,b,t){return a+(b-a)*t}
+  function lerpColor(h1,h2,t){
+    const c1=hexToRgb(h1), c2=hexToRgb(h2);
+    const r=Math.round(lerp(c1.r,c2.r,t));
+    const g=Math.round(lerp(c1.g,c2.g,t));
+    const b=Math.round(lerp(c1.b,c2.b,t));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  async function record(){
+    stopPreview();
+    setCanvasSize(ui.res.value);
+    const secs = clamp(+ui.dur.value || 6, 3, 10);
+
+    ui.status.textContent = "Hazırlanıyor…";
+    const mp4Mime = pickSupportedMp4Mime();
+    const stream = cv.captureStream(60);
+    let chunks = [], mime = mp4Mime || 'video/webm;codecs=vp9';
+
+    let rec;
+    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 }); }
+    catch(e){ mime='video/webm;codecs=vp9'; rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 }); }
+
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+
+    // start
+    chunks = []; rec.start();
+    t0 = performance.now(); rafId = requestAnimationFrame(draw);
+
+    let elapsed = 0;
+    const uiTimer = setInterval(()=>{ elapsed+=0.1; ui.status.textContent = `Kaydediliyor… ${elapsed.toFixed(1)}s / ${secs}s`; },100);
+    const hardStop = setTimeout(()=>{ if(rec.state!=='inactive') rec.stop(); }, secs*1000);
+    const safety  = setTimeout(()=>{ if(rec.state!=='inactive') rec.stop(); }, secs*1000+2000);
+
+    rec.onstop = async ()=>{
+      clearInterval(uiTimer); clearTimeout(hardStop); clearTimeout(safety);
+      if(rafId) cancelAnimationFrame(rafId);
+
+      const blob = new Blob(chunks, { type: mime });
+
+      // WEBM'i anında indirilebilir yap
+      const url = URL.createObjectURL(blob);
+      ui.dl.href = url;
+      ui.dl.download = mime.startsWith('video/mp4') ? 'bpc-anim.mp4' : 'bpc-anim.webm';
+      ui.dl.textContent = `İndir: ${ui.dl.download}`;
+      ui.dl.style.display = 'inline-block';
+
+      if (mime.startsWith('video/mp4')) { ui.status.textContent = "MP4 indirildi."; return; }
+
+      // WebM → MP4 (yerel)
+      try{
+        ui.status.textContent = "MP4’e dönüştürülüyor… (ilk sefer yavaş olabilir)";
+        const { createFFmpeg } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log:false, corePath:'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js' });
+        await ffmpeg.load();
+        const data = new Uint8Array(await blob.arrayBuffer());
+        ffmpeg.FS('writeFile','in.webm',data);
+        await ffmpeg.run('-i','in.webm','-c:v','libx264','-pix_fmt','yuv420p','-preset','veryfast','-crf','18','-r','60','out.mp4');
+        const out = ffmpeg.FS('readFile','out.mp4');
+        const mp4Blob = new Blob([out.buffer], {type:'video/mp4'});
+        const mp4Url = URL.createObjectURL(mp4Blob);
+        const a = document.createElement('a');
+        a.className='pill'; a.href=mp4Url; a.download='bpc-anim.mp4';
+        a.textContent='İndir: bpc-anim.mp4 (dönüştürüldü)'; a.style.marginLeft='8px';
+        ui.dl.insertAdjacentElement('afterend', a);
+        ui.status.innerHTML = '<span class="ok">MP4 hazır.</span>';
+      }catch(err){ console.error(err); ui.status.textContent="Dönüştürme hatası. Yeniden dene."; }
+    };
+  }
+
+  ui.preview.onclick = startPreview;
+  ui.record.onclick  = record;
+})();
+</script>
+</body>
+</html>
