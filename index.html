@@ -1,136 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Babypeacock • The spark of creativity</title>
 <style>
   :root{--ui-bg:#0c0c0c;--ui-fg:#eaeaea}
   html,body{margin:0;height:100%;background:#000;color:#eaeaea;overflow:hidden;
     font-family:system-ui,Segoe UI,monospace;display:flex;justify-content:center;align-items:center}
   canvas{width:100%;max-width:1080px;aspect-ratio:16/9;display:block;border-radius:14px;background:#000}
-  .ui{position:fixed;inset:auto 0 0 0;display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap;
+  .ui{position:fixed;inset:auto 0 0 0;display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;
       padding:.65rem;background:linear-gradient(#0008,#0000)}
   .ui>*{font:600 14px/1.1 system-ui;border-radius:10px;border:1px solid #333;padding:.6rem .9rem;background:var(--ui-bg);color:var(--ui-fg)}
-  select, label>span{font-weight:600}
   button{cursor:pointer} button:active{transform:scale(.98)}
-  .hint{position:fixed;top:.5rem;right:.5rem;opacity:.6;font:12px/1.1 system-ui}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
-
 <div class="ui">
-  <button id="preview" title="Animasyonu baştan oynat">Önizleme</button>
-  <button id="record"  title="Animasyonu indir">Kaydı Al</button>
-  <label><input id="sound" type="checkbox"/> <span>Ses</span></label>
-  <label>Format
-    <select id="format">
-      <option value="webm" selected>WEBM (önerilen)</option>
-      <option value="auto">MP4 (uyumluysa)</option>
-    </select>
-  </label>
+  <button id="preview">Önizleme</button>
+  <button id="record">Kaydı Al (WEBM)</button>
+  <label><input id="sound" type="checkbox"> Ses</label>
 </div>
-<div class="hint">Not: bpc-bird.png depo kökünde olmalı</div>
 
 <script>
 (() => {
-  const cv = document.getElementById('cv');
-  const cx = cv.getContext('2d', {alpha:false});
-  function setSize(w=1920){ const W=Math.max(960,Math.min(3840,Math.round(w))); cv.width=W; cv.height=Math.round(W*9/16); }
+  const cv=document.getElementById('cv'), cx=cv.getContext('2d',{alpha:false});
+  function setSize(w=1920){const W=Math.max(960,Math.min(3840,Math.round(w)));cv.width=W;cv.height=Math.round(W*9/16);}
   setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
-  const slogan="The spark of creativity";
-  const TYPE_MS   = 2400, PAUSE_MS  = 600, BRIDGE_MS = 450, STORM_MS  = 3400;
-  const TOTAL_MS  = TYPE_MS + PAUSE_MS + BRIDGE_MS + STORM_MS;
+  // Zamanlar
+  const TYPE_MS=2400, PAUSE_MS=600, BRIDGE_MS=450, STORM_MS=3400, HOLD_MS=3000; // <- +3s final bekleme
+  const TOTAL_MS=TYPE_MS+PAUSE_MS+BRIDGE_MS+STORM_MS+HOLD_MS;
 
-  // Kuş resmi (siyahı transparan yap)
+  // Metin
+  const slogan="The spark of creativity";
+
+  // Kuş görseli
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
-  let logo=null; raw.onload=()=>{ const off=document.createElement('canvas'),o=off.getContext('2d');
-    off.width=raw.naturalWidth; off.height=raw.naturalHeight; o.drawImage(raw,0,0);
+  let logo=null; raw.onload=()=>{const off=document.createElement('canvas'),o=off.getContext('2d');
+    off.width=raw.naturalWidth;off.height=raw.naturalHeight;o.drawImage(raw,0,0);
     const img=o.getImageData(0,0,off.width,off.height),d=img.data;
     for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22)d[i+3]=0;}
     o.putImageData(img,0,0); logo=off;
   };
 
-  // ---------- SES (gelişmiş thunder) ----------
-  let actx=null, mix=null, busType=null, busThunder=null;
-  const soundChk = document.getElementById('sound');
-  function ensureAudio(){
-    if(!soundChk.checked) return null;
+  // Ses (opsiyonel)
+  let actx=null,mix=null,busType=null,busThunder=null;
+  const soundChk=document.getElementById('sound');
+  function ensureAudio(){ if(!soundChk.checked) return null;
     if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); }
-    if(!mix){ mix=actx.createGain(); mix.gain.value=0.9; mix.connect(actx.destination); }
-    if(!busType){ busType=actx.createGain(); busType.gain.value=0.7; busType.connect(mix); }
-    if(!busThunder){ busThunder=actx.createGain(); busThunder.gain.value=0.9; busThunder.connect(mix); }
+    if(!mix){ mix=actx.createGain(); mix.gain.value=.9; mix.connect(actx.destination); }
+    if(!busType){ busType=actx.createGain(); busType.gain.value=.7; busType.connect(mix); }
+    if(!busThunder){ busThunder=actx.createGain(); busThunder.gain.value=.9; busThunder.connect(mix); }
     return actx;
   }
-  function typeClick(){
-    if(!ensureAudio()) return;
-    const o=actx.createOscillator(), g=actx.createGain();
-    o.type='square'; o.frequency.value=880 + Math.random()*80;
+  function typeClick(){ if(!ensureAudio())return; const o=actx.createOscillator(), g=actx.createGain();
+    o.type='square'; o.frequency.value=880+Math.random()*80;
     g.gain.setValueAtTime(0,actx.currentTime);
-    g.gain.linearRampToValueAtTime(0.35,actx.currentTime+0.005);
-    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.08);
-    o.connect(g).connect(busType); o.start(); o.stop(actx.currentTime+0.09);
+    g.gain.linearRampToValueAtTime(.35,actx.currentTime+.005);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.08);
+    o.connect(g).connect(busType); o.start(); o.stop(actx.currentTime+.09);
   }
-  function playThunderLayered(){
-    if(!ensureAudio()) return;
-
-    // 1) Sub boom (40–60 Hz sine)
-    const sub=actx.createOscillator(); sub.type='sine';
-    sub.frequency.setValueAtTime(50, actx.currentTime);
-    const subG=actx.createGain(); subG.gain.setValueAtTime(0.0,actx.currentTime);
-    subG.gain.linearRampToValueAtTime(0.9, actx.currentTime+0.02);
-    subG.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+1.1);
-    sub.connect(subG).connect(busThunder); sub.start(); sub.stop(actx.currentTime+1.2);
-
-    // 2) Crack (band-pass noise short burst)
-    const crackLen=actx.sampleRate*0.18, crackB=actx.createBuffer(1,crackLen,actx.sampleRate);
-    const d1=crackB.getChannelData(0); for(let i=0;i<crackLen;i++){ d1[i]=(Math.random()*2-1) * (1-i/crackLen); }
-    const crack=actx.createBufferSource(); crack.buffer=crackB;
-    const bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3500; bp.Q.value=0.8;
-    const cg=actx.createGain(); cg.gain.setValueAtTime(0.0,actx.currentTime);
-    cg.gain.linearRampToValueAtTime(1.0,actx.currentTime+0.01);
-    cg.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.18);
-    crack.connect(bp).connect(cg).connect(busThunder); crack.start();
-
-    // 3) Rumble (LP noise + hafif yankı/feedback)
-    const len=actx.sampleRate*1.4, buff=actx.createBuffer(1,len,actx.sampleRate),data=buff.getChannelData(0);
-    for(let i=0;i<len;i++){ data[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.5); }
-    const src=actx.createBufferSource(); src.buffer=buff;
+  function playThunder(){ if(!ensureAudio())return;
+    // sub boom
+    const sub=actx.createOscillator(); sub.type='sine'; sub.frequency.setValueAtTime(50,actx.currentTime);
+    const sg=actx.createGain(); sg.gain.setValueAtTime(0,actx.currentTime);
+    sg.gain.linearRampToValueAtTime(.9,actx.currentTime+.02);
+    sg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.1);
+    sub.connect(sg).connect(busThunder); sub.start(); sub.stop(actx.currentTime+1.2);
+    // crack
+    const cl=actx.sampleRate*.18, cb=actx.createBuffer(1,cl,actx.sampleRate), d=cb.getChannelData(0);
+    for(let i=0;i<cl;i++) d[i]=(Math.random()*2-1)*(1-i/cl);
+    const cs=actx.createBufferSource(); cs.buffer=cb;
+    const bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3500; bp.Q.value=.8;
+    const cg=actx.createGain(); cg.gain.setValueAtTime(0,actx.currentTime);
+    cg.gain.linearRampToValueAtTime(1,actx.currentTime+.01);
+    cg.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.18);
+    cs.connect(bp).connect(cg).connect(busThunder); cs.start();
+    // rumble
+    const rl=actx.sampleRate*1.4, rb=actx.createBuffer(1,rl,actx.sampleRate), rbd=rb.getChannelData(0);
+    for(let i=0;i<rl;i++) rbd[i]=(Math.random()*2-1)*Math.pow(1-i/rl,1.5);
+    const rs=actx.createBufferSource(); rs.buffer=rb;
     const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1400;
-    const rumG=actx.createGain(); rumG.gain.setValueAtTime(0.0,actx.currentTime);
-    rumG.gain.linearRampToValueAtTime(0.8,actx.currentTime+0.04);
-    rumG.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+1.35);
-
-    // basit feedback delay (yankı hissi)
-    const del=actx.createDelay(0.4); del.delayTime.value=0.22;
-    const fb=actx.createGain(); fb.gain.value=0.25;
-    rumG.connect(del); del.connect(fb); fb.connect(rumG); // feedback
-    src.connect(lp).connect(rumG).connect(busThunder); src.start();
+    const rg=actx.createGain(); rg.gain.setValueAtTime(0,actx.currentTime);
+    rg.gain.linearRampToValueAtTime(.8,actx.currentTime+.04);
+    rg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.35);
+    const del=actx.createDelay(.4); del.delayTime.value=.22; const fb=actx.createGain(); fb.gain.value=.25;
+    rg.connect(del); del.connect(fb); fb.connect(rg);
+    rs.connect(lp).connect(rg).connect(busThunder); rs.start();
   }
 
-  // ---------- YILDIRIM ----------
-  function drawLightning(x, yTop, yBottom) {
+  // Yıldırım çizimi
+  function bolt(x,y0,y1){
     cx.save(); cx.globalCompositeOperation='screen'; cx.lineCap='round';
-    const seg=12, pts=[[x,yTop]]; let px=x,py=yTop,total=yBottom-yTop;
-    for(let i=1;i<=seg;i++){
-      const t=i/seg;
-      const nx=px+(Math.random()-0.5)*total*0.03*(1-t);
-      const ny=yTop+t*total+(Math.random()-0.5)*15*(1-t);
-      pts.push([nx,ny]); px=nx; py=ny;
-    }
-    cx.strokeStyle='rgba(255,255,255,0.95)'; cx.shadowColor='rgba(170,220,255,0.9)';
-    cx.shadowBlur=28; cx.lineWidth=6; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]);
-    for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
-    cx.strokeStyle='rgba(80,170,255,0.9)'; cx.shadowColor='rgba(120,200,255,0.9)';
-    cx.shadowBlur=40; cx.lineWidth=2.5; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]);
-    for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
-    cx.restore();
+    const seg=12, pts=[[x,y0]]; let px=x,py=y0,tot=y1-y0;
+    for(let i=1;i<=seg;i++){const t=i/seg; const nx=px+(Math.random()-.5)*tot*.03*(1-t);
+      const ny=y0+t*tot+(Math.random()-.5)*15*(1-t); pts.push([nx,ny]); px=nx; py=ny;}
+    cx.strokeStyle='rgba(255,255,255,.95)'; cx.shadowColor='rgba(170,220,255,.9)';
+    cx.shadowBlur=28; cx.lineWidth=6; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke();
+    cx.strokeStyle='rgba(80,170,255,.9)'; cx.shadowColor='rgba(120,200,255,.9)'; cx.shadowBlur=40; cx.lineWidth=2.5;
+    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke(); cx.restore();
   }
 
-  // ---------- SAHNE ----------
+  // Sahne durumları
   let phase='idle', typedCount=0, typeTimer=null, bridgeStart=0, stormStart=0, raf=0;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)); const easeOutCubic=t=>1-Math.pow(1-t,3);
+  const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
   function drawType(){
     const W=cv.width,H=cv.height;
@@ -139,129 +113,79 @@
     const fs=Math.round(H*0.08);
     cx.fillStyle='#eaeaea'; cx.font=fs+'px monospace'; cx.textAlign='center'; cx.textBaseline='middle';
     cx.fillText(typed, W/2, H/2);
-    const caretOn = Math.floor(Date.now()/400)%2===0;
-    const w = cx.measureText(typed).width;
-    if (typedCount < slogan.length || caretOn) cx.fillRect(W/2+w/2+8, H/2-fs*0.55, 6, fs*1.1);
+    const caretOn=Math.floor(Date.now()/400)%2===0;
+    const w=cx.measureText(typed).width;
+    if(typedCount<slogan.length || caretOn) cx.fillRect(W/2+w/2+8, H/2-fs*0.55, 6, fs*1.1);
   }
   function drawBridge(){ const W=cv.width,H=cv.height; cx.fillStyle='#000'; cx.fillRect(0,0,W,H); }
   function drawStorm(){
-    const W=cv.width,H=cv.height;
-    const elapsed = performance.now() - stormStart;
+    const W=cv.width,H=cv.height, elapsed=performance.now()-stormStart;
     cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
-
-    // ambient/vinyet
-    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-    const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
-    const ambStart=1500, ambEnd=3300; let ambient=0;
-    if(elapsed>ambStart){ const k=clamp((elapsed-ambStart)/(ambEnd-ambStart),0,1); ambient=easeInOutQuad(k)*0.55; }
-    const vign=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
-    vign.addColorStop(0, `rgba(180,220,255,${0.06+ambient*0.35})`);
-    vign.addColorStop(1, 'rgba(0,0,0,0)'); cx.fillStyle=vign; cx.fillRect(0,0,W,H);
-
-    // yıldırım ilk ~900ms
-    if(elapsed<900){
-      const bolts=2+Math.floor(Math.random()*2);
-      for(let i=0;i<bolts;i++){ const sx=W*0.2+Math.random()*W*0.6; drawLightning(sx,-60,H*0.55); }
-      cx.fillStyle='rgba(255,255,255,0.32)'; cx.fillRect(0,0,W,H);
-    }
-
+    // vinyet/aydınlanma
+    let ambient=0; if(elapsed>1500){const k=clamp((elapsed-1500)/(3300-1500),0,1); ambient=easeInOutQuad(k)*.55;}
+    const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
+    g.addColorStop(0,`rgba(180,220,255,${0.06+ambient*0.35})`); g.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=g; cx.fillRect(0,0,W,H);
+    // yıldırım (ilk 900ms)
+    if(elapsed<900){ const n=2+Math.floor(Math.random()*2); for(let i=0;i<n;i++){ const sx=W*0.2+Math.random()*W*0.6; bolt(sx,-60,H*0.55);} cx.fillStyle='rgba(255,255,255,.32)'; cx.fillRect(0,0,W,H); }
     // kuş
-    if(logo){
-      const appear=Math.max(0,Math.min(1,(elapsed-1000)/1200));
-      const alpha=1-Math.pow(1-appear,3);
+    if(logo){ const appear=clamp((elapsed-1000)/1200,0,1), a=easeOutCubic(appear);
       const base=H*0.5, pulse=1+Math.sin(elapsed/1000*1.6)*0.03*(appear>0?1:0);
-      cx.save(); cx.globalAlpha=alpha; cx.translate(W/2,H*0.55);
-      cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025; cx.scale(pulse,pulse);
-      cx.drawImage(logo,-base/2,-base/2,base,base); cx.restore();
+      cx.save(); cx.globalAlpha=a; cx.translate(W/2,H*0.55); cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025;
+      cx.scale(pulse,pulse); cx.drawImage(logo,-base/2,-base/2,base,base); cx.restore();
     }
     // yazı
     cx.fillStyle='#eaf2ff'; cx.textAlign='center'; cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
-    cx.globalAlpha=Math.max(0,Math.min(1,(elapsed-1000)/1200)); cx.fillText('Babypeacock',W/2,H*0.18); cx.globalAlpha=1;
-
-    // halka (conic varsa)
-    if(typeof cx.createConicGradient==='function'){
-      const glow=Math.max(0,Math.min(1,(elapsed-1600)/1400));
-      if(glow>0){ cx.save(); cx.translate(W/2,H/2); cx.globalAlpha=glow*0.6; cx.lineWidth=W*0.015;
+    cx.globalAlpha=clamp((elapsed-1000)/1200,0,1); cx.fillText('Babypeacock',W/2,H*0.18); cx.globalAlpha=1;
+    // halka (varsa)
+    if(typeof cx.createConicGradient==='function'){ const glow=clamp((elapsed-1600)/1400,0,1);
+      if(glow>0){ cx.save(); cx.translate(W/2,H/2); cx.globalAlpha=glow*.6; cx.lineWidth=W*0.015;
         const ring=cx.createConicGradient((elapsed/1000)*0.2,0,0); ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
-        cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
-        cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke(); cx.restore(); }
+        cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02; cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke(); cx.restore(); }
     }
+    // burada hiçbir fade-out yok; HOLD_MS boyunca sahneyi sabit bırakacağız (kayıtta da aynı)
   }
 
+  // Akış
   function resetAndStart(){
     cancelAnimationFrame(raf);
     typedCount=0; clearInterval(typeTimer);
     phase='type';
-    // daktilo: 120ms/harf (sesle)
     typeTimer=setInterval(()=>{
-      if(typedCount < slogan.length){ typedCount++; drawType(); typeClick(); }
-      if(typedCount >= slogan.length){
-        clearInterval(typeTimer);
-        setTimeout(()=>{ phase='bridge'; bridgeStart=performance.now(); }, PAUSE_MS);
-      }
-    }, 120);
-    drawType();
+      if(typedCount<slogan.length){ typedCount++; drawType(); if(soundChk.checked) typeClick(); }
+      if(typedCount>=slogan.length){ clearInterval(typeTimer); setTimeout(()=>{ phase='bridge'; bridgeStart=performance.now(); }, PAUSE_MS); }
+    },120);
+    drawType(); raf=requestAnimationFrame(loop);
+  }
+  function loop(){
+    if(phase==='bridge'){ drawBridge(); if(performance.now()-bridgeStart>BRIDGE_MS){ phase='storm'; stormStart=performance.now(); if(soundChk.checked){ ensureAudio(); actx.resume?.(); playThunder(); } } }
+    else if(phase==='storm'){ drawStorm(); }
     raf=requestAnimationFrame(loop);
   }
 
-  function loop(){
-    if(phase==='bridge'){
-      drawBridge();
-      if(performance.now()-bridgeStart > BRIDGE_MS){ phase='storm'; stormStart=performance.now(); playThunderLayered(); }
-    } else if(phase==='storm'){ drawStorm(); }
-    requestAnimationFrame(loop);
-  }
-
-  // ---------- Kayıt ----------
-  const recBtn=document.getElementById('record');
-  const prvBtn=document.getElementById('preview');
-  const fmtSel=document.getElementById('format');
-
-  function pickMime(){
-    const want = fmtSel.value;
-    if(want==='webm') return 'video/webm;codecs=vp9';
-    // auto → önce mp4 dene, olmazsa webm
-    const candidates=['video/mp4;codecs=h264','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
-    for(const m of candidates){ if(MediaRecorder.isTypeSupported(m)) return m; }
-    return ''; // tarayıcı seçer
-  }
-
+  // Kayıt (WEBM’e zorla)
   async function recordOnce(){
     if(soundChk.checked){ ensureAudio(); await actx.resume?.(); }
     resetAndStart();
-
-    const canvasStream = cv.captureStream(60);
-    let tracks = [...canvasStream.getVideoTracks()];
-    if(soundChk.checked && actx){
-      const dest = actx.createMediaStreamDestination();
-      mix.disconnect(); mix.connect(dest); mix.connect(actx.destination);
-      tracks = tracks.concat(dest.stream.getAudioTracks());
-    }
-    const stream = new MediaStream(tracks);
-
-    const mime = pickMime();
-    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond: 7_000_000});
+    const canvasStream=cv.captureStream(60);
+    let tracks=[...canvasStream.getVideoTracks()];
+    if(soundChk.checked && actx){ const dest=actx.createMediaStreamDestination(); mix.disconnect(); mix.connect(dest); mix.connect(actx.destination); tracks=tracks.concat(dest.stream.getAudioTracks()); }
+    const stream=new MediaStream(tracks);
+    const mime='video/webm;codecs=vp9'; // ZORLA WEBM (mobil uyumlu)
+    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:7_000_000});
     let chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
     rec.start();
-
-    setTimeout(()=>rec.stop(), TOTAL_MS + 400);
-
-    rec.onstop=()=>{
-      const blob=new Blob(chunks,{type:mime||'video/webm'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      const isMp4 = mime && mime.startsWith('video/mp4');
-      a.href=url; a.download=`bpc-intro.${isMp4?'mp4':'webm'}`; document.body.appendChild(a); a.click();
-      a.remove(); URL.revokeObjectURL(url);
-    };
+    setTimeout(()=>rec.stop(), TOTAL_MS+HOLD_MS+300); // tüm akış + ekstra 3sn hold
+    rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime}); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='bpc-intro.webm'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); };
   }
 
-  prvBtn.onclick = () => { ensureAudio()?.resume?.(); resetAndStart(); };
-  recBtn.onclick = recordOnce;
+  // UI
+  document.getElementById('preview').onclick=()=>{ ensureAudio()?.resume?.(); resetAndStart(); };
+  document.getElementById('record').onclick =recordOnce;
 
-  // başlangıç
-  resetAndStart();
-  requestAnimationFrame(loop);
+  // Başlat
+  resetAndStart(); requestAnimationFrame(loop);
 })();
 </script>
 </body>
