@@ -1,149 +1,244 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>🦚 BPC Animasyon Üretici • MP4</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BPC Animasyon Üretici • MP4 (v2)</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin:0; background:#000; color:#eee;
-    font-family: system-ui, Arial, sans-serif;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    height:100vh; overflow:hidden;
-  }
-  h1 { font-size:28px; margin:10px 0; }
-  .panel { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
-  .panel input { padding:6px; border-radius:6px; border:1px solid #444; background:#111; color:#eee; }
-  .btn { padding:8px 14px; border-radius:8px; background:#111; border:1px solid #22a2aa; color:#eee; cursor:pointer; }
-  .btn:hover { background:#22a2aa33; }
-  canvas { width:90vw; max-width:720px; aspect-ratio:1; border-radius:12px; background:#000; }
+  :root{--bg:#0a0a0a;--fg:#eaeaea;--b:#1f1f1f}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Arial,sans-serif;display:grid;grid-template-rows:auto 1fr auto;min-height:100svh}
+  header,footer{padding:14px 16px;border-bottom:1px solid var(--b)}
+  footer{border-top:1px solid var(--b);border-bottom:none;text-align:center;font-size:12px;opacity:.8}
+  h1{margin:0 0 8px;font-size:22px;letter-spacing:.02em}
+  .wrap{display:grid;gap:12px;padding:12px}
+  .panel{border:1px solid var(--b);border-radius:14px;background:#0f0f0f;padding:12px;display:grid;gap:10px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{font-size:12px;opacity:.85}
+  input{width:100%;background:#121212;color:var(--fg);border:1px solid #2a2a2a;border-radius:10px;padding:10px}
+  button{background:#151515;border:1px solid #2a2a2a;color:var(--fg);padding:10px 14px;border-radius:12px;cursor:pointer}
+  button:hover{border-color:#5a5a5a;transform:translateY(-1px)}
+  .prim{border-color:#2f5;box-shadow:0 0 0 0 rgba(0,255,85,.15);animation:pulse 2.2s infinite}
+  @keyframes pulse{to{box-shadow:0 0 0 14px rgba(0,255,85,0)}}
+  .links{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pill{font-size:12px;padding:6px 10px;border:1px solid #2a2a2a;border-radius:999px}
+  .stage{display:grid;place-items:center;border:1px solid var(--b);border-radius:16px;background:#000;overflow:hidden}
+  canvas{width:100%;max-width:1080px;aspect-ratio:1/1;display:block}
+  .hint{font-size:12px;opacity:.75}
 </style>
 </head>
 <body>
-  <h1>🦚 BPC Kısa Animasyon Üretici</h1>
-  <div class="panel">
-    <label>Başlık <input id="title" type="text" value="BabyPeacock • BPC"></label>
-    <label>Süre (sn) <input id="dur" type="number" value="6" min="3" max="10"></label>
-    <label>Renk 1 <input id="c1" type="color" value="#00ffdd"></label>
-    <label>Renk 2 <input id="c2" type="color" value="#7700ff"></label>
-    <label>Çözünürlük <input id="res" type="number" value="1080"></label>
-  </div>
-  <div class="panel">
-    <button class="btn" id="preview">Önizleme</button>
-    <button class="btn" id="record">Kaydı Al (MP4)</button>
-  </div>
-  <canvas id="cv"></canvas>
-  <p id="status"></p>
-  <a id="dl" style="display:none" class="btn" download>İndir</a>
+<header>
+  <h1>🦚 BPC Kısa Animasyon Üretici • MP4 (v2)</h1>
+  <div class="links"><span class="pill">1080p • 60fps</span><span class="pill">Watermark yok</span></div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <div class="row">
+      <div><label>Başlık</label><input id="titleText" type="text" value="BabyPeacock • BPC"></div>
+      <div><label>Süre (3–10 sn)</label><input id="dur" type="number" value="6" min="3" max="10"></div>
+    </div>
+    <div class="row">
+      <div><label>Renk 1</label><input id="c1" type="color" value="#00ffd5"></div>
+      <div><label>Renk 2</label><input id="c2" type="color" value="#7f00ff"></div>
+    </div>
+    <div class="row">
+      <div><label>Arka plan</label><input id="bg" type="color" value="#0a0a0a"></div>
+      <div><label>Çözünürlük</label><input id="res" type="number" value="1080"></div>
+    </div>
+    <div class="links">
+      <button id="preview">Önizlemeyi Başlat</button>
+      <button id="record" class="prim">🎬 Kaydı Al (MP4)</button>
+      <a id="dl" class="pill" style="display:none" download="bpc-anim.mp4">İndir: bpc-anim.mp4</a>
+      <span id="status" class="hint"></span>
+    </div>
+  </section>
+
+  <section class="panel stage">
+    <canvas id="cv" width="1080" height="1080"></canvas>
+  </section>
+</main>
+
+<footer>İpucu: İlk MP4 kaydında kısa bir bekleme normaldir. Sonrakiler hızlıdır.</footer>
 
 <script>
-const cv = document.getElementById("cv");
-const cx = cv.getContext("2d");
-const ui = {
-  title: document.getElementById("title"),
-  dur: document.getElementById("dur"),
-  c1: document.getElementById("c1"),
-  c2: document.getElementById("c2"),
-  res: document.getElementById("res"),
-  status: document.getElementById("status"),
-  dl: document.getElementById("dl")
-};
-let W, H, t = 0, anim, rec;
-
-// --- Kuş Maskotu ---
-const logo = new Image();
-logo.crossOrigin = "anonymous";
-logo.src = "bpc-bird.png"; // görsel deponda olmalı
-
-function resizeCanvas(size = 720) {
-  cv.width = size;
-  cv.height = size;
-  W = cv.width; H = cv.height;
-}
-
-function drawFrame(ts) {
-  t += 0.016;
-  cx.clearRect(0, 0, W, H);
-
-  // Arka plan gradyan dairesi
-  const g = cx.createConicGradient(t, W/2, H/2);
-  g.addColorStop(0, ui.c1.value);
-  g.addColorStop(1, ui.c2.value);
-  cx.fillStyle = g;
-  cx.beginPath();
-  cx.arc(W/2, H/2, W*0.45, 0, Math.PI*2);
-  cx.fill();
-
-  // Kuş
-  if (logo.complete) {
-    const s = W * 0.32;
-    const flap = Math.sin(t*4) * 0.05;
-    const bob = Math.sin(t*2) * (W*0.01);
-    cx.save();
-    cx.translate(W/2, H/2 - 20 + bob);
-    cx.scale(1 + flap, 1 - flap);
-    cx.shadowColor = "rgba(0,255,213,0.3)";
-    cx.shadowBlur = W*0.02;
-    cx.drawImage(logo, -s/2, -s/2, s, s);
-    cx.restore();
-  }
-
-  // Yazı
-  cx.fillStyle = "#fff";
-  cx.font = `${W*0.05}px Poppins, sans-serif`;
-  cx.textAlign = "center";
-  cx.fillText(ui.title.value, W/2, H*0.9);
-
-  anim = requestAnimationFrame(drawFrame);
-}
-
-document.getElementById("preview").onclick = () => {
-  cancelAnimationFrame(anim);
-  resizeCanvas(ui.res.value);
-  t = 0;
-  drawFrame();
-};
-
-// --- Kayıt ---
-async function record() {
-  cancelAnimationFrame(anim);
-  resizeCanvas(ui.res.value);
-  t = 0;
-  const FPS = 60;
-  const stream = cv.captureStream(FPS);
-  const chunks = [];
-  const mime = 'video/mp4';
-  const rec = new MediaRecorder(stream, {
-    mimeType: mime, videoBitsPerSecond: 8_000_000
-  });
-  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
-  rec.start();
-
-  ui.status.textContent = "Kaydediliyor...";
-  const dur = Math.min(Math.max(+ui.dur.value, 3), 10);
-  let frames = dur * FPS;
-  function loop() {
-    if (frames-- > 0) {
-      drawFrame();
-      requestAnimationFrame(loop);
-    } else rec.stop();
-  }
-  loop();
-
-  rec.onstop = () => {
-    const blob = new Blob(chunks, { type: mime });
-    const url = URL.createObjectURL(blob);
-    ui.dl.href = url;
-    ui.dl.download = "bpc-anim.mp4";
-    ui.dl.style.display = "inline-block";
-    ui.dl.textContent = "🎬 MP4 İndir";
-    ui.status.textContent = "Kayıt tamamlandı!";
+(() => {
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const ui = {
+    title: document.getElementById('titleText'),
+    dur: document.getElementById('dur'),
+    c1: document.getElementById('c1'),
+    c2: document.getElementById('c2'),
+    bg: document.getElementById('bg'),
+    res: document.getElementById('res'),
+    preview: document.getElementById('preview'),
+    record: document.getElementById('record'),
+    dl: document.getElementById('dl'),
+    status: document.getElementById('status'),
   };
-}
 
-document.getElementById("record").onclick = record;
+  let rafId=null, t0=0;
+  const FPS = 60;
+
+  function setCanvasSize(side){
+    const s = Math.max(360, Math.min(2160, parseInt(side||1080,10)));
+    cv.width = s; cv.height = s;
+  }
+
+  // ---- Kuş görseli (siyah arka planı otomatik temizle) ----
+  const rawLogo = new Image();
+  rawLogo.crossOrigin = 'anonymous';
+  rawLogo.src = 'bpc-bird.png';        // görselin adını değiştirme
+  let logoTex = null;
+  rawLogo.onload = () => {
+    const off = document.createElement('canvas');
+    const o = off.getContext('2d');
+    off.width = rawLogo.naturalWidth;
+    off.height = rawLogo.naturalHeight;
+    o.drawImage(rawLogo,0,0);
+    const img = o.getImageData(0,0,off.width,off.height);
+    const d = img.data;
+    // basit chroma-key: çok koyu pikselleri şeffafla
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i], g=d[i+1], b=d[i+2];
+      if (r<20 && g<20 && b<20){ d[i+3]=0; }
+    }
+    o.putImageData(img,0,0);
+    logoTex = off; // işlenmiş doku
+  };
+
+  function hexToRgb(hex){ const h=hex.replace('#',''); const v=parseInt(h,16); 
+    if(h.length===6) return {r:(v>>16)&255,g:(v>>8)&255,b:v&255};
+    return {r:((v>>8)&15)*17,g:((v>>4)&15)*17,b:(v&15)*17};
+  }
+  function lerp(a,b,t){return a+(b-a)*t}
+  function lerpColor(h1,h2,t){
+    const c1=hexToRgb(h1), c2=hexToRgb(h2);
+    const r=Math.round(lerp(c1.r,c2.r,t)), g=Math.round(lerp(c1.g,c2.g,t)), b=Math.round(lerp(c1.b,c2.b,t));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function draw(ts){
+    const W=cv.width, H=cv.height;
+    const now=((ts - t0)/1000)||0;
+
+    // arka plan
+    cx.fillStyle = ui.bg.value; cx.fillRect(0,0,W,H);
+
+    // büyük yumuşak hale
+    cx.save();
+    cx.translate(W/2,H/2);
+    const halo = cx.createRadialGradient(0,0,0,0,0,W*0.55);
+    halo.addColorStop(0,'rgba(255,255,255,.08)');
+    halo.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle = halo; cx.fillRect(-W/2,-H/2,W,H);
+    cx.restore();
+
+    // dönen renkli disk
+    const r = W*0.33; // biraz küçülttüm ki kuş öne çıksın
+    cx.save();
+    cx.translate(W/2, H/2 - 40);
+    cx.rotate(now*0.5);
+    for(let i=0;i<360;i++){
+      const a=i*Math.PI/180, b=(i+1)*Math.PI/180;
+      const mix=(Math.sin((i/360)*Math.PI*2 + now*1.5)+1)/2;
+      cx.beginPath(); cx.moveTo(0,0); cx.arc(0,0,r,a,b); cx.closePath();
+      cx.fillStyle = lerpColor(ui.c1.value, ui.c2.value, mix);
+      cx.fill();
+    }
+    // parlama
+    const g = cx.createRadialGradient(-r*0.35,-r*0.35,r*0.1,0,0,r*1.05);
+    g.addColorStop(0,"rgba(255,255,255,.22)"); g.addColorStop(1,"rgba(255,255,255,0)");
+    cx.globalCompositeOperation="screen";
+    cx.fillStyle=g; cx.beginPath(); cx.arc(0,0,r*1.05,0,Math.PI*2); cx.fill();
+    cx.globalCompositeOperation="source-over";
+    cx.restore();
+
+    // KUŞ (nefes + hafif dönme + salınma)
+    if (logoTex){
+      const s   = W * 0.36;
+      const bob = Math.sin(now*2) * (W*0.008);
+      const breath = 1 + Math.sin(now*1.5)*0.04;
+      const yaw = Math.sin(now*0.8)*0.05;
+
+      cx.save();
+      cx.translate(W/2, H/2 - 40 + bob);
+      cx.rotate(yaw);
+      cx.scale(breath, breath);
+      cx.shadowColor='rgba(0,255,213,.35)';
+      cx.shadowBlur=W*0.02;
+      cx.drawImage(logoTex, -s/2, -s/2, s, s);
+      cx.restore();
+    }
+
+    // başlık metni
+    cx.fillStyle="rgba(234,234,234,.98)"; cx.textAlign="center";
+    cx.font=Math.round(W*0.045)+"px system-ui,Segoe UI,Arial";
+    cx.fillText(ui.title.value, W/2, H*0.92);
+
+    rafId=requestAnimationFrame(draw);
+  }
+
+  function startPreview(){
+    stopPreview();
+    setCanvasSize(ui.res.value);
+    t0=performance.now();
+    rafId=requestAnimationFrame(draw);
+    ui.status.textContent="Önizleme açık";
+  }
+  function stopPreview(){ if(rafId) cancelAnimationFrame(rafId); rafId=null; ui.status.textContent=""; }
+
+  function pickSupportedMp4Mime(){
+    const tries=['video/mp4;codecs=avc1.640028','video/mp4;codecs=avc1.4d0028','video/mp4;codecs=avc1.42E01E','video/mp4'];
+    for(const t of tries){ if(MediaRecorder.isTypeSupported?.(t)) return t; }
+    return null;
+  }
+  function clamp(v,min,max){return Math.max(min, Math.min(max,v))}
+
+  async function record(){
+    stopPreview();
+    setCanvasSize(ui.res.value);
+    const secs = clamp(+ui.dur.value||6,3,10);
+
+    ui.status.textContent="Hazırlanıyor…";
+    const mp4Mime = pickSupportedMp4Mime();
+    const stream = cv.captureStream(FPS);
+    let chunks=[], mime = mp4Mime || 'video/webm;codecs=vp9';
+    let rec;
+    try{ rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8_000_000}); }
+    catch(e){ mime='video/webm;codecs=vp9'; rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8_000_000}); }
+
+    rec.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+
+    // başlat
+    chunks=[]; rec.start();
+    t0=performance.now(); rafId=requestAnimationFrame(draw);
+
+    // sayaç + kesin durdurma
+    let elapsed=0;
+    const uiTimer=setInterval(()=>{ elapsed+=0.1; ui.status.textContent=`Kaydediliyor… ${elapsed.toFixed(1)}s / ${secs}s`; },100);
+    const stopT=setTimeout(()=>{ if(rec.state!=='inactive') rec.stop(); }, secs*1000);
+    const safety=setTimeout(()=>{ if(rec.state!=='inactive') rec.stop(); }, secs*1000+2000);
+
+    rec.onstop=()=>{
+      clearInterval(uiTimer); clearTimeout(stopT); clearTimeout(safety);
+      if(rafId) cancelAnimationFrame(rafId);
+
+      const blob=new Blob(chunks,{type:mime});
+      const url=URL.createObjectURL(blob);
+      ui.dl.href=url;
+      ui.dl.download = mime.startsWith('video/mp4') ? 'bpc-anim.mp4' : 'bpc-anim.webm';
+      ui.dl.textContent = `İndir: ${ui.dl.download}`;
+      ui.dl.style.display='inline-block';
+      ui.status.textContent = mime.startsWith('video/mp4') ? 'MP4 indirildi.' : 'WEBM hazır (tarayıcın MP4 desteklemiyorsa).';
+    };
+  }
+
+  ui.preview.onclick=startPreview;
+  ui.record .onclick=record;
+})();
 </script>
 </body>
 </html>
