@@ -3,145 +3,109 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Babypeacock • The Spark of Creativity</title>
+<title>Babypeacock • The spark of creativity</title>
 <style>
-  body{margin:0;background:#000;color:#eaeaea;font-family:system-ui,Segoe UI,monospace;
-       display:grid;place-items:center;height:100vh;overflow:hidden}
-  #cv{display:block;width:100%;max-width:1080px;aspect-ratio:16/9;border-radius:14px;background:#000}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;color:#eaeaea;
+    font-family:system-ui,Segoe UI,monospace;display:flex;justify-content:center;align-items:center;}
+  canvas{width:100%;max-width:1080px;aspect-ratio:16/9;border-radius:14px;background:#000;}
 </style>
 </head>
 <body>
 <canvas id="cv" width="1920" height="1080"></canvas>
+
 <script>
 (() => {
   const cv=document.getElementById('cv'), cx=cv.getContext('2d');
   const FPS=60, AR=16/9;
-  let raf=0, t0=0, stage="type";
-
+  let raf=0, stage="type", t0=0;
   const text="The spark of creativity";
-  let typed="";
-  const typeDelay=70; // ms per char
-  let nextChar=0;
+  let typed="", nextChar=0, typeDelay=70;
 
-  // Kuş resmi
+  // Kuş görseli
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
-  let logo=null;
-  raw.onload=()=>{
-    const off=document.createElement('canvas'), o=off.getContext('2d');
-    off.width=raw.naturalWidth; off.height=raw.naturalHeight;
-    o.drawImage(raw,0,0);
-    const img=o.getImageData(0,0,off.width,off.height), d=img.data;
+  let logo=null; raw.onload=()=>{const off=document.createElement('canvas'),o=off.getContext('2d');
+    off.width=raw.naturalWidth;off.height=raw.naturalHeight;o.drawImage(raw,0,0);
+    const img=o.getImageData(0,0,off.width,off.height),d=img.data;
     for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2];if(r<22&&g<22&&b<22)d[i+3]=0;}
-    o.putImageData(img,0,0); logo=off;
+    o.putImageData(img,0,0);logo=off;
   };
 
-  // Lightning
-  function drawLightning(x, yTop, yBottom) {
-    cx.save();
-    cx.globalCompositeOperation='screen';
-    cx.lineCap='round';
-    const seg=12, pts=[[x,yTop]];
-    let px=x, py=yTop;
-    const total = yBottom - yTop;
-    for(let i=1;i<=seg;i++){
-      const t=i/seg;
-      const nx = px + (Math.random()-0.5)*total*0.03*(1-t);
-      const ny = yTop + t*total + (Math.random()-0.5)*15*(1-t);
-      pts.push([nx,ny]); px=nx; py=ny;
-    }
-    cx.strokeStyle='rgba(255,255,255,0.95)';
-    cx.shadowColor='rgba(170,220,255,0.9)'; cx.shadowBlur=28; cx.lineWidth=6;
-    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
-    cx.strokeStyle='rgba(80,170,255,0.9)';
-    cx.shadowColor='rgba(120,200,255,0.9)'; cx.shadowBlur=40; cx.lineWidth=2.5;
-    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
-    cx.restore();
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const easeOutCubic=t=>1-Math.pow(1-t,3);
+  const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+
+  function drawLightning(x,yTop,yBottom){
+    cx.save();cx.globalCompositeOperation='screen';cx.lineCap='round';
+    const seg=12,pts=[[x,yTop]];let px=x,py=yTop,total=yBottom-yTop;
+    for(let i=1;i<=seg;i++){const t=i/seg;const nx=px+(Math.random()-0.5)*total*0.03*(1-t);
+      const ny=yTop+t*total+(Math.random()-0.5)*15*(1-t);pts.push([nx,ny]);px=nx;py=ny;}
+    cx.strokeStyle='rgba(255,255,255,0.95)';cx.shadowColor='rgba(170,220,255,0.9)';
+    cx.shadowBlur=28;cx.lineWidth=6;cx.beginPath();cx.moveTo(pts[0][0],pts[0][1]);
+    for(const p of pts)cx.lineTo(p[0],p[1]);cx.stroke();
+    cx.strokeStyle='rgba(80,170,255,0.9)';cx.shadowColor='rgba(120,200,255,0.9)';
+    cx.shadowBlur=40;cx.lineWidth=2.5;cx.beginPath();cx.moveTo(pts[0][0],pts[0][1]);
+    for(const p of pts)cx.lineTo(p[0],p[1]);cx.stroke();cx.restore();
   }
 
   function draw(ts){
-    const W=cv.width,H=cv.height;
-    const now=((ts-t0)/1000)||0;
+    const W=cv.width,H=cv.height,now=((ts-t0)/1000)||0;
     cx.clearRect(0,0,W,H);
 
     if(stage==="type"){
-      cx.fillStyle="#000"; cx.fillRect(0,0,W,H);
-      cx.fillStyle="#eaeaea"; cx.font=Math.round(H*0.08)+'px monospace';
-      cx.textAlign='center'; cx.textBaseline='middle';
-      // Daktilo efekti
-      if(typed.length < text.length && performance.now()>nextChar){
-        typed = text.slice(0, typed.length+1);
-        nextChar = performance.now()+typeDelay+Math.random()*60;
+      cx.fillStyle="#000";cx.fillRect(0,0,W,H);
+      cx.fillStyle="#eaeaea";cx.font=Math.round(H*0.08)+'px monospace';
+      cx.textAlign='center';cx.textBaseline='middle';
+      if(typed.length<text.length && performance.now()>nextChar){
+        typed=text.slice(0,typed.length+1);
+        nextChar=performance.now()+typeDelay+Math.random()*60;
       }
-      cx.fillText(typed, W/2, H/2);
-      // Yanıp sönen imleç
+      cx.fillText(typed,W/2,H/2);
       if(Math.floor(performance.now()/400)%2===0)
-        cx.fillRect(W/2 + cx.measureText(typed).width/2 + 5, H/2-30, 6, 50);
-
-      if(typed.length===text.length && now>2.3){
-        stage="flash";
-        t0=performance.now(); // reset
-      }
+        cx.fillRect(W/2+cx.measureText(typed).width/2+5,H/2-30,6,50);
+      if(typed.length===text.length && now>2.5){stage="flash";t0=performance.now();}
     }
 
     else if(stage==="flash"){
-      const n=((ts-t0)/1000)||0;
-      cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
-      // kısa bekleme karanlık
-      if(n>0.7){ stage="lightning"; t0=performance.now(); }
+      const n=((ts-t0)/1000)||0;cx.fillStyle='#000';cx.fillRect(0,0,W,H);
+      if(n>0.5){stage="lightning";t0=performance.now();}
     }
 
     else if(stage==="lightning"){
-      const n=((ts-t0)/1000)||0;
-      const phase=n/3;
-      cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
-
-      // yıldırım
-      if(n<1.2){
+      const n=((ts-t0)/1000)||0;cx.fillStyle='#000';cx.fillRect(0,0,W,H);
+      // yıldırım 0–1s
+      if(n<1.1){
         const bolts=2+Math.floor(Math.random()*2);
-        for(let i=0;i<bolts;i++){
-          const startX=W*0.2+Math.random()*W*0.6;
-          drawLightning(startX,-60,H*0.55);
-        }
-        cx.fillStyle='rgba(255,255,255,0.3)';
-        cx.fillRect(0,0,W,H);
+        for(let i=0;i<bolts;i++){const startX=W*0.2+Math.random()*W*0.6;drawLightning(startX,-60,H*0.55);}
+        cx.fillStyle='rgba(255,255,255,0.3)';cx.fillRect(0,0,W,H);
       }
-
-      // kuş ve yazı (ardından aydınlanma)
+      // kuş
       if(logo){
-        const base=H*0.5;
-        const pulse=1+Math.sin(n*1.6)*0.03;
-        cx.save(); cx.globalAlpha=Math.min(1,Math.max(0,(n-1)/1.2));
-        cx.translate(W/2,H*0.55);
-        cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025;
-        cx.scale(pulse,pulse);
-        cx.drawImage(logo,-base/2,-base/2,base,base);
-        cx.restore();
+        const base=H*0.5,pulse=1+Math.sin(n*1.6)*0.03;
+        cx.save();cx.globalAlpha=Math.min(1,Math.max(0,(n-1)/1.2));
+        cx.translate(W/2,H*0.55);cx.shadowColor='rgba(180,220,255,.45)';cx.shadowBlur=W*0.025;
+        cx.scale(pulse,pulse);cx.drawImage(logo,-base/2,-base/2,base,base);cx.restore();
       }
-
-      // metin
-      cx.fillStyle='#eaf2ff'; cx.textAlign='center'; cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
-      cx.globalAlpha=Math.min(1,Math.max(0,(n-1)/1.2));
-      cx.fillText('Babypeacock', W/2, H*0.18);
-      cx.globalAlpha=1;
-
+      // yazı
+      cx.fillStyle='#eaf2ff';cx.textAlign='center';cx.font=Math.round(H*0.08)+'px system-ui';
+      cx.globalAlpha=Math.min(1,Math.max(0,(n-1)/1.2));cx.fillText('Babypeacock',W/2,H*0.18);cx.globalAlpha=1;
       // halka
       const glow=Math.max(0,Math.min(1,(n-1.5)/1.5));
-      if(glow>0){
-        cx.save(); cx.translate(W/2,H/2);
-        cx.globalAlpha=glow*0.6;
-        cx.lineWidth=W*0.015;
-        const ring=cx.createConicGradient(now*0.2,0,0);
-        ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
-        cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
-        cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke(); cx.restore();
-      }
-
-      if(n<3.2) raf=requestAnimationFrame(draw);
+      if(glow>0){cx.save();cx.translate(W/2,H/2);cx.globalAlpha=glow*0.6;cx.lineWidth=W*0.015;
+        const ring=cx.createConicGradient(now*0.2,0,0);ring.addColorStop(0,'#cfe9ff');ring.addColorStop(1,'#66b2ff');
+        cx.strokeStyle=ring;cx.shadowColor='rgba(150,200,255,.5)';cx.shadowBlur=W*0.02;
+        cx.beginPath();cx.arc(0,0,H*0.27,0,Math.PI*2);cx.stroke();cx.restore();}
+      if(n<3.2)raf=requestAnimationFrame(draw);
     }
-    else { raf=requestAnimationFrame(draw); }
+    else raf=requestAnimationFrame(draw);
   }
 
-  function start(){ cancelAnimationFrame(raf); setSize(1920); t0=performance.now(); stage="type"; typed=""; raf=requestAnimationFrame(draw); }
+  function start(){
+    cancelAnimationFrame(raf);
+    cv.width=1920;cv.height=1080/AR;
+    t0=performance.now();stage="type";typed="";
+    raf=requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',()=>{cv.width=1920;cv.height=1080/AR;});
   start();
 })();
 </script>
