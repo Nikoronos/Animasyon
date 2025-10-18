@@ -1,2 +1,48 @@
-# Animasyon
-Bpc animasyon
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BPC Animasyon</title>
+  <style>
+    * { box-sizing: border-box }
+    body{
+      margin:0; height:100vh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:28px; background:#0b0b0b; color:#eaeaea; font-family:system-ui, Arial, sans-serif;
+    }
+    .badge{letter-spacing:.14em; opacity:.8; font-size:12px; text-transform:uppercase}
+    .orb{
+      width:140px; height:140px; border-radius:50%;
+      background: conic-gradient(from 0deg, #00ffd5, #7f00ff, #00ffd5);
+      filter: drop-shadow(0 0 24px rgba(0,255,213,.35));
+      animation: float 2.6s ease-in-out infinite alternate, spin 6s linear infinite;
+      position: relative; overflow:hidden;
+    }
+    .orb::after{
+      content:""; position:absolute; inset:10px; border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.3), transparent 45%);
+      mix-blend-mode: screen;
+    }
+    h1{margin:0; font-size:28px}
+    .cta{display:flex; gap:10px}
+    .btn{
+      padding:10px 14px; border-radius:12px; border:1px solid #2a2a2a; text-decoration:none; color:#eaeaea;
+    }
+    .btn:hover{border-color:#555}
+    @keyframes float{from{transform:translateY(0) scale(1)} to{transform:translateY(-22px) scale(1.08)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div class="badge">BabyPeacock • BPC</div>
+  <div class="orb" title="BPC is flying"></div>
+  <h1>Animasyon</h1>
+  <div>BPC animasyon denemesi</div>
+  <div class="cta">
+    <a class="btn" href="https://t.me/..." target="_blank" rel="noopener">Telegram</a>
+    <a class="btn" href="https://x.com/..." target="_blank" rel="noopener">X (Twitter)</a>
+    <a class="btn" href="https://dexscreener.com/solana/AZRKvpc91mpJmnKiMRfYRBMqZpoYB3Bk8Dz3dEEKcZ2i" target="_blank" rel="noopener">Dexscreener</a>
+  </div>
+</body>
+</html>
