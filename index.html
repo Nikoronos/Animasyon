@@ -11,38 +11,33 @@
       padding:.65rem;background:linear-gradient(#0008,#0000)}
   .ui>*{font:600 14px/1.1 system-ui;border-radius:10px;border:1px solid #333;padding:.6rem .9rem;background:var(--ui-bg);color:var(--ui-fg)}
   button{cursor:pointer} button:active{transform:scale(.98)}
-  select{font-weight:600} .note{position:fixed;top:.5rem;right:.5rem;opacity:.6;font:12px/1.1 system-ui}
+  .note{position:fixed;top:.5rem;right:.5rem;opacity:.6;font:12px/1.1 system-ui}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div class="ui">
   <button id="preview">Önizleme</button>
-  <button id="record">Kaydı Al</button>
-  <label><input id="sound" type="checkbox"> Ses</label>
-  <label>Format
-    <select id="fmt">
-      <option value="webm" selected>WEBM (önerilen)</option>
-      <option value="mp4">MP4 (uyumluysa)</option>
-    </select>
-  </label>
+  <button id="record">Kaydı Al (WEBM • Sesli)</button>
+  <label><input id="sound" type="checkbox" checked> Ses</label>
 </div>
 <div class="note">Not: bpc-bird.png depo kökünde olmalı</div>
 
 <script>
 (() => {
   const cv=document.getElementById('cv'), cx=cv.getContext('2d',{alpha:false});
-  const fmtSel=document.getElementById('fmt'); const soundChk=document.getElementById('sound');
+  const soundChk=document.getElementById('sound');
+
+  // Tuval boyutu
   function setSize(w=1920){const W=Math.max(960,Math.min(3840,Math.round(w)));cv.width=W;cv.height=Math.round(W*9/16);}
   setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
-  // Zamanlama — final bekleme 5sn
+  // Zamanlama — final bekleme 5 sn
   const TYPE_MS=2400, PAUSE_MS=600, BRIDGE_MS=450, STORM_MS=3400, HOLD_MS=5000;
   const TOTAL_MS=TYPE_MS+PAUSE_MS+BRIDGE_MS+STORM_MS+HOLD_MS;
-
   const slogan="The spark of creativity";
 
-  // Kuş görseli (siyahı transparan)
+  // Kuş (siyahı transparan yap)
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
   let logo=null; raw.onload=()=>{const off=document.createElement('canvas'),o=off.getContext('2d');
     off.width=raw.naturalWidth;off.height=raw.naturalHeight;o.drawImage(raw,0,0);
@@ -68,11 +63,13 @@
     o.connect(g).connect(busType); o.start(); o.stop(actx.currentTime+.09);
   }
   function playThunder(){ if(!ensureAudio())return;
+    // sub boom
     const sub=actx.createOscillator(); sub.type='sine'; sub.frequency.setValueAtTime(50,actx.currentTime);
     const sg=actx.createGain(); sg.gain.setValueAtTime(0,actx.currentTime);
     sg.gain.linearRampToValueAtTime(.9,actx.currentTime+.02);
     sg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.1);
     sub.connect(sg).connect(busThunder); sub.start(); sub.stop(actx.currentTime+1.2);
+    // crack
     const cl=actx.sampleRate*.18, cb=actx.createBuffer(1,cl,actx.sampleRate), d=cb.getChannelData(0);
     for(let i=0;i<cl;i++) d[i]=(Math.random()*2-1)*(1-i/cl);
     const cs=actx.createBufferSource(); cs.buffer=cb;
@@ -81,6 +78,7 @@
     cg.gain.linearRampToValueAtTime(1,actx.currentTime+.01);
     cg.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.18);
     cs.connect(bp).connect(cg).connect(busThunder); cs.start();
+    // rumble + hafif echo
     const rl=actx.sampleRate*1.6, rb=actx.createBuffer(1,rl,actx.sampleRate), rbd=rb.getChannelData(0);
     for(let i=0;i<rl;i++) rbd[i]=(Math.random()*2-1)*Math.pow(1-i/rl,1.6);
     const rs=actx.createBufferSource(); rs.buffer=rb;
@@ -91,6 +89,19 @@
     const del=actx.createDelay(.4); del.delayTime.value=.22; const fb=actx.createGain(); fb.gain.value=.27;
     rg.connect(del); del.connect(fb); fb.connect(rg);
     rs.connect(lp).connect(rg).connect(busThunder); rs.start();
+  }
+
+  // WEBM mime seçici (VP9→VP8→generic)
+  function pickWebmMime() {
+    const cands = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm'
+    ];
+    for (const m of cands) { if (window.MediaRecorder && MediaRecorder.isTypeSupported?.(m)) return m; }
+    return 'video/webm';
   }
 
   // Yıldırım
@@ -106,7 +117,7 @@
     cx.restore();
   }
 
-  // Sahne
+  // Sahne akışı
   let phase='idle', typedCount=0, typeTimer=null, bridgeStart=0, stormStart=0, raf=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const easeOutCubic=t=>1-Math.pow(1-t,3);
@@ -142,7 +153,7 @@
         const ring=cx.createConicGradient((elapsed/1000)*0.2,0,0); ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
         cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02; cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke(); cx.restore(); }
     }
-    // HOLD_MS süresince ekranda kalacak (kayıtta da tutuluyor)
+    // HOLD_MS boyunca sahne sabit kalır (5 sn)
   }
 
   function resetAndStart(){
@@ -161,11 +172,11 @@
     raf=requestAnimationFrame(loop);
   }
 
-  // Kayıt: varsayılan WEBM (sesli). MP4 seçilirse ses kapatılır (uyumluluk için).
+  // Kayıt: WEBM'e sesli zorla (VP9/VP8 fallback)
   async function recordOnce(){
-    const wantMp4 = fmtSel.value==='mp4';
-    if(wantMp4){ soundChk.checked=false; alert('Not: MP4’da tarayıcılar genelde AAC ses yazmıyor. Bu yüzden kayıt sessiz alınacak. Ses istiyorsan WEBM seç.'); }
-    if(soundChk.checked){ ensureAudio(); await actx.resume?.(); }
+    if(!window.MediaRecorder){ alert('Tarayıcın MediaRecorder desteklemiyor (iOS Safari eski sürüm?).'); return; }
+    if(soundChk.checked){ ensureAudio(); await actx?.resume?.(); }
+
     resetAndStart();
 
     const canvasStream=cv.captureStream(60);
@@ -177,18 +188,18 @@
     }
     const stream=new MediaStream(tracks);
 
-    const mime = wantMp4
-      ? (MediaRecorder.isTypeSupported('video/mp4;codecs=h264') ? 'video/mp4;codecs=h264' : 'video/mp4')
-      : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm');
+    let mime = pickWebmMime();
+    let rec;
+    try { rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:7_000_000}); }
+    catch(e){ rec=new MediaRecorder(stream); mime='video/webm'; }
 
-    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:7_000_000});
     let chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
     rec.start();
     setTimeout(()=>rec.stop(), TOTAL_MS+300);
     rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime});
-      const url=URL.createObjectURL(blob); const a=document.createElement('a');
-      a.href=url; a.download=`bpc-intro.${wantMp4?'mp4':'webm'}`; document.body.appendChild(a); a.click();
-      a.remove(); URL.revokeObjectURL(url); };
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='bpc-intro.webm';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); };
   }
 
   document.getElementById('preview').onclick=()=>{ ensureAudio()?.resume?.(); resetAndStart(); };
