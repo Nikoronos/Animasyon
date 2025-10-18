@@ -17,174 +17,158 @@
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
 
-  // ---- Boyut (16:9 sabit) ----
+  // --- canvas boyutu 16:9 ---
   function setSize(w=1920){ const W=Math.max(960,Math.min(3840,Math.round(w))); cv.width=W; cv.height=Math.round(W*9/16); }
-  setSize(1920); addEventListener('resize', ()=>setSize(cv.width));
+  setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
-  // ---- Varlıklar ----
-  const slogan = "The spark of creativity"; // yazılacak metin
-  const typeTotal = 2400; // ms (toplam yazma süresi)
-  const typePause = 600;  // ms (bittiğinde kısa bekleme)
-  const stormTotal = 3400; // ms (yıldırım + kuş sahnesi)
-
-  // Kuş görseli (siyahı transparanlaştır)
-  const birdSrc = 'bpc-bird.png';
-  let logo = null;
-  const raw = new Image(); raw.crossOrigin='anonymous'; raw.src = birdSrc;
-  raw.onload = () => {
-    const off = document.createElement('canvas'), o = off.getContext('2d');
-    off.width = raw.naturalWidth; off.height = raw.naturalHeight;
-    o.drawImage(raw,0,0);
-    const img=o.getImageData(0,0,off.width,off.height), d=img.data;
-    for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22) d[i+3]=0; }
-    o.putImageData(img,0,0); logo = off;
+  // --- kuş resmi (siyah arka plan şeffaf) ---
+  const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
+  let logo=null; raw.onload=()=>{ const off=document.createElement('canvas'),o=off.getContext('2d');
+    off.width=raw.naturalWidth; off.height=raw.naturalHeight; o.drawImage(raw,0,0);
+    const img=o.getImageData(0,0,off.width,off.height),d=img.data;
+    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22)d[i+3]=0;}
+    o.putImageData(img,0,0); logo=off;
   };
 
-  // ---- Yardımcılar ----
+  // --- yardımcılar ---
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const easeOutCubic=t=>1-Math.pow(1-t,3);
   const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
-  // Yıldırım (mavi-beyaz)
+  // --- yıldırım çizimi ---
   function drawLightning(x, yTop, yBottom) {
     cx.save(); cx.globalCompositeOperation='screen'; cx.lineCap='round';
-    const seg=12, pts=[[x,yTop]]; let px=x,py=yTop, total=yBottom-yTop;
+    const seg=12, pts=[[x,yTop]]; let px=x,py=yTop,total=yBottom-yTop;
     for(let i=1;i<=seg;i++){
       const t=i/seg;
-      const nx = px + (Math.random()-0.5)*total*0.03*(1-t);
-      const ny = yTop + t*total + (Math.random()-0.5)*15*(1-t);
+      const nx=px+(Math.random()-0.5)*total*0.03*(1-t);
+      const ny=yTop+t*total+(Math.random()-0.5)*15*(1-t);
       pts.push([nx,ny]); px=nx; py=ny;
     }
-    // iç
     cx.strokeStyle='rgba(255,255,255,0.95)'; cx.shadowColor='rgba(170,220,255,0.9)';
     cx.shadowBlur=28; cx.lineWidth=6; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]);
     for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
-    // dış mavi ışıma
     cx.strokeStyle='rgba(80,170,255,0.9)'; cx.shadowColor='rgba(120,200,255,0.9)';
     cx.shadowBlur=40; cx.lineWidth=2.5; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]);
     for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
     cx.restore();
   }
 
-  // ---- Zamanlama ----
-  let start = performance.now(); // tüm sahnenin başlangıcı
-  let phase = 'type';            // 'type' → 'bridge' → 'storm'
+  // --- sahne durumları ---
+  let phase='type';                  // 'type' → 'bridge' → 'storm'
+  const slogan="The spark of creativity";
+  let typedCount=0;                  // kaç karakter basıldı
+  let typeTimer=null;               // setInterval
+  let bridgeStart=0, stormStart=0;  // timestamp'ler
 
-  function loop() {
-    const W=cv.width, H=cv.height;
-    const now = performance.now();
-    const elapsed = now - start;
-
-    cx.clearRect(0,0,W,H);
-
-    if (phase === 'type') {
-      // Siyah fon
-      cx.fillStyle = '#000'; cx.fillRect(0,0,W,H);
-
-      // Daktilo: kesin zaman tabanlı (her frame artar)
-      const perChar = typeTotal / slogan.length;                 // ms/harf
-      let nChars = Math.floor(elapsed / perChar);
-      if (elapsed > typeTotal) nChars = slogan.length;
-      nChars = clamp(nChars, 0, slogan.length);
-
-      const typed = slogan.slice(0, nChars);
-
-      cx.fillStyle = '#eaeaea';
-      const fontSize = Math.round(H*0.08);
-      cx.font = fontSize+'px monospace';
-      cx.textAlign = 'center'; cx.textBaseline = 'middle';
-      cx.fillText(typed, W/2, H/2);
-
-      // İmleç (yazma bitene kadar sabit yanıp sönsün, bittikten sonra 0.6sn daha)
-      const caretOn = Math.floor(now/400)%2===0;
-      const textWidth = cx.measureText(typed).width;
-      if (nChars < slogan.length || elapsed < typeTotal + typePause) {
-        if (caretOn) cx.fillRect(W/2 + textWidth/2 + 8, H/2 - fontSize*0.55, 6, fontSize*1.1);
+  // daktilo: her 120ms bir harf — FPS’den bağımsız (mobilde takılmaz)
+  function startType(){
+    phase='type'; typedCount=0;
+    clearInterval(typeTimer);
+    typeTimer=setInterval(()=>{
+      if(typedCount < slogan.length){ typedCount++; drawType(); }
+      if(typedCount >= slogan.length){
+        clearInterval(typeTimer);
+        // 600ms bekle → bridge
+        setTimeout(()=>{ phase='bridge'; bridgeStart=Date.now(); }, 600);
       }
+    }, 120);
+    drawType();
+  }
 
-      // Geçiş
-      if (elapsed >= typeTotal + typePause) {
-        phase = 'bridge'; start = now; // kısa kararma
+  function drawType(){
+    const W=cv.width,H=cv.height;
+    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+    const typed = slogan.slice(0, typedCount);
+    const fontSize=Math.round(H*0.08);
+    cx.fillStyle='#eaeaea'; cx.font=fontSize+'px monospace';
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText(typed, W/2, H/2);
+    // caret
+    const caretOn = Math.floor(Date.now()/400)%2===0;
+    const w = cx.measureText(typed).width;
+    if (typedCount < slogan.length || caretOn)
+      cx.fillRect(W/2 + w/2 + 8, H/2 - fontSize*0.55, 6, fontSize*1.1);
+  }
+
+  function drawBridge(){
+    const W=cv.width,H=cv.height;
+    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+  }
+
+  function drawStorm(){
+    const W=cv.width,H=cv.height;
+    const elapsed = Date.now() - stormStart; // ms
+    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+
+    // ambient ışık/vinyet
+    const ambStart=1500, ambEnd=3300;
+    let ambient=0;
+    if(elapsed>ambStart){
+      const k=clamp((elapsed-ambStart)/(ambEnd-ambStart),0,1);
+      ambient=easeInOutQuad(k)*0.55;
+    }
+    const vign = cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
+    vign.addColorStop(0, `rgba(180,220,255,${0.06+ambient*0.35})`);
+    vign.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle=vign; cx.fillRect(0,0,W,H);
+
+    // yıldırım ilk ~900ms
+    if(elapsed<900){
+      const bolts=2+Math.floor(Math.random()*2);
+      for(let i=0;i<bolts;i++){
+        const sx=W*0.2+Math.random()*W*0.6;
+        drawLightning(sx,-60,H*0.55);
       }
+      cx.fillStyle='rgba(255,255,255,0.32)'; cx.fillRect(0,0,W,H);
     }
 
-    else if (phase === 'bridge') {
-      cx.fillStyle = '#000'; cx.fillRect(0,0,W,H);
-      if (elapsed >= 450) { phase = 'storm'; start = now; }
+    // kuş 1000ms sonra
+    if(logo){
+      const appear=clamp((elapsed-1000)/1200,0,1);
+      const alpha=easeOutCubic(appear);
+      const base=H*0.5, pulse=1+Math.sin(elapsed/1000*1.6)*0.03*(appear>0?1:0);
+      cx.save();
+      cx.globalAlpha=alpha;
+      cx.translate(W/2,H*0.55); cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025;
+      cx.scale(pulse,pulse); cx.drawImage(logo,-base/2,-base/2,base,base);
+      cx.restore();
     }
 
-    else if (phase === 'storm') {
-      cx.fillStyle = '#000'; cx.fillRect(0,0,W,H);
+    // “Babypeacock” yazısı
+    cx.fillStyle='#eaf2ff'; cx.textAlign='center';
+    cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
+    cx.globalAlpha=clamp((elapsed-1000)/1200,0,1);
+    cx.fillText('Babypeacock', W/2, H*0.18);
+    cx.globalAlpha=1;
 
-      // Ambient/vinyet
-      const ambStart=1500, ambEnd=3300; // ms
-      let ambient = 0;
-      if (elapsed > ambStart) {
-        const k = clamp((elapsed-ambStart)/(ambEnd-ambStart), 0, 1);
-        ambient = easeInOutQuad(k)*0.55;
-      }
-      const vign = cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
-      vign.addColorStop(0, `rgba(180,220,255,${0.06+ambient*0.35})`);
-      vign.addColorStop(1, 'rgba(0,0,0,0)');
-      cx.fillStyle = vign; cx.fillRect(0,0,W,H);
-
-      // Yıldırım ilk ~900ms
-      if (elapsed < 900) {
-        const bolts = 2 + Math.floor(Math.random()*2);
-        for (let i=0;i<bolts;i++) {
-          const sx = W*0.2 + Math.random()*W*0.6;
-          drawLightning(sx, -60, H*0.55);
-        }
-        cx.fillStyle = 'rgba(255,255,255,0.32)';
-        cx.fillRect(0,0,W,H);
-      }
-
-      // Kuş (1000ms sonra görünür)
-      if (logo) {
-        const appear = clamp((elapsed-1000)/1200, 0, 1);
-        const alpha = easeOutCubic(appear);
-        const base = H*0.5;
-        const pulse = 1 + Math.sin(elapsed/1000*1.6)*0.03*(appear>0?1:0);
-        cx.save();
-        cx.globalAlpha = alpha;
-        cx.translate(W/2, H*0.55);
-        cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025;
-        cx.scale(pulse,pulse);
-        cx.drawImage(logo, -base/2, -base/2, base, base);
-        cx.restore();
-      }
-
-      // “Babypeacock” yazısı
-      cx.fillStyle = '#eaf2ff'; cx.textAlign='center';
-      cx.font = Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
-      cx.globalAlpha = clamp((elapsed-1000)/1200, 0, 1);
-      cx.fillText('Babypeacock', W/2, H*0.18);
-      cx.globalAlpha = 1;
-
-      // Parlayan halka (conic varsa)
-      const hasConic = typeof cx.createConicGradient === 'function';
-      const glow = clamp((elapsed-1600)/1400, 0, 1);
-      if (hasConic && glow>0) {
-        cx.save(); cx.translate(W/2, H/2);
-        cx.globalAlpha = glow*0.6;
-        cx.lineWidth = W*0.015;
-        const ring = cx.createConicGradient((elapsed/1000)*0.2, 0, 0);
-        ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
-        cx.strokeStyle = ring;
-        cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
-        cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke();
-        cx.restore();
-      }
-
-      // Döngüyü devam ettir (istersen burada durdurabilirsin)
-      if (elapsed >= stormTotal) {
-        // phase = 'done';  // istersen dondur
-      }
+    // conic gradient varsa halka
+    const hasConic = typeof cx.createConicGradient==='function';
+    const glow=clamp((elapsed-1600)/1400,0,1);
+    if(hasConic && glow>0){
+      cx.save(); cx.translate(W/2,H/2);
+      cx.globalAlpha=glow*0.6; cx.lineWidth=W*0.015;
+      const ring=cx.createConicGradient((elapsed/1000)*0.2,0,0);
+      ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
+      cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
+      cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke();
+      cx.restore();
     }
+  }
 
+  // --- ana döngü (yalnızca bridge+storm’u rAF ile çizeriz) ---
+  function loop(){
+    if(phase==='bridge'){
+      drawBridge();
+      if(Date.now()-bridgeStart>450){ phase='storm'; stormStart=Date.now(); }
+    }else if(phase==='storm'){
+      drawStorm();
+    }
     requestAnimationFrame(loop);
   }
 
+  // başlat
+  startType();
   requestAnimationFrame(loop);
 })();
 </script>
