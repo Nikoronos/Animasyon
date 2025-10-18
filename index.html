@@ -5,23 +5,46 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Babypeacock • The spark of creativity</title>
 <style>
+  :root{--ui-bg:#0c0c0c;--ui-fg:#eaeaea;--ui-ac:#2ea043}
   html,body{margin:0;height:100%;background:#000;color:#eaeaea;overflow:hidden;
     font-family:system-ui,Segoe UI,monospace;display:flex;justify-content:center;align-items:center}
   canvas{width:100%;max-width:1080px;aspect-ratio:16/9;display:block;border-radius:14px;background:#000}
+  .ui{position:fixed;inset:auto 0 0 0;display:flex;gap:.6rem;justify-content:center;padding:.65rem;background:linear-gradient(#0008,#0000)}
+  .ui>*{font:600 14px/1.1 system-ui;border-radius:10px;border:1px solid #333;padding:.65rem 1rem;background:var(--ui-bg);color:var(--ui-fg)}
+  .ok{border-color:#245b2e;background:#0f2a14}
+  .ok:active{transform:scale(.98)}
+  label{display:flex;align-items:center;gap:.5rem;padding:.55rem .8rem}
+  input[type=checkbox]{width:18px;height:18px}
+  .hint{position:fixed;top:.5rem;right:.5rem;opacity:.6;font:12px/1.1 system-ui}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
+
+<div class="ui">
+  <button id="preview" class="ok" title="Animasyonu baştan oynat">Önizlemeyi Başlat</button>
+  <button id="record"  class="ok" title="Animasyonu MP4/WEBM olarak indir">Kaydı Al (MP4)</button>
+  <label><input id="sound" type="checkbox"/> Ses</label>
+</div>
+<div class="hint">bpc-bird.png dosyasını depoda tutmayı unutma</div>
+
 <script>
 (() => {
   const cv = document.getElementById('cv');
-  const cx = cv.getContext('2d');
-
-  // --- canvas boyutu 16:9 ---
+  const cx = cv.getContext('2d', {alpha:false});
+  // ---------- BOYUT ----------
   function setSize(w=1920){ const W=Math.max(960,Math.min(3840,Math.round(w))); cv.width=W; cv.height=Math.round(W*9/16); }
   setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
-  // --- kuş resmi (siyah arka plan şeffaf) ---
+  // ---------- VARLIKLAR ----------
+  const slogan="The spark of creativity";
+  const TYPE_MS   = 2400;   // daktilo toplam
+  const PAUSE_MS  = 600;    // yazıdan sonra bekleme
+  const BRIDGE_MS = 450;    // kısa kararma
+  const STORM_MS  = 3400;   // yıldırım + kuş
+  const TOTAL_MS  = TYPE_MS + PAUSE_MS + BRIDGE_MS + STORM_MS; // ≈ 6.85s
+
+  // Kuş resmi (siyahı transparan yap)
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
   let logo=null; raw.onload=()=>{ const off=document.createElement('canvas'),o=off.getContext('2d');
     off.width=raw.naturalWidth; off.height=raw.naturalHeight; o.drawImage(raw,0,0);
@@ -30,12 +53,39 @@
     o.putImageData(img,0,0); logo=off;
   };
 
-  // --- yardımcılar ---
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const easeOutCubic=t=>1-Math.pow(1-t,3);
-  const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  // ---------- SES (WebAudio ile sentez) ----------
+  let actx=null, mix=null, typeTick=null, thunderBus=null;
+  const soundChk = document.getElementById('sound');
+  function ensureAudio(){
+    if(!soundChk.checked) return null;
+    if(!actx) { actx=new (window.AudioContext||window.webkitAudioContext)(); mix=actx.createGain(); mix.gain.value=0.9; mix.connect(actx.destination); }
+    if(!typeTick){ typeTick=actx.createGain(); typeTick.gain.value=0.7; typeTick.connect(mix); }
+    if(!thunderBus){ thunderBus=actx.createGain(); thunderBus.gain.value=0.8; thunderBus.connect(mix); }
+    return actx;
+  }
+  function playTypeClick(){
+    if(!ensureAudio()) return;
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type='square'; o.frequency.value=900;
+    g.gain.setValueAtTime(0,actx.currentTime);
+    g.gain.linearRampToValueAtTime(0.35,actx.currentTime+0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.08);
+    o.connect(g).connect(typeTick); o.start(); o.stop(actx.currentTime+0.09);
+  }
+  function playThunder(){
+    if(!ensureAudio()) return;
+    // beyaz gürültü
+    const len=actx.sampleRate*1.2, buff=actx.createBuffer(1,len,actx.sampleRate),data=buff.getChannelData(0);
+    for(let i=0;i<len;i++){ data[i]=(Math.random()*2-1)*Math.pow(1-i/len,2); }
+    const src=actx.createBufferSource(); src.buffer=buff;
+    const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(1600,actx.currentTime);
+    const g=actx.createGain(); g.gain.setValueAtTime(0.0,actx.currentTime);
+    g.gain.linearRampToValueAtTime(1.0,actx.currentTime+0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+1.1);
+    src.connect(lp).connect(g).connect(thunderBus); src.start();
+  }
 
-  // --- yıldırım çizimi ---
+  // ---------- YILDIRIM ----------
   function drawLightning(x, yTop, yBottom) {
     cx.save(); cx.globalCompositeOperation='screen'; cx.lineCap='round';
     const seg=12, pts=[[x,yTop]]; let px=x,py=yTop,total=yBottom-yTop;
@@ -54,121 +104,147 @@
     cx.restore();
   }
 
-  // --- sahne durumları ---
-  let phase='type';                  // 'type' → 'bridge' → 'storm'
-  const slogan="The spark of creativity";
-  let typedCount=0;                  // kaç karakter basıldı
-  let typeTimer=null;               // setInterval
-  let bridgeStart=0, stormStart=0;  // timestamp'ler
+  // ---------- SAHNE ----------
+  let phase='idle', typedCount=0, typeTimer=null, bridgeStart=0, stormStart=0, raf=0;
 
-  // daktilo: her 120ms bir harf — FPS’den bağımsız (mobilde takılmaz)
-  function startType(){
-    phase='type'; typedCount=0;
-    clearInterval(typeTimer);
+  function resetAndStart(){
+    cancelAnimationFrame(raf);
+    typedCount=0; clearInterval(typeTimer);
+    phase='type';
+    // daktilo her 120ms
     typeTimer=setInterval(()=>{
-      if(typedCount < slogan.length){ typedCount++; drawType(); }
+      if(typedCount < slogan.length){ typedCount++; drawType(); playTypeClick(); }
       if(typedCount >= slogan.length){
         clearInterval(typeTimer);
-        // 600ms bekle → bridge
-        setTimeout(()=>{ phase='bridge'; bridgeStart=Date.now(); }, 600);
+        setTimeout(()=>{phase='bridge'; bridgeStart=performance.now();}, PAUSE_MS);
       }
     }, 120);
     drawType();
+    raf=requestAnimationFrame(loop);
   }
 
   function drawType(){
     const W=cv.width,H=cv.height;
     cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
-    const typed = slogan.slice(0, typedCount);
-    const fontSize=Math.round(H*0.08);
-    cx.fillStyle='#eaeaea'; cx.font=fontSize+'px monospace';
-    cx.textAlign='center'; cx.textBaseline='middle';
-    cx.fillText(typed, W/2, H/2);
-    // caret
+    const typed=slogan.slice(0,typedCount);
+    const fs=Math.round(H*0.08);
+    cx.fillStyle='#eaeaea'; cx.font=fs+'px monospace'; cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText(typed,W/2,H/2);
     const caretOn = Math.floor(Date.now()/400)%2===0;
     const w = cx.measureText(typed).width;
-    if (typedCount < slogan.length || caretOn)
-      cx.fillRect(W/2 + w/2 + 8, H/2 - fontSize*0.55, 6, fontSize*1.1);
+    if (typedCount < slogan.length || caretOn) cx.fillRect(W/2+w/2+8, H/2-fs*0.55, 6, fs*1.1);
   }
 
   function drawBridge(){
-    const W=cv.width,H=cv.height;
-    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+    const W=cv.width,H=cv.height; cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
   }
 
   function drawStorm(){
     const W=cv.width,H=cv.height;
-    const elapsed = Date.now() - stormStart; // ms
+    const elapsed = performance.now() - stormStart;
     cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
 
-    // ambient ışık/vinyet
+    // ambient/vinyet
     const ambStart=1500, ambEnd=3300;
     let ambient=0;
     if(elapsed>ambStart){
-      const k=clamp((elapsed-ambStart)/(ambEnd-ambStart),0,1);
-      ambient=easeInOutQuad(k)*0.55;
+      const k=Math.max(0,Math.min(1,(elapsed-ambStart)/(ambEnd-ambStart)));
+      ambient = (k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2)*0.55;
     }
-    const vign = cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
+    const vign=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
     vign.addColorStop(0, `rgba(180,220,255,${0.06+ambient*0.35})`);
-    vign.addColorStop(1, 'rgba(0,0,0,0)');
-    cx.fillStyle=vign; cx.fillRect(0,0,W,H);
+    vign.addColorStop(1, 'rgba(0,0,0,0)'); cx.fillStyle=vign; cx.fillRect(0,0,W,H);
 
     // yıldırım ilk ~900ms
     if(elapsed<900){
       const bolts=2+Math.floor(Math.random()*2);
-      for(let i=0;i<bolts;i++){
-        const sx=W*0.2+Math.random()*W*0.6;
-        drawLightning(sx,-60,H*0.55);
-      }
+      for(let i=0;i<bolts;i++){ const sx=W*0.2+Math.random()*W*0.6; drawLightning(sx,-60,H*0.55); }
       cx.fillStyle='rgba(255,255,255,0.32)'; cx.fillRect(0,0,W,H);
     }
 
-    // kuş 1000ms sonra
+    // kuş
     if(logo){
-      const appear=clamp((elapsed-1000)/1200,0,1);
-      const alpha=easeOutCubic(appear);
+      const appear=Math.max(0,Math.min(1,(elapsed-1000)/1200));
+      const alpha=1-Math.pow(1-appear,3);
       const base=H*0.5, pulse=1+Math.sin(elapsed/1000*1.6)*0.03*(appear>0?1:0);
-      cx.save();
-      cx.globalAlpha=alpha;
-      cx.translate(W/2,H*0.55); cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025;
-      cx.scale(pulse,pulse); cx.drawImage(logo,-base/2,-base/2,base,base);
-      cx.restore();
+      cx.save(); cx.globalAlpha=alpha; cx.translate(W/2,H*0.55);
+      cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025; cx.scale(pulse,pulse);
+      cx.drawImage(logo,-base/2,-base/2,base,base); cx.restore();
     }
+    // yazı
+    cx.fillStyle='#eaf2ff'; cx.textAlign='center'; cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
+    cx.globalAlpha=Math.max(0,Math.min(1,(elapsed-1000)/1200)); cx.fillText('Babypeacock',W/2,H*0.18); cx.globalAlpha=1;
 
-    // “Babypeacock” yazısı
-    cx.fillStyle='#eaf2ff'; cx.textAlign='center';
-    cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
-    cx.globalAlpha=clamp((elapsed-1000)/1200,0,1);
-    cx.fillText('Babypeacock', W/2, H*0.18);
-    cx.globalAlpha=1;
-
-    // conic gradient varsa halka
-    const hasConic = typeof cx.createConicGradient==='function';
-    const glow=clamp((elapsed-1600)/1400,0,1);
-    if(hasConic && glow>0){
-      cx.save(); cx.translate(W/2,H/2);
-      cx.globalAlpha=glow*0.6; cx.lineWidth=W*0.015;
-      const ring=cx.createConicGradient((elapsed/1000)*0.2,0,0);
-      ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
-      cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
-      cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke();
-      cx.restore();
+    // halka (varsa)
+    if(typeof cx.createConicGradient==='function'){
+      const glow=Math.max(0,Math.min(1,(elapsed-1600)/1400));
+      if(glow>0){ cx.save(); cx.translate(W/2,H/2); cx.globalAlpha=glow*0.6; cx.lineWidth=W*0.015;
+        const ring=cx.createConicGradient((elapsed/1000)*0.2,0,0); ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
+        cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
+        cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke(); cx.restore(); }
     }
   }
 
-  // --- ana döngü (yalnızca bridge+storm’u rAF ile çizeriz) ---
   function loop(){
-    if(phase==='bridge'){
+    if(phase==='type'){ /* typeTimer çizer */ }
+    else if(phase==='bridge'){
       drawBridge();
-      if(Date.now()-bridgeStart>450){ phase='storm'; stormStart=Date.now(); }
-    }else if(phase==='storm'){
-      drawStorm();
-    }
-    requestAnimationFrame(loop);
+      if(performance.now()-bridgeStart > BRIDGE_MS){ phase='storm'; stormStart=performance.now(); playThunder(); }
+    } else if(phase==='storm'){ drawStorm(); }
+    raf=requestAnimationFrame(loop);
   }
 
-  // başlat
-  startType();
+  // ---------- KAYIT (MP4/WEBM) ----------
+  const recBtn=document.getElementById('record');
+  const prvBtn=document.getElementById('preview');
+
+  function pickMime(){
+    const candidates=['video/mp4;codecs=h264','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+    for(const m of candidates){ if(MediaRecorder.isTypeSupported(m)) return m; }
+    return ''; // tarayıcı seçer
+  }
+
+  async function recordOnce(){
+    // kullanıcı etkileşimi: ses için AudioContext'i aç
+    if(soundChk.checked) { ensureAudio(); await actx.resume?.(); }
+
+    // animasyonu baştan başlat
+    resetAndStart();
+
+    // canvas stream + (varsa) ses mix
+    const canvasStream = cv.captureStream(60);
+    let tracks = [...canvasStream.getVideoTracks()];
+    if(soundChk.checked && actx){
+      // miks çıkışını MediaStream’e yönlendir
+      const dest = actx.createMediaStreamDestination();
+      mix.disconnect(); mix.connect(dest); mix.connect(actx.destination);
+      tracks = tracks.concat(dest.stream.getAudioTracks());
+    }
+    const stream = new MediaStream(tracks);
+
+    const mime = pickMime();
+    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond: 7_000_000});
+    let chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+    rec.start();
+
+    // toplam süre + küçük pay
+    setTimeout(()=>rec.stop(), TOTAL_MS + 400);
+
+    rec.onstop=()=>{
+      const blob=new Blob(chunks,{type:mime||'video/webm'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      const ext = (mime && mime.startsWith('video/mp4')) ? 'mp4' : 'webm';
+      a.href=url; a.download=`bpc-intro.${ext}`; document.body.appendChild(a); a.click();
+      a.remove(); URL.revokeObjectURL(url);
+    };
+  }
+
+  prvBtn.onclick = () => { ensureAudio()?.resume?.(); resetAndStart(); };
+  recBtn.onclick = recordOnce;
+
+  // ilk yüklemede hazır
+  resetAndStart();
   requestAnimationFrame(loop);
 })();
 </script>
