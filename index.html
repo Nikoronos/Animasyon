@@ -11,102 +11,166 @@
 </style>
 </head>
 <body>
-<canvas id="cv" width="1920" height="1080"></canvas>
-
+<canvas id="cv"></canvas>
 <script>
 (() => {
   const cv=document.getElementById('cv'), cx=cv.getContext('2d');
-  const FPS=60, AR=16/9;
-  let raf=0, stage="type", t0=0;
-  const text="The spark of creativity";
-  let typed="", nextChar=0, typeDelay=70;
+  const AR = 16/9, FPS = 60;
+  let raf = 0, stage = "type", tStage = 0;
 
-  // Kuş görseli
-  const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
-  let logo=null; raw.onload=()=>{const off=document.createElement('canvas'),o=off.getContext('2d');
-    off.width=raw.naturalWidth;off.height=raw.naturalHeight;o.drawImage(raw,0,0);
-    const img=o.getImageData(0,0,off.width,off.height),d=img.data;
-    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2];if(r<22&&g<22&&b<22)d[i+3]=0;}
-    o.putImageData(img,0,0);logo=off;
+  // --- boyut (doğru 16:9) ---
+  function setSize(w=1920){
+    const W = Math.max(960, Math.min(3840, Math.round(w)));
+    const H = Math.round(W * 9 / 16);
+    cv.width = W; cv.height = H;
+  }
+  setSize(1920);
+  addEventListener('resize', ()=>setSize(cv.width));
+
+  // --- kuş görseli (siyah arka planı saydamlaştır) ---
+  const raw = new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
+  let logo=null; raw.onload=()=>{ const off=document.createElement('canvas'), o=off.getContext('2d');
+    off.width=raw.naturalWidth; off.height=raw.naturalHeight; o.drawImage(raw,0,0);
+    const img=o.getImageData(0,0,off.width,off.height), d=img.data;
+    for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22) d[i+3]=0; }
+    o.putImageData(img,0,0); logo=off;
   };
 
+  // --- yardımcılar ---
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const easeOutCubic=t=>1-Math.pow(1-t,3);
   const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
-  function drawLightning(x,yTop,yBottom){
-    cx.save();cx.globalCompositeOperation='screen';cx.lineCap='round';
-    const seg=12,pts=[[x,yTop]];let px=x,py=yTop,total=yBottom-yTop;
-    for(let i=1;i<=seg;i++){const t=i/seg;const nx=px+(Math.random()-0.5)*total*0.03*(1-t);
-      const ny=yTop+t*total+(Math.random()-0.5)*15*(1-t);pts.push([nx,ny]);px=nx;py=ny;}
-    cx.strokeStyle='rgba(255,255,255,0.95)';cx.shadowColor='rgba(170,220,255,0.9)';
-    cx.shadowBlur=28;cx.lineWidth=6;cx.beginPath();cx.moveTo(pts[0][0],pts[0][1]);
-    for(const p of pts)cx.lineTo(p[0],p[1]);cx.stroke();
-    cx.strokeStyle='rgba(80,170,255,0.9)';cx.shadowColor='rgba(120,200,255,0.9)';
-    cx.shadowBlur=40;cx.lineWidth=2.5;cx.beginPath();cx.moveTo(pts[0][0],pts[0][1]);
-    for(const p of pts)cx.lineTo(p[0],p[1]);cx.stroke();cx.restore();
+  // --- yıldırım (mavi-beyaz, dallı) ---
+  function drawLightning(x, yTop, yBottom) {
+    cx.save(); cx.globalCompositeOperation='screen'; cx.lineCap='round';
+    const seg=12, pts=[[x,yTop]]; let px=x, py=yTop, total=yBottom-yTop;
+    for(let i=1;i<=seg;i++){
+      const t=i/seg;
+      const nx = px + (Math.random()-0.5)*total*0.03*(1-t);
+      const ny = yTop + t*total + (Math.random()-0.5)*15*(1-t);
+      pts.push([nx,ny]); px=nx; py=ny;
+    }
+    // iç/ana gövde
+    cx.strokeStyle='rgba(255,255,255,0.95)'; cx.shadowColor='rgba(170,220,255,0.9)';
+    cx.shadowBlur=28; cx.lineWidth=6; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]);
+    for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
+    // dış mavi ışıma
+    cx.strokeStyle='rgba(80,170,255,0.9)'; cx.shadowColor='rgba(120,200,255,0.9)';
+    cx.shadowBlur=40; cx.lineWidth=2.5; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]);
+    for(const p of pts) cx.lineTo(p[0],p[1]); cx.stroke();
+    cx.restore();
   }
 
-  function draw(ts){
-    const W=cv.width,H=cv.height,now=((ts-t0)/1000)||0;
-    cx.clearRect(0,0,W,H);
+  // --- daktilo metni ---
+  const slogan = "The spark of creativity";
+  const typeDuration = 2.4;            // yazının toplam süresi
+  const pauseAfter  = 0.6;             // siyaha geçmeden önce kısa bekleme
+  function renderType(t){
+    const W=cv.width, H=cv.height;
+    cx.fillStyle="#000"; cx.fillRect(0,0,W,H);
+    const perChar = typeDuration / slogan.length;
+    const nChars = Math.max(0, Math.min(slogan.length, Math.floor(t / perChar)));
+    const textNow = slogan.slice(0, nChars);
+    cx.fillStyle="#eaeaea";
+    cx.font = Math.round(H*0.08)+'px monospace';
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText(textNow, W/2, H/2);
+    // imleç
+    if (nChars < slogan.length || Math.floor(t*2)%2===0) {
+      const w = cx.measureText(textNow).width;
+      cx.fillRect(W/2 + w/2 + 6, H/2 - Math.round(H*0.046), 6, Math.round(H*0.092));
+    }
+    // emniyet: 3 sn sonunda hâlâ boşsa zorla yaz
+    if (t>3 && nChars===0) { cx.fillText(slogan, W/2, H/2); }
+  }
 
+  // --- yıldırım & kuş & babypeacock sahnesi ---
+  function renderLightning(t){
+    const W=cv.width, H=cv.height;
+    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+
+    // aydınlanma ambiyansı
+    const ambStart=1.5, ambEnd=3.3;
+    let ambient = 0;
+    if(t>ambStart){
+      const k = clamp((t-ambStart)/(ambEnd-ambStart),0,1);
+      ambient = easeInOutQuad(k)*0.55;
+    }
+    const vign = cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
+    vign.addColorStop(0, `rgba(180,220,255,${0.06+ambient*0.35})`);
+    vign.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle=vign; cx.fillRect(0,0,W,H);
+
+    // yıldırım 0–0.9s
+    if(t<0.9){
+      const bolts = 2 + Math.floor(Math.random()*2);
+      for(let i=0;i<bolts;i++){
+        const startX = W*0.2 + Math.random()*W*0.6;
+        drawLightning(startX, -60, H*0.55);
+      }
+      cx.fillStyle='rgba(255,255,255,0.32)';
+      cx.fillRect(0,0,W,H);
+    }
+
+    // kuş (1.0s’den sonra görünür)
+    if(logo){
+      const appear = clamp((t-1.0)/1.2, 0, 1);           // 1.0→2.2
+      const alpha  = easeOutCubic(appear);
+      const base = H*0.5;
+      const pulse = 1 + Math.sin(t*1.6)*0.03*(appear>0?1:0);
+      cx.save();
+      cx.globalAlpha = alpha;
+      cx.translate(W/2, H*0.55);
+      cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025;
+      cx.scale(pulse,pulse);
+      cx.drawImage(logo, -base/2, -base/2, base, base);
+      cx.restore();
+    }
+
+    // “Babypeacock” yazısı
+    cx.fillStyle='#eaf2ff'; cx.textAlign='center';
+    cx.font = Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
+    cx.globalAlpha = clamp((t-1.0)/1.2, 0, 1);
+    cx.fillText('Babypeacock', W/2, H*0.18);
+    cx.globalAlpha = 1;
+
+    // halka (conic destek yoksa atla)
+    const hasConic = typeof cx.createConicGradient === 'function';
+    const glow = clamp((t-1.6)/1.4, 0, 1);
+    if(hasConic && glow>0){
+      cx.save(); cx.translate(W/2, H/2);
+      cx.globalAlpha = glow*0.6;
+      cx.lineWidth = W*0.015;
+      const ring = cx.createConicGradient(t*0.2, 0, 0);
+      ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
+      cx.strokeStyle = ring;
+      cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
+      cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke();
+      cx.restore();
+    }
+  }
+
+  // --- ana döngü ---
+  function loop(ts){
+    const now = ts/1000;                // saniye
     if(stage==="type"){
-      cx.fillStyle="#000";cx.fillRect(0,0,W,H);
-      cx.fillStyle="#eaeaea";cx.font=Math.round(H*0.08)+'px monospace';
-      cx.textAlign='center';cx.textBaseline='middle';
-      if(typed.length<text.length && performance.now()>nextChar){
-        typed=text.slice(0,typed.length+1);
-        nextChar=performance.now()+typeDelay+Math.random()*60;
-      }
-      cx.fillText(typed,W/2,H/2);
-      if(Math.floor(performance.now()/400)%2===0)
-        cx.fillRect(W/2+cx.measureText(typed).width/2+5,H/2-30,6,50);
-      if(typed.length===text.length && now>2.5){stage="flash";t0=performance.now();}
+      renderType(now - tStage);
+      // yazı bitti + kısa bekleme
+      if (now - tStage > 2.4 + 0.6) { stage="light"; tStage=now; }
+    } else if(stage==="light"){          // geçiş kararması
+      const W=cv.width,H=cv.height, t = now - tStage;
+      cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+      if (t > 0.4) { stage="storm"; tStage=now; }
+    } else if(stage==="storm"){
+      renderLightning(now - tStage);
+      // toplam ~3.4s oynatıyoruz
+      if (now - tStage > 3.4) { /* döngüyü burada bırak */ }
     }
-
-    else if(stage==="flash"){
-      const n=((ts-t0)/1000)||0;cx.fillStyle='#000';cx.fillRect(0,0,W,H);
-      if(n>0.5){stage="lightning";t0=performance.now();}
-    }
-
-    else if(stage==="lightning"){
-      const n=((ts-t0)/1000)||0;cx.fillStyle='#000';cx.fillRect(0,0,W,H);
-      // yıldırım 0–1s
-      if(n<1.1){
-        const bolts=2+Math.floor(Math.random()*2);
-        for(let i=0;i<bolts;i++){const startX=W*0.2+Math.random()*W*0.6;drawLightning(startX,-60,H*0.55);}
-        cx.fillStyle='rgba(255,255,255,0.3)';cx.fillRect(0,0,W,H);
-      }
-      // kuş
-      if(logo){
-        const base=H*0.5,pulse=1+Math.sin(n*1.6)*0.03;
-        cx.save();cx.globalAlpha=Math.min(1,Math.max(0,(n-1)/1.2));
-        cx.translate(W/2,H*0.55);cx.shadowColor='rgba(180,220,255,.45)';cx.shadowBlur=W*0.025;
-        cx.scale(pulse,pulse);cx.drawImage(logo,-base/2,-base/2,base,base);cx.restore();
-      }
-      // yazı
-      cx.fillStyle='#eaf2ff';cx.textAlign='center';cx.font=Math.round(H*0.08)+'px system-ui';
-      cx.globalAlpha=Math.min(1,Math.max(0,(n-1)/1.2));cx.fillText('Babypeacock',W/2,H*0.18);cx.globalAlpha=1;
-      // halka
-      const glow=Math.max(0,Math.min(1,(n-1.5)/1.5));
-      if(glow>0){cx.save();cx.translate(W/2,H/2);cx.globalAlpha=glow*0.6;cx.lineWidth=W*0.015;
-        const ring=cx.createConicGradient(now*0.2,0,0);ring.addColorStop(0,'#cfe9ff');ring.addColorStop(1,'#66b2ff');
-        cx.strokeStyle=ring;cx.shadowColor='rgba(150,200,255,.5)';cx.shadowBlur=W*0.02;
-        cx.beginPath();cx.arc(0,0,H*0.27,0,Math.PI*2);cx.stroke();cx.restore();}
-      if(n<3.2)raf=requestAnimationFrame(draw);
-    }
-    else raf=requestAnimationFrame(draw);
+    raf = requestAnimationFrame(loop);
   }
-
-  function start(){
-    cancelAnimationFrame(raf);
-    cv.width=1920;cv.height=1080/AR;
-    t0=performance.now();stage="type";typed="";
-    raf=requestAnimationFrame(draw);
-  }
-  window.addEventListener('resize',()=>{cv.width=1920;cv.height=1080/AR;});
-  start();
+  cancelAnimationFrame(raf);
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
