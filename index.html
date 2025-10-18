@@ -26,18 +26,24 @@
 <script>
 (() => {
   const cv=document.getElementById('cv'), cx=cv.getContext('2d',{alpha:false});
+  const btnPrev=document.getElementById('preview');
+  const btnRec=document.getElementById('record');
   const soundChk=document.getElementById('sound');
 
-  // Tuval boyutu
+  // Boyut
   function setSize(w=1920){const W=Math.max(960,Math.min(3840,Math.round(w)));cv.width=W;cv.height=Math.round(W*9/16);}
   setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
-  // Zamanlama — final bekleme 5 sn
+  // Zaman çizelgesi (ms)
   const TYPE_MS=2400, PAUSE_MS=600, BRIDGE_MS=450, STORM_MS=3400, HOLD_MS=5000;
-  const TOTAL_MS=TYPE_MS+PAUSE_MS+BRIDGE_MS+STORM_MS+HOLD_MS;
+  const T_TYPE = 0;
+  const T_PAUSE = T_TYPE + TYPE_MS;
+  const T_BRIDGE = T_PAUSE + PAUSE_MS;
+  const T_STORM = T_BRIDGE + BRIDGE_MS;
+  const T_END = T_STORM + STORM_MS + HOLD_MS; // toplam süre
   const slogan="The spark of creativity";
 
-  // Kuş (siyahı transparan yap)
+  // Kuş görseli
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
   let logo=null; raw.onload=()=>{const off=document.createElement('canvas'),o=off.getContext('2d');
     off.width=raw.naturalWidth;off.height=raw.naturalHeight;o.drawImage(raw,0,0);
@@ -46,65 +52,49 @@
     o.putImageData(img,0,0); logo=off;
   };
 
-  // Ses motoru
-  let actx=null,mix=null,busType=null,busThunder=null;
+  // Ses
+  let actx=null,mix=null,bType=null,bTh=null;
   function ensureAudio(){ if(!soundChk.checked) return null;
     if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); }
     if(!mix){ mix=actx.createGain(); mix.gain.value=.9; mix.connect(actx.destination); }
-    if(!busType){ busType=actx.createGain(); busType.gain.value=.7; busType.connect(mix); }
-    if(!busThunder){ busThunder=actx.createGain(); busThunder.gain.value=.9; busThunder.connect(mix); }
+    if(!bType){ bType=actx.createGain(); bType.gain.value=.7; bType.connect(mix); }
+    if(!bTh){ bTh=actx.createGain(); bTh.gain.value=.9; bTh.connect(mix); }
     return actx;
   }
-  function typeClick(){ if(!ensureAudio())return; const o=actx.createOscillator(), g=actx.createGain();
+  function clickSound(){ if(!ensureAudio())return; const o=actx.createOscillator(), g=actx.createGain();
     o.type='square'; o.frequency.value=880+Math.random()*80;
     g.gain.setValueAtTime(0,actx.currentTime);
     g.gain.linearRampToValueAtTime(.35,actx.currentTime+.005);
     g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.08);
-    o.connect(g).connect(busType); o.start(); o.stop(actx.currentTime+.09);
+    o.connect(g).connect(bType); o.start(); o.stop(actx.currentTime+.09);
   }
-  function playThunder(){ if(!ensureAudio())return;
-    // sub boom
-    const sub=actx.createOscillator(); sub.type='sine'; sub.frequency.setValueAtTime(50,actx.currentTime);
-    const sg=actx.createGain(); sg.gain.setValueAtTime(0,actx.currentTime);
-    sg.gain.linearRampToValueAtTime(.9,actx.currentTime+.02);
-    sg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.1);
-    sub.connect(sg).connect(busThunder); sub.start(); sub.stop(actx.currentTime+1.2);
-    // crack
+  function thunder(){ if(!ensureAudio())return;
+    const now=actx.currentTime;
+    const sub=actx.createOscillator(); sub.type='sine'; sub.frequency.setValueAtTime(50,now);
+    const sg=actx.createGain(); sg.gain.setValueAtTime(0,now); sg.gain.linearRampToValueAtTime(.9,now+.02); sg.gain.exponentialRampToValueAtTime(.0001,now+1.1);
+    sub.connect(sg).connect(bTh); sub.start(); sub.stop(now+1.2);
     const cl=actx.sampleRate*.18, cb=actx.createBuffer(1,cl,actx.sampleRate), d=cb.getChannelData(0);
     for(let i=0;i<cl;i++) d[i]=(Math.random()*2-1)*(1-i/cl);
     const cs=actx.createBufferSource(); cs.buffer=cb;
     const bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3500; bp.Q.value=.8;
-    const cg=actx.createGain(); cg.gain.setValueAtTime(0,actx.currentTime);
-    cg.gain.linearRampToValueAtTime(1,actx.currentTime+.01);
-    cg.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.18);
-    cs.connect(bp).connect(cg).connect(busThunder); cs.start();
-    // rumble + hafif echo
+    const cg=actx.createGain(); cg.gain.setValueAtTime(0,now); cg.gain.linearRampToValueAtTime(1,now+.01); cg.gain.exponentialRampToValueAtTime(.001,now+.18);
+    cs.connect(bp).connect(cg).connect(bTh); cs.start();
     const rl=actx.sampleRate*1.6, rb=actx.createBuffer(1,rl,actx.sampleRate), rbd=rb.getChannelData(0);
     for(let i=0;i<rl;i++) rbd[i]=(Math.random()*2-1)*Math.pow(1-i/rl,1.6);
     const rs=actx.createBufferSource(); rs.buffer=rb;
     const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1200;
-    const rg=actx.createGain(); rg.gain.setValueAtTime(0,actx.currentTime);
-    rg.gain.linearRampToValueAtTime(.8,actx.currentTime+.04);
-    rg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.55);
+    const rg=actx.createGain(); rg.gain.setValueAtTime(0,now); rg.gain.linearRampToValueAtTime(.8,now+.04); rg.gain.exponentialRampToValueAtTime(.0001,now+1.55);
     const del=actx.createDelay(.4); del.delayTime.value=.22; const fb=actx.createGain(); fb.gain.value=.27;
     rg.connect(del); del.connect(fb); fb.connect(rg);
-    rs.connect(lp).connect(rg).connect(busThunder); rs.start();
+    rs.connect(lp).connect(rg).connect(bTh); rs.start();
   }
 
-  // WEBM mime seçici (VP9→VP8→generic)
-  function pickWebmMime() {
-    const cands = [
-      'video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus',
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm'
-    ];
-    for (const m of cands) { if (window.MediaRecorder && MediaRecorder.isTypeSupported?.(m)) return m; }
-    return 'video/webm';
-  }
+  // Yardımcılar
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const easeOutCubic=t=>1-Math.pow(1-t,3);
+  const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
-  // Yıldırım
+  // Yıldırım çizimi
   function bolt(x,y0,y1){
     cx.save(); cx.globalCompositeOperation='screen'; cx.lineCap='round';
     const seg=12, pts=[[x,y0]]; let px=x,py=y0,tot=y1-y0;
@@ -117,31 +107,36 @@
     cx.restore();
   }
 
-  // Sahne akışı
-  let phase='idle', typedCount=0, typeTimer=null, bridgeStart=0, stormStart=0, raf=0;
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const easeOutCubic=t=>1-Math.pow(1-t,3);
-  const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
-
-  function drawType(){
-    const W=cv.width,H=cv.height;
-    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
-    const typed=slogan.slice(0,typedCount);
-    const fs=Math.round(H*0.08);
-    cx.fillStyle='#eaeaea'; cx.font=fs+'px monospace'; cx.textAlign='center'; cx.textBaseline='middle';
-    cx.fillText(typed, W/2, H/2);
-    const caretOn=Math.floor(Date.now()/400)%2===0;
-    const w=cx.measureText(typed).width;
-    if(typedCount<slogan.length || caretOn) cx.fillRect(W/2+w/2+8, H/2-fs*0.55, 6, fs*1.1);
-  }
-  function drawBridge(){ const W=cv.width,H=cv.height; cx.fillStyle='#000'; cx.fillRect(0,0,W,H); }
-  function drawStorm(){
-    const W=cv.width,H=cv.height, elapsed=performance.now()-stormStart;
+  // Tek çizim fonksiyonu — zamanı parametre alır (ms)
+  function renderAt(t){
+    const W=cv.width,H=cv.height; cx.clearRect(0,0,W,H); // kare temiz
+    if(t < T_PAUSE){ // daktilo
+      const span = t - T_TYPE; const charMs = TYPE_MS / slogan.length;
+      const n = Math.max(0, Math.min(slogan.length, Math.floor(span/charMs)));
+      const typed = slogan.slice(0,n);
+      const fs=Math.round(H*0.08);
+      cx.fillStyle='#eaeaea'; cx.font=fs+'px monospace'; cx.textAlign='center'; cx.textBaseline='middle';
+      cx.fillText(typed, W/2, H/2);
+      // caret
+      const caretOn = Math.floor(span/200)%2===0;
+      const w=cx.measureText(typed).width;
+      if(n<slogan.length || caretOn) cx.fillRect(W/2+w/2+8, H/2-fs*0.55, 6, fs*1.1);
+      return;
+    }
+    if(t < T_BRIDGE){ // kısa siyah köprü
+      cx.fillStyle='#000'; cx.fillRect(0,0,W,H); return;
+    }
+    // Fırtına sahnesi
+    const elapsed = clamp(t - T_STORM, 0, STORM_MS + HOLD_MS);
     cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
     let ambient=0; if(elapsed>1500){const k=clamp((elapsed-1500)/(3300-1500),0,1); ambient=easeInOutQuad(k)*.55;}
     const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
-    g.addColorStop(0,`rgba(180,220,255,${0.06+ambient*0.35})`); g.addColorStop(1,'rgba(0,0,0,0)'); cx.fillStyle=g; cx.fillRect(0,0,W,H);
-    if(elapsed<900){ const n=2+Math.floor(Math.random()*2); for(let i=0;i<n;i++){ const sx=W*0.2+Math.random()*W*0.6; bolt(sx,-60,H*0.55);} cx.fillStyle='rgba(255,255,255,.32)'; cx.fillRect(0,0,W,H); }
+    g.addColorStop(0,`rgba(180,220,255,${0.06+ambient*0.35})`); g.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=g; cx.fillRect(0,0,W,H);
+    if(elapsed<900){ const n=2+Math.floor(Math.random()*2);
+      for(let i=0;i<n;i++){ const sx=W*0.2+Math.random()*W*0.6; bolt(sx,-60,H*0.55); }
+      cx.fillStyle='rgba(255,255,255,.32)'; cx.fillRect(0,0,W,H);
+    }
     if(logo){ const appear=clamp((elapsed-1000)/1200,0,1), a=easeOutCubic(appear);
       const base=H*0.5, pulse=1+Math.sin(elapsed/1000*1.6)*0.03*(appear>0?1:0);
       cx.save(); cx.globalAlpha=a; cx.translate(W/2,H*0.55); cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025; cx.scale(pulse,pulse);
@@ -153,59 +148,92 @@
         const ring=cx.createConicGradient((elapsed/1000)*0.2,0,0); ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
         cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02; cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke(); cx.restore(); }
     }
-    // HOLD_MS boyunca sahne sabit kalır (5 sn)
   }
 
-  function resetAndStart(){
+  // Önizleme (raf tabanlı) — sadece ekrandaki animasyon
+  let raf=0, prevStart=0, lastPhaseThundered=false;
+  function startPreview(){
     cancelAnimationFrame(raf);
-    typedCount=0; clearInterval(typeTimer);
-    phase='type';
-    typeTimer=setInterval(()=>{
-      if(typedCount<slogan.length){ typedCount++; drawType(); if(soundChk.checked) typeClick(); }
-      if(typedCount>=slogan.length){ clearInterval(typeTimer); setTimeout(()=>{ phase='bridge'; bridgeStart=performance.now(); }, PAUSE_MS); }
-    },120);
-    drawType(); raf=requestAnimationFrame(loop);
-  }
-  function loop(){
-    if(phase==='bridge'){ drawBridge(); if(performance.now()-bridgeStart>BRIDGE_MS){ phase='storm'; stormStart=performance.now(); if(soundChk.checked){ ensureAudio(); actx.resume?.(); playThunder(); } } }
-    else if(phase==='storm'){ drawStorm(); }
-    raf=requestAnimationFrame(loop);
+    prevStart=performance.now(); lastPhaseThundered=false;
+    if(soundChk.checked){ ensureAudio()?.resume?.(); }
+    const loop=()=>{
+      const t = performance.now() - prevStart;
+      renderAt(t);
+      // Şimşek sfx'i sadece T_STORM anında bir kez tetikleyelim
+      if(t>=T_STORM && !lastPhaseThundered){ lastPhaseThundered=true; thunder(); }
+      if(t<T_END) raf=requestAnimationFrame(loop);
+    };
+    loop();
   }
 
-  // Kayıt: WEBM'e sesli zorla (VP9/VP8 fallback)
+  // WEBM mime seçici
+  function pickWebmMime() {
+    const cands = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm'
+    ];
+    for (const m of cands) { if (MediaRecorder.isTypeSupported?.(m)) return m; }
+    return 'video/webm';
+  }
+
+  // Kayıt — deterministik 60fps çerçeve üretimi
   async function recordOnce(){
-    if(!window.MediaRecorder){ alert('Tarayıcın MediaRecorder desteklemiyor (iOS Safari eski sürüm?).'); return; }
-    if(soundChk.checked){ ensureAudio(); await actx?.resume?.(); }
+    if(!window.MediaRecorder){ alert('Tarayıcın MediaRecorder desteklemiyor.'); return; }
+    cancelAnimationFrame(raf); // preview dursun
+    ensureAudio()?.resume?.();
 
-    resetAndStart();
-
-    const canvasStream=cv.captureStream(60);
-    let tracks=[...canvasStream.getVideoTracks()];
+    const FPS=60;
+    const stream=cv.captureStream(FPS);
+    // Ses
     if(soundChk.checked && actx){
       const dest=actx.createMediaStreamDestination();
       mix.disconnect(); mix.connect(dest); mix.connect(actx.destination);
-      tracks=tracks.concat(dest.stream.getAudioTracks());
+      stream.addTrack(dest.stream.getAudioTracks()[0]);
     }
-    const stream=new MediaStream(tracks);
-
-    let mime = pickWebmMime();
-    let rec;
-    try { rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:7_000_000}); }
+    // Recorder
+    let mime=pickWebmMime(); let rec;
+    try{ rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:7_000_000}); }
     catch(e){ rec=new MediaRecorder(stream); mime='video/webm'; }
 
     let chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
     rec.start();
-    setTimeout(()=>rec.stop(), TOTAL_MS+300);
+
+    // Ses olayları: yazı klikleri ve şimşek
+    const charMs = TYPE_MS / slogan.length;
+    let lastClickIdx=-1, thunderDone=false;
+
+    // Deterministik render döngüsü
+    const dt=1000/FPS; let t=0;
+    const timer=setInterval(()=>{
+      // klik sesleri
+      const idx = Math.floor(clamp(t - T_TYPE, 0, TYPE_MS)/charMs)-1;
+      if(soundChk.checked && idx>lastClickIdx && t<T_PAUSE){ lastClickIdx=idx; clickSound(); }
+      // thunder
+      if(soundChk.checked && t>=T_STORM && !thunderDone){ thunderDone=true; thunder(); }
+      renderAt(t);
+      t += dt;
+      if(t>=T_END){
+        clearInterval(timer);
+        setTimeout(()=>rec.stop(), 100); // son tampon
+      }
+    }, dt);
+
     rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download='bpc-intro.webm';
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); };
+      const url=URL.createObjectURL(blob); const a=document.createElement('a');
+      a.href=url; a.download='bpc-intro.webm'; document.body.appendChild(a); a.click();
+      a.remove(); URL.revokeObjectURL(url);
+    };
   }
 
-  document.getElementById('preview').onclick=()=>{ ensureAudio()?.resume?.(); resetAndStart(); };
-  document.getElementById('record').onclick =recordOnce;
+  // UI
+  btnPrev.onclick=startPreview;
+  btnRec.onclick=recordOnce;
 
-  resetAndStart(); requestAnimationFrame(loop);
+  // Otomatik önizleme
+  startPreview();
 })();
 </script>
 </body>
