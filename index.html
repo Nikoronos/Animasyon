@@ -11,30 +11,38 @@
       padding:.65rem;background:linear-gradient(#0008,#0000)}
   .ui>*{font:600 14px/1.1 system-ui;border-radius:10px;border:1px solid #333;padding:.6rem .9rem;background:var(--ui-bg);color:var(--ui-fg)}
   button{cursor:pointer} button:active{transform:scale(.98)}
+  select{font-weight:600} .note{position:fixed;top:.5rem;right:.5rem;opacity:.6;font:12px/1.1 system-ui}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div class="ui">
   <button id="preview">Önizleme</button>
-  <button id="record">Kaydı Al (WEBM)</button>
+  <button id="record">Kaydı Al</button>
   <label><input id="sound" type="checkbox"> Ses</label>
+  <label>Format
+    <select id="fmt">
+      <option value="webm" selected>WEBM (önerilen)</option>
+      <option value="mp4">MP4 (uyumluysa)</option>
+    </select>
+  </label>
 </div>
+<div class="note">Not: bpc-bird.png depo kökünde olmalı</div>
 
 <script>
 (() => {
   const cv=document.getElementById('cv'), cx=cv.getContext('2d',{alpha:false});
+  const fmtSel=document.getElementById('fmt'); const soundChk=document.getElementById('sound');
   function setSize(w=1920){const W=Math.max(960,Math.min(3840,Math.round(w)));cv.width=W;cv.height=Math.round(W*9/16);}
   setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
-  // Zamanlar
-  const TYPE_MS=2400, PAUSE_MS=600, BRIDGE_MS=450, STORM_MS=3400, HOLD_MS=3000; // <- +3s final bekleme
+  // Zamanlama — final bekleme 5sn
+  const TYPE_MS=2400, PAUSE_MS=600, BRIDGE_MS=450, STORM_MS=3400, HOLD_MS=5000;
   const TOTAL_MS=TYPE_MS+PAUSE_MS+BRIDGE_MS+STORM_MS+HOLD_MS;
 
-  // Metin
   const slogan="The spark of creativity";
 
-  // Kuş görseli
+  // Kuş görseli (siyahı transparan)
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
   let logo=null; raw.onload=()=>{const off=document.createElement('canvas'),o=off.getContext('2d');
     off.width=raw.naturalWidth;off.height=raw.naturalHeight;o.drawImage(raw,0,0);
@@ -43,9 +51,8 @@
     o.putImageData(img,0,0); logo=off;
   };
 
-  // Ses (opsiyonel)
+  // Ses motoru
   let actx=null,mix=null,busType=null,busThunder=null;
-  const soundChk=document.getElementById('sound');
   function ensureAudio(){ if(!soundChk.checked) return null;
     if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); }
     if(!mix){ mix=actx.createGain(); mix.gain.value=.9; mix.connect(actx.destination); }
@@ -61,13 +68,11 @@
     o.connect(g).connect(busType); o.start(); o.stop(actx.currentTime+.09);
   }
   function playThunder(){ if(!ensureAudio())return;
-    // sub boom
     const sub=actx.createOscillator(); sub.type='sine'; sub.frequency.setValueAtTime(50,actx.currentTime);
     const sg=actx.createGain(); sg.gain.setValueAtTime(0,actx.currentTime);
     sg.gain.linearRampToValueAtTime(.9,actx.currentTime+.02);
     sg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.1);
     sub.connect(sg).connect(busThunder); sub.start(); sub.stop(actx.currentTime+1.2);
-    // crack
     const cl=actx.sampleRate*.18, cb=actx.createBuffer(1,cl,actx.sampleRate), d=cb.getChannelData(0);
     for(let i=0;i<cl;i++) d[i]=(Math.random()*2-1)*(1-i/cl);
     const cs=actx.createBufferSource(); cs.buffer=cb;
@@ -76,34 +81,35 @@
     cg.gain.linearRampToValueAtTime(1,actx.currentTime+.01);
     cg.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.18);
     cs.connect(bp).connect(cg).connect(busThunder); cs.start();
-    // rumble
-    const rl=actx.sampleRate*1.4, rb=actx.createBuffer(1,rl,actx.sampleRate), rbd=rb.getChannelData(0);
-    for(let i=0;i<rl;i++) rbd[i]=(Math.random()*2-1)*Math.pow(1-i/rl,1.5);
+    const rl=actx.sampleRate*1.6, rb=actx.createBuffer(1,rl,actx.sampleRate), rbd=rb.getChannelData(0);
+    for(let i=0;i<rl;i++) rbd[i]=(Math.random()*2-1)*Math.pow(1-i/rl,1.6);
     const rs=actx.createBufferSource(); rs.buffer=rb;
-    const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1400;
+    const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1200;
     const rg=actx.createGain(); rg.gain.setValueAtTime(0,actx.currentTime);
     rg.gain.linearRampToValueAtTime(.8,actx.currentTime+.04);
-    rg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.35);
-    const del=actx.createDelay(.4); del.delayTime.value=.22; const fb=actx.createGain(); fb.gain.value=.25;
+    rg.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.55);
+    const del=actx.createDelay(.4); del.delayTime.value=.22; const fb=actx.createGain(); fb.gain.value=.27;
     rg.connect(del); del.connect(fb); fb.connect(rg);
     rs.connect(lp).connect(rg).connect(busThunder); rs.start();
   }
 
-  // Yıldırım çizimi
+  // Yıldırım
   function bolt(x,y0,y1){
     cx.save(); cx.globalCompositeOperation='screen'; cx.lineCap='round';
     const seg=12, pts=[[x,y0]]; let px=x,py=y0,tot=y1-y0;
     for(let i=1;i<=seg;i++){const t=i/seg; const nx=px+(Math.random()-.5)*tot*.03*(1-t);
       const ny=y0+t*tot+(Math.random()-.5)*15*(1-t); pts.push([nx,ny]); px=nx; py=ny;}
-    cx.strokeStyle='rgba(255,255,255,.95)'; cx.shadowColor='rgba(170,220,255,.9)';
-    cx.shadowBlur=28; cx.lineWidth=6; cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke();
+    cx.strokeStyle='rgba(255,255,255,.95)'; cx.shadowColor='rgba(170,220,255,.9)'; cx.shadowBlur=28; cx.lineWidth=6;
+    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke();
     cx.strokeStyle='rgba(80,170,255,.9)'; cx.shadowColor='rgba(120,200,255,.9)'; cx.shadowBlur=40; cx.lineWidth=2.5;
-    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke(); cx.restore();
+    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke();
+    cx.restore();
   }
 
-  // Sahne durumları
+  // Sahne
   let phase='idle', typedCount=0, typeTimer=null, bridgeStart=0, stormStart=0, raf=0;
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)); const easeOutCubic=t=>1-Math.pow(1-t,3);
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const easeOutCubic=t=>1-Math.pow(1-t,3);
   const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
   function drawType(){
@@ -121,32 +127,24 @@
   function drawStorm(){
     const W=cv.width,H=cv.height, elapsed=performance.now()-stormStart;
     cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
-    // vinyet/aydınlanma
     let ambient=0; if(elapsed>1500){const k=clamp((elapsed-1500)/(3300-1500),0,1); ambient=easeInOutQuad(k)*.55;}
     const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
-    g.addColorStop(0,`rgba(180,220,255,${0.06+ambient*0.35})`); g.addColorStop(1,'rgba(0,0,0,0)');
-    cx.fillStyle=g; cx.fillRect(0,0,W,H);
-    // yıldırım (ilk 900ms)
+    g.addColorStop(0,`rgba(180,220,255,${0.06+ambient*0.35})`); g.addColorStop(1,'rgba(0,0,0,0)'); cx.fillStyle=g; cx.fillRect(0,0,W,H);
     if(elapsed<900){ const n=2+Math.floor(Math.random()*2); for(let i=0;i<n;i++){ const sx=W*0.2+Math.random()*W*0.6; bolt(sx,-60,H*0.55);} cx.fillStyle='rgba(255,255,255,.32)'; cx.fillRect(0,0,W,H); }
-    // kuş
     if(logo){ const appear=clamp((elapsed-1000)/1200,0,1), a=easeOutCubic(appear);
       const base=H*0.5, pulse=1+Math.sin(elapsed/1000*1.6)*0.03*(appear>0?1:0);
-      cx.save(); cx.globalAlpha=a; cx.translate(W/2,H*0.55); cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025;
-      cx.scale(pulse,pulse); cx.drawImage(logo,-base/2,-base/2,base,base); cx.restore();
-    }
-    // yazı
+      cx.save(); cx.globalAlpha=a; cx.translate(W/2,H*0.55); cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.025; cx.scale(pulse,pulse);
+      cx.drawImage(logo,-base/2,-base/2,base,base); cx.restore(); }
     cx.fillStyle='#eaf2ff'; cx.textAlign='center'; cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
     cx.globalAlpha=clamp((elapsed-1000)/1200,0,1); cx.fillText('Babypeacock',W/2,H*0.18); cx.globalAlpha=1;
-    // halka (varsa)
     if(typeof cx.createConicGradient==='function'){ const glow=clamp((elapsed-1600)/1400,0,1);
       if(glow>0){ cx.save(); cx.translate(W/2,H/2); cx.globalAlpha=glow*.6; cx.lineWidth=W*0.015;
         const ring=cx.createConicGradient((elapsed/1000)*0.2,0,0); ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
         cx.strokeStyle=ring; cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02; cx.beginPath(); cx.arc(0,0,H*0.27,0,Math.PI*2); cx.stroke(); cx.restore(); }
     }
-    // burada hiçbir fade-out yok; HOLD_MS boyunca sahneyi sabit bırakacağız (kayıtta da aynı)
+    // HOLD_MS süresince ekranda kalacak (kayıtta da tutuluyor)
   }
 
-  // Akış
   function resetAndStart(){
     cancelAnimationFrame(raf);
     typedCount=0; clearInterval(typeTimer);
@@ -163,28 +161,39 @@
     raf=requestAnimationFrame(loop);
   }
 
-  // Kayıt (WEBM’e zorla)
+  // Kayıt: varsayılan WEBM (sesli). MP4 seçilirse ses kapatılır (uyumluluk için).
   async function recordOnce(){
+    const wantMp4 = fmtSel.value==='mp4';
+    if(wantMp4){ soundChk.checked=false; alert('Not: MP4’da tarayıcılar genelde AAC ses yazmıyor. Bu yüzden kayıt sessiz alınacak. Ses istiyorsan WEBM seç.'); }
     if(soundChk.checked){ ensureAudio(); await actx.resume?.(); }
     resetAndStart();
+
     const canvasStream=cv.captureStream(60);
     let tracks=[...canvasStream.getVideoTracks()];
-    if(soundChk.checked && actx){ const dest=actx.createMediaStreamDestination(); mix.disconnect(); mix.connect(dest); mix.connect(actx.destination); tracks=tracks.concat(dest.stream.getAudioTracks()); }
+    if(soundChk.checked && actx){
+      const dest=actx.createMediaStreamDestination();
+      mix.disconnect(); mix.connect(dest); mix.connect(actx.destination);
+      tracks=tracks.concat(dest.stream.getAudioTracks());
+    }
     const stream=new MediaStream(tracks);
-    const mime='video/webm;codecs=vp9'; // ZORLA WEBM (mobil uyumlu)
+
+    const mime = wantMp4
+      ? (MediaRecorder.isTypeSupported('video/mp4;codecs=h264') ? 'video/mp4;codecs=h264' : 'video/mp4')
+      : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm');
+
     const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:7_000_000});
     let chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
     rec.start();
-    setTimeout(()=>rec.stop(), TOTAL_MS+HOLD_MS+300); // tüm akış + ekstra 3sn hold
-    rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime}); const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download='bpc-intro.webm'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); };
+    setTimeout(()=>rec.stop(), TOTAL_MS+300);
+    rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a');
+      a.href=url; a.download=`bpc-intro.${wantMp4?'mp4':'webm'}`; document.body.appendChild(a); a.click();
+      a.remove(); URL.revokeObjectURL(url); };
   }
 
-  // UI
   document.getElementById('preview').onclick=()=>{ ensureAudio()?.resume?.(); resetAndStart(); };
   document.getElementById('record').onclick =recordOnce;
 
-  // Başlat
   resetAndStart(); requestAnimationFrame(loop);
 })();
 </script>
