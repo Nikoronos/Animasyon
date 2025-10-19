@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>BabyPeacock • The Flight</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Babypeacock • The Flight</title>
 <style>
   :root{--ui-bg:#111;--ui-fg:#eaeaea}
   html,body{margin:0;height:100%;background:#000;color:#eaeaea;overflow:hidden;
@@ -23,7 +24,7 @@
   <label><input id="sound" type="checkbox" checked> Sound</label>
   <span id="st" class="status">Ready</span>
 </div>
-<div class="note">Image required: <b>bpc-bird.png</b> in repo root</div>
+<div class="note">Asset: <b>bpc-bird.png</b> (repo root)</div>
 
 <script>
 (() => {
@@ -31,24 +32,28 @@
   const btnPrev=document.getElementById('prev'), btnOne=document.getElementById('one'), st=document.getElementById('st');
   const soundChk=document.getElementById('sound');
 
-  // canvas size
-  function setSize(w=1920){const W=Math.max(960,Math.min(3840,Math.round(w)));cv.width=W;cv.height=Math.round(W*9/16);}
+  // ---------- Canvas size ----------
+  function setSize(w=1920){
+    const W=Math.max(960,Math.min(3840,Math.round(w)));
+    cv.width=W; cv.height=Math.round(W*9/16);
+  }
   setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
-  // timeline (ms) — total ~15s + 2s logo hold for clean ending
-  const S1=3000, S2=5000, S3=6000, S4=2000; // 3 + 5 + 6 + 2
+  // ---------- Timeline (ms) ----------
+  // S1: Birth(3s), S2: Awakening(5s), S3: Flight(6s), S4: Hold(2s) -> total 16s
+  const S1=3000, S2=5000, S3=6000, S4=2000;
   const T1=0, T2=T1+S1, T3=T2+S2, T4=T3+S3, TEND=T4+S4;
 
-  // assets — bird silhouette, black → transparent
+  // ---------- Assets (black->transparent) ----------
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
-  let bird=null; raw.onload=()=>{const off=document.createElement('canvas'),o=off.getContext('2d');
-    off.width=raw.naturalWidth;off.height=raw.naturalHeight;o.drawImage(raw,0,0);
+  let bird=null; raw.onload=()=>{ const off=document.createElement('canvas'),o=off.getContext('2d');
+    off.width=raw.naturalWidth; off.height=raw.naturalHeight; o.drawImage(raw,0,0);
     const img=o.getImageData(0,0,off.width,off.height),d=img.data;
-    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22)d[i+3]=0;}
+    for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22) d[i+3]=0; }
     o.putImageData(img,0,0); bird=off;
   };
 
-  // audio
+  // ---------- Audio ----------
   let actx=null,mix=null,bRumble=null,bWings=null,bEnergy=null,bHit=null;
   function ensureAudio(){ if(!soundChk.checked) return null;
     if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); }
@@ -59,55 +64,56 @@
     if(!bHit){ bHit=actx.createGain(); bHit.gain.value=.9; bHit.connect(mix); }
     return actx;
   }
-
   function noiseBuffer(sec=1.0, curve=1.4){
     const sr=actx.sampleRate, len=(sr*sec)|0, b=actx.createBuffer(1,len,sr), d=b.getChannelData(0);
-    for(let i=0;i<len;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/len,curve); }
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,curve);
     return b;
   }
-  function lowpass(node, freq){const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=freq; node.connect(f); return f;}
-  function bandpass(node, freq, Q=1){const f=actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=freq; f.Q.value=Q; node.connect(f); return f;}
-  function wingWhoosh(){
+  function lowpass(n,f){const bi=actx.createBiquadFilter(); bi.type='lowpass'; bi.frequency.value=f; n.connect(bi); return bi;}
+  function bandpass(n,f,Q=1){const bi=actx.createBiquadFilter(); bi.type='bandpass'; bi.frequency.value=f; bi.Q.value=Q; n.connect(bi); return bi;}
+
+  function deepRumble(dur=2.8){
     if(!ensureAudio()) return;
-    const src=actx.createBufferSource(); src.buffer=noiseBuffer(.5,1.0);
-    const bp=bandpass(src, 700, 0.6);
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(1,actx.currentTime+.08); g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+.5);
-    bp.connect(g).connect(bWings); src.start();
-  }
-  function deepRumble(dur=2.5){
-    if(!ensureAudio()) return;
-    const osc=actx.createOscillator(); osc.type='sine'; osc.frequency.value=45;
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(.7,actx.currentTime+.2); g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+dur);
-    osc.connect(g).connect(bRumble); osc.start(); osc.stop(actx.currentTime+dur);
+    const o=actx.createOscillator(); o.type='sine'; o.frequency.value=45;
+    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(.75,actx.currentTime+.2);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+dur);
+    o.connect(g).connect(bRumble); o.start(); o.stop(actx.currentTime+dur);
   }
   function energyPulse(){
     if(!ensureAudio()) return;
-    const src=actx.createBufferSource(); src.buffer=noiseBuffer(1.2,1.3);
-    const lp=lowpass(src, 1600); const g=actx.createGain(); g.gain.value=0;
-    g.gain.linearRampToValueAtTime(1,actx.currentTime+.1); g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.2);
-    lp.connect(g).connect(bEnergy); src.start();
+    const s=actx.createBufferSource(); s.buffer=noiseBuffer(1.2,1.3);
+    const lp=lowpass(s,1600); const g=actx.createGain(); g.gain.value=0;
+    g.gain.linearRampToValueAtTime(1,actx.currentTime+.1);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.2);
+    lp.connect(g).connect(bEnergy); s.start();
   }
-  function lightningHit(){ // bright impact
+  function wingWhoosh(){
     if(!ensureAudio()) return;
+    const s=actx.createBufferSource(); s.buffer=noiseBuffer(.5,1.0);
+    const bp=bandpass(s,700,.6); const g=actx.createGain(); g.gain.value=0;
+    g.gain.linearRampToValueAtTime(1,actx.currentTime+.08);
+    g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.5);
+    bp.connect(g).connect(bWings); s.start();
+  }
+  function lightningHit(){
+    if(!ensureAudio()) return;
+    const now=actx.currentTime;
     const o=actx.createOscillator(); o.type='triangle'; o.frequency.value=220;
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(1,actx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.4);
-    o.connect(g).connect(bHit); o.start(); o.stop(actx.currentTime+.45);
-    // add crack
-    const src=actx.createBufferSource(); src.buffer=noiseBuffer(.25,1.0);
-    const bp=bandpass(src, 3500, .8); const gg=actx.createGain(); gg.gain.value=0; gg.gain.linearRampToValueAtTime(1,actx.currentTime+.01); gg.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25);
-    bp.connect(gg).connect(bHit); src.start();
+    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(1,now+.02); g.gain.exponentialRampToValueAtTime(.0001,now+.4);
+    o.connect(g).connect(bHit); o.start(); o.stop(now+.45);
+    const s=actx.createBufferSource(); s.buffer=noiseBuffer(.25,1.0);
+    const bp=bandpass(s,3500,.8); const gg=actx.createGain(); gg.gain.value=0; gg.gain.linearRampToValueAtTime(1,now+.01); gg.gain.exponentialRampToValueAtTime(.001,now+.25);
+    bp.connect(gg).connect(bHit); s.start();
   }
 
-  // helpers
+  // ---------- Helpers ----------
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const easeInQuad=t=>t*t;
+  const easeIn=t=>t*t;
   const easeOutCubic=t=>1-Math.pow(1-t,3);
-  const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  const easeInOut=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
-  // particles (energy specks)
-  const specks = Array.from({length:160},()=>({
-    x:Math.random(), y:Math.random(), r:Math.random()*1.2+0.4, s:Math.random()*0.6+0.4
-  }));
+  // energy specks
+  const specks = Array.from({length:160},()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.2+0.4}));
 
   // lightning
   function bolt(x,y0,y1){
@@ -122,141 +128,127 @@
     cx.restore();
   }
 
-  // unified renderer at time t (ms)
+  // ---------- Unified renderer (t in ms) ----------
   function renderAt(t){
     const W=cv.width,H=cv.height; cx.clearRect(0,0,W,H);
-    // background base black
     cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
 
-    // Scene 1: Spark & silhouette fade-in
-    if(t<T2){
-      const k = clamp((t-T1)/S1,0,1);
-      // subtle fog
+    if(t<T2){ // Scene 1 — birth
+      const k=clamp((t-T1)/S1,0,1);
       const fog=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
-      fog.addColorStop(0,`rgba(120,170,255,${0.05+0.15*easeInQuad(k)})`);
-      fog.addColorStop(1,'rgba(0,0,0,0)');
-      cx.fillStyle=fog; cx.fillRect(0,0,W,H);
-      // spark pulse (center)
-      const rad = H*0.02 + H*0.06*easeInQuad(k);
+      fog.addColorStop(0,`rgba(120,170,255,${0.05+0.15*easeIn(k)})`);
+      fog.addColorStop(1,'rgba(0,0,0,0)'); cx.fillStyle=fog; cx.fillRect(0,0,W,H);
+      const rad=H*0.02+H*0.06*easeIn(k);
       cx.save(); cx.globalCompositeOperation='screen';
-      cx.fillStyle='rgba(180,220,255,.75)'; cx.beginPath(); cx.arc(W/2,H*0.55,rad,0,Math.PI*2); cx.fill();
-      cx.restore();
-      // bird shadow silhouette
-      if(bird){
-        cx.save(); cx.globalAlpha=0.15+0.6*k;
-        const s=H*0.5*(0.92+0.08*Math.sin(t/500)); cx.translate(W/2,H*0.58);
-        cx.drawImage(bird,-s/2,-s/2,s,s); cx.restore();
-      }
+      cx.fillStyle='rgba(180,220,255,.75)'; cx.beginPath(); cx.arc(W/2,H*0.58,rad,0,Math.PI*2); cx.fill(); cx.restore();
+      if(bird){ cx.save(); cx.globalAlpha=0.15+0.6*k;
+        const s=H*0.5*(0.92+0.08*Math.sin(t/500)); cx.translate(W/2,H*0.60);
+        cx.drawImage(bird,-s/2,-s/2,s,s); cx.restore(); }
       return;
     }
 
-    // Scene 2: Energy awakening + words
-    if(t<T3){
-      const k = clamp((t-T2)/S2,0,1);
-      // energy waves
-      const rings=7;
-      for(let i=0;i<rings;i++){
-        const p=(k + i/rings)%1;
-        const r = H*0.08 + p*H*0.45;
-        const a = 0.14*(1-p);
+    if(t<T3){ // Scene 2 — awakening
+      const k=clamp((t-T2)/S2,0,1);
+      for(let i=0;i<7;i++){
+        const p=(k+i/7)%1, r=H*0.08+p*H*0.45, a=0.14*(1-p);
         cx.beginPath(); cx.arc(W/2,H*0.58,r,0,Math.PI*2);
-        cx.strokeStyle=`rgba(120,190,255,${a})`; cx.lineWidth=2 + 4*(1-p);
-        cx.shadowColor='rgba(120,200,255,.35)'; cx.shadowBlur=18*(1-p);
-        cx.stroke();
+        cx.strokeStyle=`rgba(120,190,255,${a})`; cx.lineWidth=2+4*(1-p);
+        cx.shadowColor='rgba(120,200,255,.35)'; cx.shadowBlur=18*(1-p); cx.stroke();
       }
-      // specks
       cx.save(); cx.globalCompositeOperation='screen';
       for(const s of specks){
         const px=W*(s.x-.5)*(0.6-0.3*k)+W/2;
         const py=H*(s.y-.5)*(0.6-0.3*k)+H*0.58;
-        cx.fillStyle='rgba(160,210,255,.5)'; cx.beginPath(); cx.arc(px,py,s.r*(1+0.6*k),0,Math.PI*2); cx.fill();
-      }
-      cx.restore();
-      // glowing bird
+        cx.fillStyle='rgba(160,210,255,.5)'; cx.beginPath();
+        cx.arc(px,py,s.r*(1+0.6*k),0,Math.PI*2); cx.fill();
+      } cx.restore();
       if(bird){
-        const a = 0.75*easeOutCubic(k);
+        const a=0.8*easeOutCubic(k);
         cx.save(); cx.globalAlpha=a; cx.translate(W/2,H*0.58);
         cx.shadowColor='rgba(180,220,255,.5)'; cx.shadowBlur=W*0.025;
         const s=H*0.5*(1+0.03*Math.sin(t/450)); cx.drawImage(bird,-s/2,-s/2,s,s);
         cx.restore();
       }
-      // words sequence
-      const words=['Energy','Momentum','Flight'];
-      const slot=S2/words.length;
+      // words
+      const words=['Energy','Momentum','Flight'], slot=S2/words.length;
       cx.fillStyle='#eaf2ff'; cx.textAlign='center';
       for(let i=0;i<words.length;i++){
-        const tt = clamp((t-T2 - i*slot)/slot,0,1);
+        const tt=clamp((t-T2-i*slot)/slot,0,1);
         const alpha = tt<.3 ? tt/0.3 : 1- clamp((tt-.7)/.3,0,1);
-        if(alpha>0){
-          cx.globalAlpha=alpha;
-          cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
-          cx.fillText(words[i], W/2, H*0.20 + i*H*0.08);
-          cx.globalAlpha=1;
-        }
+        if(alpha>0){ cx.globalAlpha=alpha; cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
+          cx.fillText(words[i], W/2, H*0.20 + i*H*0.08); cx.globalAlpha=1; }
       }
       return;
     }
 
-    // Scene 3: Ascend through ring + lightning
-    if(t<T4){
-      const k = clamp((t-T3)/S3,0,1);
+    if(t<T4){ // Scene 3 — flight + lightning
+      const k=clamp((t-T3)/S3,0,1);
+      // micro camera shake near lightning
+      let shakeX=0, shakeY=0;
+      if(k>0.52 && k<0.62){
+        const sh=(0.62-Math.abs(k-0.57))/0.10; // 0..1
+        shakeX=(Math.random()-0.5)*10*sh;
+        shakeY=(Math.random()-0.5)*8*sh;
+      }
+
+      cx.save(); cx.translate(shakeX,shakeY);
+
       // starry bg
       cx.save(); cx.globalCompositeOperation='screen';
       for(let i=0;i<90;i++){
-        const x=(i*37%100)/100*cv.width, y=(i*71%100)/100*cv.height;
+        const x=(i*37%100)/100*W, y=(i*71%100)/100*H;
         cx.fillStyle='rgba(200,220,255,.07)'; cx.fillRect(x,y,1.5,1.5);
-      }
-      cx.restore();
+      } cx.restore();
 
       // ring opens
-      const open = easeInOutQuad(clamp((k-0.1)/0.5,0,1));
-      cx.save(); cx.translate(cv.width/2, cv.height/2);
-      cx.lineWidth=cv.width*0.015*open;
+      const open=easeInOut(clamp((k-0.1)/0.5,0,1));
+      cx.save(); cx.translate(W/2,H/2); cx.lineWidth=W*0.015*open;
       if(cx.createConicGradient){
         const ring=cx.createConicGradient((t/1000)*0.25,0,0);
-        ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff');
-        cx.strokeStyle=ring;
-      }else{
-        cx.strokeStyle='rgba(140,190,255,.9)';
-      }
-      cx.shadowColor='rgba(150,200,255,.4)'; cx.shadowBlur=cv.width*0.02*open;
-      cx.beginPath(); cx.arc(0,0,cv.height*0.28,0,Math.PI*2); cx.stroke();
-      cx.restore();
+        ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff'); cx.strokeStyle=ring;
+      }else cx.strokeStyle='rgba(140,190,255,.9)';
+      cx.shadowColor='rgba(150,200,255,.4)'; cx.shadowBlur=W*0.02*open;
+      cx.beginPath(); cx.arc(0,0,H*0.28,0,Math.PI*2); cx.stroke(); cx.restore();
 
-      // upward bird motion
+      // bird ascent + micro dynamics
       if(bird){
-        const y = easeInOutQuad(k);
-        cx.save();
-        cx.translate(cv.width/2, cv.height*(0.65 - 0.25*y));
-        const s= cv.height*0.50*(1-0.1*y);
-        cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=cv.width*0.02;
-        cx.globalAlpha=0.85;
-        cx.drawImage(bird,-s/2,-s/2,s,s);
-        cx.restore();
+        const y=easeInOut(k);
+        const breath=1+Math.sin(t/420)*0.015;
+        const tilt=Math.sin(t/700)*0.04*(1-y*0.6);
+        cx.save(); cx.translate(W/2, H*(0.65-0.25*y)); cx.rotate(tilt);
+        const size=H*0.50*(1-0.1*y)*breath;
+        cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.02; cx.globalAlpha=0.9;
+        cx.drawImage(bird,-size/2,-size/2,size,size); cx.restore();
+
+        // glow trail
+        const steps=10;
+        for(let i=0;i<steps;i++){
+          const r=i/steps, y2=easeInOut(Math.max(0,(k-r*0.08)));
+          const alpha=0.12*(1-r), sz=(H*0.50*(1-0.1*y2))*(0.75-r*0.5);
+          cx.save(); cx.globalCompositeOperation='screen'; cx.globalAlpha=alpha;
+          cx.shadowColor='rgba(160,210,255,.6)'; cx.shadowBlur=W*0.015*(1-r);
+          cx.drawImage(bird, W/2 - sz/2, H*(0.65-0.25*y2) - sz/2, sz, sz);
+          cx.restore();
+        }
       }
 
-      // lightning at ~0.55
+      // lightning flash
       if(k>0.52 && k<0.62){
-        const sx=cv.width*0.2+Math.random()*cv.width*0.6;
-        bolt(sx,-60,cv.height*0.55);
-        cx.fillStyle='rgba(255,255,255,0.25)'; cx.fillRect(0,0,cv.width,cv.height);
+        const sx=W*0.2+Math.random()*W*0.6; bolt(sx,-60,H*0.55);
+        cx.fillStyle='rgba(255,255,255,0.25)'; cx.fillRect(0,0,W,H);
       }
 
-      // title appears
-      const tAlpha = clamp((k-0.65)/0.25,0,1);
-      if(tAlpha>0){
-        cx.globalAlpha=tAlpha;
-        cx.fillStyle='#eaf2ff'; cx.textAlign='center';
-        cx.font=Math.round(cv.height*0.085)+'px system-ui,Segoe UI,Arial';
-        cx.fillText('BabyPeacock', cv.width/2, cv.height*0.16);
-        cx.globalAlpha=1;
-      }
+      // title
+      const a=clamp((k-0.65)/0.25,0,1);
+      if(a>0){ cx.globalAlpha=a; cx.fillStyle='#eaf2ff'; cx.textAlign='center';
+        cx.font=Math.round(H*0.085)+'px system-ui,Segoe UI,Arial';
+        cx.fillText('Babypeacock', W/2, H*0.16); cx.globalAlpha=1; }
 
+      cx.restore(); // shake group
       return;
     }
 
-    // Scene 4: Clean logo hold
-    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+    // Scene 4 — clean hold
     if(bird){
       cx.save(); cx.translate(W/2,H*0.55); cx.globalAlpha=0.95;
       cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.022;
@@ -264,19 +256,19 @@
     }
     cx.fillStyle='#eaf2ff'; cx.textAlign='center';
     cx.font=Math.round(H*0.085)+'px system-ui,Segoe UI,Arial';
-    cx.fillText('BabyPeacock', W/2, H*0.18);
+    cx.fillText('Babypeacock', W/2, H*0.18);
     cx.font=Math.round(H*0.05)+'px system-ui,Segoe UI,Arial';
     cx.fillText('The Flight.', W/2, H*0.26);
   }
 
-  // preview loop
-  let raf=0, start=0, flags={rumble:false,whoosh:false,energy:false,hit:false};
+  // ---------- Preview loop ----------
+  let raf=0, start=0, flags={rumble:false,energy:false,whoosh:false,hit:false};
   function startPreview(){
-    cancelAnimationFrame(raf); start=performance.now(); flags={rumble:false,whoosh:false,energy:false,hit:false};
+    cancelAnimationFrame(raf); start=performance.now();
+    flags={rumble:false,energy:false,whoosh:false,hit:false};
     if(soundChk.checked){ ensureAudio()?.resume?.(); }
     const loop=()=>{
       const t=performance.now()-start;
-      // cues
       if(t>=T1+200 && !flags.rumble){ flags.rumble=true; deepRumble(2.8); }
       if(t>=T2+200 && !flags.energy){ flags.energy=true; energyPulse(); }
       if(t>=T3+120 && !flags.whoosh){ flags.whoosh=true; wingWhoosh(); }
@@ -287,14 +279,14 @@
     st.textContent='Preview…'; loop();
   }
 
-  // recorder helpers
+  // ---------- Recorder helpers ----------
   function pickWebmMime(){
     const c=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
     for(const m of c){ if(MediaRecorder.isTypeSupported?.(m)) return m; }
     return 'video/webm';
   }
 
-  // one-click deterministic recording
+  // ---------- One-click deterministic record ----------
   async function oneClickRecord(){
     if(!window.MediaRecorder){ alert('MediaRecorder not supported on this browser.'); return; }
     btnOne.disabled=true; st.textContent='Recording…';
@@ -303,7 +295,6 @@
 
     const FPS=60, dt=1000/FPS;
     const stream=cv.captureStream(FPS);
-    // audio
     if(soundChk.checked && actx){
       const dest=actx.createMediaStreamDestination();
       if(mix){ mix.disconnect(); mix.connect(dest); mix.connect(actx.destination); }
@@ -315,29 +306,31 @@
 
     let chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
     rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime}); const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download='bpc-the-flight.webm'; document.body.appendChild(a); a.click();
-      a.remove(); URL.revokeObjectURL(url); st.textContent='Ready'; btnOne.disabled=false; };
+      const a=document.createElement('a'); a.href=url; a.download='bpc-the-flight.webm';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      st.textContent='Ready'; btnOne.disabled=false; };
 
     rec.start();
 
-    // time-locked frame production + audio cues
-    let t=0, lastFlags={rumble:false,whoosh:false,energy:false,hit:false};
+    // deterministic frames + audio cues
+    let t=0, last={rumble:false,energy:false,whoosh:false,hit:false};
     const timer=setInterval(()=>{
       if(soundChk.checked){
-        if(t>=T1+200 && !lastFlags.rumble){ lastFlags.rumble=true; deepRumble(2.8); }
-        if(t>=T2+200 && !lastFlags.energy){ lastFlags.energy=true; energyPulse(); }
-        if(t>=T3+120 && !lastFlags.whoosh){ lastFlags.whoosh=true; wingWhoosh(); }
-        if(t>=T3+3300 && !lastFlags.hit){ lastFlags.hit=true; lightningHit(); }
+        if(t>=T1+200 && !last.rumble){ last.rumble=true; deepRumble(2.8); }
+        if(t>=T2+200 && !last.energy){ last.energy=true; energyPulse(); }
+        if(t>=T3+120 && !last.whoosh){ last.whoosh=true; wingWhoosh(); }
+        if(t>=T3+3300 && !last.hit){ last.hit=true; lightningHit(); }
       }
       renderAt(t); t+=dt;
       if(t>=TEND){ clearInterval(timer); setTimeout(()=>rec.stop(),120); }
     }, dt);
   }
 
+  // UI
   btnPrev.onclick=startPreview;
   btnOne.onclick=oneClickRecord;
 
-  // auto-start preview
+  // auto
   startPreview();
 })();
 </script>
