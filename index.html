@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en"><head>
+<html lang="tr"><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Babypeacock • The Flight</title>
+<title>Babypeacock • The Awakening</title>
 <style>
   :root{--ui-bg:#111;--ui-fg:#eaeaea}
   html,body{margin:0;height:100%;background:#000;color:#eaeaea;overflow:hidden;
@@ -19,12 +19,12 @@
 <body>
 <canvas id="cv"></canvas>
 <div class="bar">
-  <button id="prev">Preview</button>
-  <button id="one">One-Click Record (WEBM • Audio)</button>
-  <label><input id="sound" type="checkbox" checked> Sound</label>
-  <span id="st" class="status">Ready</span>
+  <button id="prev">Önizleme</button>
+  <button id="one">Tek Tuş Kayıt (WEBM • Sesli)</button>
+  <label><input id="sound" type="checkbox" checked> Ses</label>
+  <span id="st" class="status">Hazır</span>
 </div>
-<div class="note">Asset: <b>bpc-bird.png</b> (repo root)</div>
+<div class="note">Görsel: <b>bpc-bird.png</b> repo kökünde olmalı</div>
 
 <script>
 (() => {
@@ -32,7 +32,7 @@
   const btnPrev=document.getElementById('prev'), btnOne=document.getElementById('one'), st=document.getElementById('st');
   const soundChk=document.getElementById('sound');
 
-  // ---------- Canvas size ----------
+  // ---------- Boyut ----------
   function setSize(w=1920){
     const W=Math.max(960,Math.min(3840,Math.round(w)));
     cv.width=W; cv.height=Math.round(W*9/16);
@@ -40,27 +40,28 @@
   setSize(1920); addEventListener('resize',()=>setSize(cv.width));
 
   // ---------- Timeline (ms) ----------
-  // S1: Birth(3s), S2: Awakening(5s), S3: Flight(6s), S4: Hold(2s) -> total 16s
-  const S1=3000, S2=5000, S3=6000, S4=2000;
+  // S1 Boot/Scan 3s, S2 Particles Assemble 5s, S3 Grid/Neon Transform 6s, S4 Clean Hold 3s
+  const S1=3000, S2=5000, S3=6000, S4=3000;
   const T1=0, T2=T1+S1, T3=T2+S2, T4=T3+S3, TEND=T4+S4;
 
-  // ---------- Assets (black->transparent) ----------
+  // ---------- Varlıklar (siyah->transparan) ----------
   const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
-  let bird=null; raw.onload=()=>{ const off=document.createElement('canvas'),o=off.getContext('2d');
+  let bird=null;
+  raw.onload=()=>{ const off=document.createElement('canvas'),o=off.getContext('2d');
     off.width=raw.naturalWidth; off.height=raw.naturalHeight; o.drawImage(raw,0,0);
-    const img=o.getImageData(0,0,off.width,off.height),d=img.data;
-    for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22) d[i+3]=0; }
+    const img=o.getImageData(0,0,off.width,off.height), d=img.data;
+    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22) d[i+3]=0;}
     o.putImageData(img,0,0); bird=off;
   };
 
-  // ---------- Audio ----------
-  let actx=null,mix=null,bRumble=null,bWings=null,bEnergy=null,bHit=null;
+  // ---------- Ses ----------
+  let actx=null,mix=null,bBoot=null,bAssemble=null,bSweep=null,bHit=null;
   function ensureAudio(){ if(!soundChk.checked) return null;
     if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); }
     if(!mix){ mix=actx.createGain(); mix.gain.value=.95; mix.connect(actx.destination); }
-    if(!bRumble){ bRumble=actx.createGain(); bRumble.gain.value=.8; bRumble.connect(mix); }
-    if(!bWings){ bWings=actx.createGain(); bWings.gain.value=.7; bWings.connect(mix); }
-    if(!bEnergy){ bEnergy=actx.createGain(); bEnergy.gain.value=.7; bEnergy.connect(mix); }
+    if(!bBoot){ bBoot=actx.createGain(); bBoot.gain.value=.6; bBoot.connect(mix); }
+    if(!bAssemble){ bAssemble=actx.createGain(); bAssemble.gain.value=.75; bAssemble.connect(mix); }
+    if(!bSweep){ bSweep=actx.createGain(); bSweep.gain.value=.8; bSweep.connect(mix); }
     if(!bHit){ bHit=actx.createGain(); bHit.gain.value=.9; bHit.connect(mix); }
     return actx;
   }
@@ -72,211 +73,290 @@
   function lowpass(n,f){const bi=actx.createBiquadFilter(); bi.type='lowpass'; bi.frequency.value=f; n.connect(bi); return bi;}
   function bandpass(n,f,Q=1){const bi=actx.createBiquadFilter(); bi.type='bandpass'; bi.frequency.value=f; bi.Q.value=Q; n.connect(bi); return bi;}
 
-  function deepRumble(dur=2.8){
+  function bootBeepSweep(){ // CRT açılışı gibi
     if(!ensureAudio()) return;
-    const o=actx.createOscillator(); o.type='sine'; o.frequency.value=45;
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(.75,actx.currentTime+.2);
-    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+dur);
-    o.connect(g).connect(bRumble); o.start(); o.stop(actx.currentTime+dur);
+    const osc=actx.createOscillator(); osc.type='sawtooth';
+    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(.5,actx.currentTime+.05);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.6);
+    osc.frequency.setValueAtTime(180,actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(2200, actx.currentTime+.5);
+    osc.connect(g).connect(bBoot); osc.start(); osc.stop(actx.currentTime+.62);
   }
-  function energyPulse(){
+  function assembleGlitch(){ // dijital crackle
     if(!ensureAudio()) return;
-    const s=actx.createBufferSource(); s.buffer=noiseBuffer(1.2,1.3);
-    const lp=lowpass(s,1600); const g=actx.createGain(); g.gain.value=0;
-    g.gain.linearRampToValueAtTime(1,actx.currentTime+.1);
-    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.2);
-    lp.connect(g).connect(bEnergy); s.start();
+    const s=actx.createBufferSource(); s.buffer=noiseBuffer(.8,1.2);
+    const bp=bandpass(s, 2500, .9); const g=actx.createGain(); g.gain.value=0;
+    g.gain.linearRampToValueAtTime(1,actx.currentTime+.06);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.7);
+    bp.connect(g).connect(bAssemble); s.start();
   }
-  function wingWhoosh(){
+  function sweepRise(){ // enerji yükselişi
     if(!ensureAudio()) return;
-    const s=actx.createBufferSource(); s.buffer=noiseBuffer(.5,1.0);
-    const bp=bandpass(s,700,.6); const g=actx.createGain(); g.gain.value=0;
-    g.gain.linearRampToValueAtTime(1,actx.currentTime+.08);
-    g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.5);
-    bp.connect(g).connect(bWings); s.start();
+    const osc=actx.createOscillator(); osc.type='sine';
+    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(.9,actx.currentTime+.15);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.4);
+    osc.frequency.setValueAtTime(120,actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200,actx.currentTime+1.2);
+    osc.connect(g).connect(bSweep); osc.start(); osc.stop(actx.currentTime+1.45);
   }
-  function lightningHit(){
+  function impactFlash(){ // final vurgu
     if(!ensureAudio()) return;
-    const now=actx.currentTime;
-    const o=actx.createOscillator(); o.type='triangle'; o.frequency.value=220;
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(1,now+.02); g.gain.exponentialRampToValueAtTime(.0001,now+.4);
-    o.connect(g).connect(bHit); o.start(); o.stop(now+.45);
-    const s=actx.createBufferSource(); s.buffer=noiseBuffer(.25,1.0);
-    const bp=bandpass(s,3500,.8); const gg=actx.createGain(); gg.gain.value=0; gg.gain.linearRampToValueAtTime(1,now+.01); gg.gain.exponentialRampToValueAtTime(.001,now+.25);
-    bp.connect(gg).connect(bHit); s.start();
+    const osc=actx.createOscillator(); osc.type='triangle';
+    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(1,actx.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.45);
+    osc.frequency.setValueAtTime(220,actx.currentTime);
+    osc.connect(g).connect(bHit); osc.start(); osc.stop(actx.currentTime+.48);
   }
 
-  // ---------- Helpers ----------
+  // ---------- Yardımcılar ----------
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const easeIn=t=>t*t;
-  const easeOutCubic=t=>1-Math.pow(1-t,3);
+  const easeOut=t=>1-Math.pow(1-t,3);
   const easeInOut=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
-  // energy specks
-  const specks = Array.from({length:160},()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.2+0.4}));
+  // ---------- Parçacıklar ----------
+  const N=320;
+  const bits=Array.from({length:N},()=>({
+    x:Math.random(), y:Math.random(),
+    v:(Math.random()*0.7+0.3),
+    a:Math.random()*0.7+0.3,
+    s:Math.random()*2+0.8
+  }));
 
-  // lightning
-  function bolt(x,y0,y1){
-    cx.save(); cx.globalCompositeOperation='screen'; cx.lineCap='round';
-    const seg=11, pts=[[x,y0]]; let px=x,py=y0,tot=y1-y0;
-    for(let i=1;i<=seg;i++){const t=i/seg; const nx=px+(Math.random()-.5)*tot*.03*(1-t);
-      const ny=y0+t*tot+(Math.random()-.5)*12*(1-t); pts.push([nx,ny]); px=nx; py=ny;}
-    cx.strokeStyle='rgba(255,255,255,.95)'; cx.shadowColor='rgba(170,220,255,.9)'; cx.shadowBlur=26; cx.lineWidth=5.5;
-    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke();
-    cx.strokeStyle='rgba(80,170,255,.9)'; cx.shadowColor='rgba(120,200,255,.9)'; cx.shadowBlur=36; cx.lineWidth=2.2;
-    cx.beginPath(); cx.moveTo(pts[0][0],pts[0][1]); for(const p of pts)cx.lineTo(p[0],p[1]); cx.stroke();
+  // ---------- Glitch / Scanline ----------
+  function drawScanlines(alpha=0.12){
+    const W=cv.width,H=cv.height;
+    cx.save(); cx.globalAlpha=alpha;
+    for(let y=0;y<H;y+=2){ cx.fillStyle='rgba(255,255,255,0.03)'; cx.fillRect(0,y,W,1); }
+    cx.restore();
+  }
+  function glitchSlices(t,intensity=0.5){
+    const W=cv.width,H=cv.height;
+    cx.save();
+    const slices = Math.floor(8*intensity);
+    for(let i=0;i<slices;i++){
+      const h= (H*0.02) + Math.random()*H*0.06;
+      const y= Math.random()*(H-h);
+      const shift=(Math.random()*2-1)*W*0.02*intensity;
+      cx.drawImage(cv, 0, y, W, h, shift, y, W, h);
+    }
     cx.restore();
   }
 
-  // ---------- Unified renderer (t in ms) ----------
+  // ---------- Konik halka ----------
+  function ringStroke(cx, t, r, lw, alpha){
+    cx.save();
+    cx.lineWidth = lw;
+    if(cx.createConicGradient){
+      const g = cx.createConicGradient((t/1000)*0.25, 0, 0);
+      g.addColorStop(0,'#cfe9ff'); g.addColorStop(1,'#66b2ff');
+      cx.strokeStyle=g;
+    } else {
+      cx.strokeStyle='rgba(140,190,255,.9)';
+    }
+    cx.globalAlpha = alpha;
+    cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=lw*1.1;
+    cx.beginPath(); cx.arc(0,0,r,0,Math.PI*2); cx.stroke();
+    cx.restore();
+  }
+
+  // ---------- Tek çizim fonksiyonu ----------
   function renderAt(t){
-    const W=cv.width,H=cv.height; cx.clearRect(0,0,W,H);
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
     cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
 
-    if(t<T2){ // Scene 1 — birth
+    // Ortak: hafif vignette
+    const vg=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.95);
+    vg.addColorStop(0,'rgba(0,0,0,0)');
+    vg.addColorStop(1,'rgba(0,0,0,0.55)');
+    cx.fillStyle=vg; cx.fillRect(0,0,W,H);
+
+    if(t<T2){ // S1 — Boot/Scan
+      // CRT açılışı: dikey fade, scanline ve yatay bozulma
       const k=clamp((t-T1)/S1,0,1);
-      const fog=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.9);
-      fog.addColorStop(0,`rgba(120,170,255,${0.05+0.15*easeIn(k)})`);
-      fog.addColorStop(1,'rgba(0,0,0,0)'); cx.fillStyle=fog; cx.fillRect(0,0,W,H);
-      const rad=H*0.02+H*0.06*easeIn(k);
-      cx.save(); cx.globalCompositeOperation='screen';
-      cx.fillStyle='rgba(180,220,255,.75)'; cx.beginPath(); cx.arc(W/2,H*0.58,rad,0,Math.PI*2); cx.fill(); cx.restore();
-      if(bird){ cx.save(); cx.globalAlpha=0.15+0.6*k;
-        const s=H*0.5*(0.92+0.08*Math.sin(t/500)); cx.translate(W/2,H*0.60);
-        cx.drawImage(bird,-s/2,-s/2,s,s); cx.restore(); }
+      // merkez parlama
+      const g=cx.createRadialGradient(W/2,H*0.58,0,W/2,H*0.58,W*0.55);
+      g.addColorStop(0,`rgba(160,210,255,${0.12+0.35*easeIn(k)})`);
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=g; cx.fillRect(0,0,W,H);
+
+      // yatay çizgi patlamaları
+      const bars = 6;
+      for(let i=0;i<bars;i++){
+        const yy = (i+1)/(bars+1);
+        const y = H*yy + Math.sin((t/90)+i)*6;
+        cx.fillStyle='rgba(150,200,255,0.09)';
+        cx.fillRect(0,y,W,2);
+      }
+      drawScanlines(0.15);
+      if(Math.random()<0.25) glitchSlices(t, 0.45);
+
+      // logo gölgesi
+      if(bird){
+        cx.save();
+        const a = 0.15 + 0.6*easeIn(k);
+        cx.globalAlpha=a;
+        const s=H*0.48*(0.96+0.04*Math.sin(t/500));
+        cx.translate(W/2,H*0.58);
+        cx.drawImage(bird,-s/2,-s/2,s,s);
+        cx.restore();
+      }
+      // alt metin (çok sönük)
+      cx.fillStyle='rgba(200,220,255,0.08)'; cx.textAlign='center';
+      cx.font=Math.round(H*0.04)+'px system-ui,Segoe UI,Arial';
+      cx.fillText('Initializing...', W/2, H*0.85);
       return;
     }
 
-    if(t<T3){ // Scene 2 — awakening
+    if(t<T3){ // S2 — Parçacıklar toparlanıyor (dijital dönüşüm)
       const k=clamp((t-T2)/S2,0,1);
-      for(let i=0;i<7;i++){
-        const p=(k+i/7)%1, r=H*0.08+p*H*0.45, a=0.14*(1-p);
-        cx.beginPath(); cx.arc(W/2,H*0.58,r,0,Math.PI*2);
-        cx.strokeStyle=`rgba(120,190,255,${a})`; cx.lineWidth=2+4*(1-p);
-        cx.shadowColor='rgba(120,200,255,.35)'; cx.shadowBlur=18*(1-p); cx.stroke();
-      }
+      // enerji alanı
+      const glow=cx.createRadialGradient(W/2,H*0.58,0,W/2,H*0.58,W*0.6);
+      glow.addColorStop(0,`rgba(120,170,255,${0.10+0.25*k})`);
+      glow.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=glow; cx.fillRect(0,0,W,H);
+
+      // parçacıklar -> merkeze akış
       cx.save(); cx.globalCompositeOperation='screen';
-      for(const s of specks){
-        const px=W*(s.x-.5)*(0.6-0.3*k)+W/2;
-        const py=H*(s.y-.5)*(0.6-0.3*k)+H*0.58;
-        cx.fillStyle='rgba(160,210,255,.5)'; cx.beginPath();
-        cx.arc(px,py,s.r*(1+0.6*k),0,Math.PI*2); cx.fill();
-      } cx.restore();
+      for(const b of bits){
+        const tx=W/2, ty=H*0.58;
+        const px=W*(b.x), py=H*(b.y);
+        const fx=px+(tx-px)*easeIn(k)*b.v;
+        const fy=py+(ty-py)*easeIn(k)*b.v;
+        cx.fillStyle='rgba(160,210,255,.6)';
+        cx.beginPath(); cx.arc(fx,fy,b.s*(1.2-0.6*k),0,Math.PI*2); cx.fill();
+      }
+      cx.restore();
+
+      // ortaya beliren wireframe kuş
       if(bird){
-        const a=0.8*easeOutCubic(k);
-        cx.save(); cx.globalAlpha=a; cx.translate(W/2,H*0.58);
-        cx.shadowColor='rgba(180,220,255,.5)'; cx.shadowBlur=W*0.025;
-        const s=H*0.5*(1+0.03*Math.sin(t/450)); cx.drawImage(bird,-s/2,-s/2,s,s);
+        const a = 0.2 + 0.75*easeOut(k);
+        const s=H*0.5*(1+0.02*Math.sin(t/400));
+        cx.save(); cx.translate(W/2,H*0.58); cx.globalAlpha=a;
+        // “wireframe” efekti için maske gibi stroke çizgileri
+        cx.drawImage(bird,-s/2,-s/2,s,s);
+        cx.globalCompositeOperation='destination-out'; // çizgileri kes
+        cx.lineWidth=1.5; cx.strokeStyle='rgba(255,255,255,1)';
+        for(let i=0;i<14;i++){ cx.beginPath(); cx.rect(-s/2, -s/2 + (i/14)*s, s, 1); cx.stroke(); }
+        cx.globalCompositeOperation='lighter';
+        cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
+        cx.drawImage(bird,-s/2,-s/2,s,s);
         cx.restore();
       }
-      // words
-      const words=['Energy','Momentum','Flight'], slot=S2/words.length;
+
+      // alt kelimeler (teaser)
+      const words=['Awakening','Signal','Becoming'];
+      const slot=S2/words.length;
       cx.fillStyle='#eaf2ff'; cx.textAlign='center';
       for(let i=0;i<words.length;i++){
         const tt=clamp((t-T2-i*slot)/slot,0,1);
-        const alpha = tt<.3 ? tt/0.3 : 1- clamp((tt-.7)/.3,0,1);
-        if(alpha>0){ cx.globalAlpha=alpha; cx.font=Math.round(H*0.08)+'px system-ui,Segoe UI,Arial';
-          cx.fillText(words[i], W/2, H*0.20 + i*H*0.08); cx.globalAlpha=1; }
+        const alpha = tt<.25 ? tt/0.25 : 1- clamp((tt-.75)/.25,0,1);
+        if(alpha>0){ cx.globalAlpha=alpha; cx.font=Math.round(H*0.06)+'px system-ui,Segoe UI,Arial';
+          cx.fillText(words[i], W/2, H*0.16 + i*H*0.06); cx.globalAlpha=1; }
       }
+      // hafif glitch
+      if(Math.random()<0.18) glitchSlices(t, 0.35);
+      drawScanlines(0.12);
       return;
     }
 
-    if(t<T4){ // Scene 3 — flight + lightning
+    if(t<T4){ // S3 — Grid + Neon halka + Katı logoya dönüşüm
       const k=clamp((t-T3)/S3,0,1);
-      // micro camera shake near lightning
-      let shakeX=0, shakeY=0;
-      if(k>0.52 && k<0.62){
-        const sh=(0.62-Math.abs(k-0.57))/0.10; // 0..1
-        shakeX=(Math.random()-0.5)*10*sh;
-        shakeY=(Math.random()-0.5)*8*sh;
-      }
 
-      cx.save(); cx.translate(shakeX,shakeY);
-
-      // starry bg
-      cx.save(); cx.globalCompositeOperation='screen';
-      for(let i=0;i<90;i++){
-        const x=(i*37%100)/100*W, y=(i*71%100)/100*H;
-        cx.fillStyle='rgba(200,220,255,.07)'; cx.fillRect(x,y,1.5,1.5);
-      } cx.restore();
-
-      // ring opens
-      const open=easeInOut(clamp((k-0.1)/0.5,0,1));
-      cx.save(); cx.translate(W/2,H/2); cx.lineWidth=W*0.015*open;
-      if(cx.createConicGradient){
-        const ring=cx.createConicGradient((t/1000)*0.25,0,0);
-        ring.addColorStop(0,'#cfe9ff'); ring.addColorStop(1,'#66b2ff'); cx.strokeStyle=ring;
-      }else cx.strokeStyle='rgba(140,190,255,.9)';
-      cx.shadowColor='rgba(150,200,255,.4)'; cx.shadowBlur=W*0.02*open;
-      cx.beginPath(); cx.arc(0,0,H*0.28,0,Math.PI*2); cx.stroke(); cx.restore();
-
-      // bird ascent + micro dynamics
-      if(bird){
-        const y=easeInOut(k);
-        const breath=1+Math.sin(t/420)*0.015;
-        const tilt=Math.sin(t/700)*0.04*(1-y*0.6);
-        cx.save(); cx.translate(W/2, H*(0.65-0.25*y)); cx.rotate(tilt);
-        const size=H*0.50*(1-0.1*y)*breath;
-        cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.02; cx.globalAlpha=0.9;
-        cx.drawImage(bird,-size/2,-size/2,size,size); cx.restore();
-
-        // glow trail
-        const steps=10;
-        for(let i=0;i<steps;i++){
-          const r=i/steps, y2=easeInOut(Math.max(0,(k-r*0.08)));
-          const alpha=0.12*(1-r), sz=(H*0.50*(1-0.1*y2))*(0.75-r*0.5);
-          cx.save(); cx.globalCompositeOperation='screen'; cx.globalAlpha=alpha;
-          cx.shadowColor='rgba(160,210,255,.6)'; cx.shadowBlur=W*0.015*(1-r);
-          cx.drawImage(bird, W/2 - sz/2, H*(0.65-0.25*y2) - sz/2, sz, sz);
-          cx.restore();
+      // 3D grid zemini
+      (function drawGrid(){
+        const rows=18, cols=24;
+        cx.save(); cx.translate(0, cv.height*0.78);
+        cx.strokeStyle='rgba(90,140,220,.25)';
+        for(let i=0;i<=rows;i++){
+          const y=i/rows, yy = Math.pow(y,1.7);
+          const gy = yy*cv.height*0.5;
+          cx.beginPath(); cx.moveTo(0,-gy); cx.lineTo(cv.width,-gy); cx.stroke();
         }
+        for(let j=0;j<=cols;j++){
+          const x=j/cols*cv.width;
+          cx.beginPath(); cx.moveTo(x,0); cx.lineTo(cv.width/2 + (x-cv.width/2)*0.2, -cv.height*0.5); cx.stroke();
+        }
+        cx.restore();
+      })();
+
+      // neon halka
+      cx.save(); cx.translate(cv.width/2, cv.height/2);
+      const open=easeInOut(clamp((k-0.08)/0.5,0,1));
+      ringStroke(cx, t, cv.height*0.28, cv.width*0.015*open, 0.9*open);
+      cx.restore();
+
+      // logo: wireframe -> solid geçiş
+      if(bird){
+        const trans = easeInOut(clamp((k-0.15)/0.5,0,1));
+        const s= cv.height*0.5*(1-0.06*trans);
+        cx.save(); cx.translate(cv.width/2, cv.height*0.56);
+        // önce wireframe izi
+        cx.globalAlpha=1-trans;
+        cx.shadowColor='rgba(160,200,255,.45)'; cx.shadowBlur=cv.width*0.02;
+        cx.drawImage(bird,-s/2,-s/2,s,s);
+        // sonra katı parlak
+        cx.globalAlpha=trans;
+        cx.shadowColor='rgba(190,230,255,.6)'; cx.shadowBlur=cv.width*0.025;
+        cx.drawImage(bird,-s/2,-s/2,s,s);
+        cx.restore();
+
+        // micro “pulse”
+        const pulse = 0.04*Math.sin(t/260);
+        cx.save(); cx.globalCompositeOperation='screen'; cx.globalAlpha=0.22*trans;
+        cx.drawImage(bird, cv.width/2 - s*(1+pulse)/2, cv.height*0.56 - s*(1+pulse)/2, s*(1+pulse), s*(1+pulse));
+        cx.restore();
       }
 
-      // lightning flash
-      if(k>0.52 && k<0.62){
-        const sx=W*0.2+Math.random()*W*0.6; bolt(sx,-60,H*0.55);
-        cx.fillStyle='rgba(255,255,255,0.25)'; cx.fillRect(0,0,W,H);
+      // başlık
+      const a=clamp((k-0.62)/0.22,0,1);
+      if(a>0){
+        cx.globalAlpha=a; cx.fillStyle='#eaf2ff'; cx.textAlign='center';
+        cx.font=Math.round(cv.height*0.085)+'px system-ui,Segoe UI,Arial';
+        cx.fillText('Babypeacock', cv.width/2, cv.height*0.16);
+        cx.font=Math.round(cv.height*0.05)+'px system-ui,Segoe UI,Arial';
+        cx.fillText('The Awakening.', cv.width/2, cv.height*0.24);
+        cx.globalAlpha=1;
       }
 
-      // title
-      const a=clamp((k-0.65)/0.25,0,1);
-      if(a>0){ cx.globalAlpha=a; cx.fillStyle='#eaf2ff'; cx.textAlign='center';
-        cx.font=Math.round(H*0.085)+'px system-ui,Segoe UI,Arial';
-        cx.fillText('Babypeacock', W/2, H*0.16); cx.globalAlpha=1; }
-
-      cx.restore(); // shake group
+      // arada küçük glitch patlamaları
+      if(Math.random()<0.12) glitchSlices(t, 0.28);
+      drawScanlines(0.1);
       return;
     }
 
-    // Scene 4 — clean hold
+    // S4 — Clean hold
     if(bird){
-      cx.save(); cx.translate(W/2,H*0.55); cx.globalAlpha=0.95;
-      cx.shadowColor='rgba(180,220,255,.45)'; cx.shadowBlur=W*0.022;
-      const s=H*0.48; cx.drawImage(bird,-s/2,-s/2,s,s); cx.restore();
+      cx.save(); cx.translate(W/2,H*0.56); cx.globalAlpha=0.98;
+      cx.shadowColor='rgba(190,230,255,.55)'; cx.shadowBlur=W*0.022;
+      const s=H*0.46; cx.drawImage(bird,-s/2,-s/2,s,s); cx.restore();
     }
     cx.fillStyle='#eaf2ff'; cx.textAlign='center';
     cx.font=Math.round(H*0.085)+'px system-ui,Segoe UI,Arial';
     cx.fillText('Babypeacock', W/2, H*0.18);
     cx.font=Math.round(H*0.05)+'px system-ui,Segoe UI,Arial';
-    cx.fillText('The Flight.', W/2, H*0.26);
+    cx.fillText('The Awakening.', W/2, H*0.26);
+    drawScanlines(0.08);
   }
 
-  // ---------- Preview loop ----------
-  let raf=0, start=0, flags={rumble:false,energy:false,whoosh:false,hit:false};
+  // ---------- Önizleme ----------
+  let raf=0, start=0, cues={boot:false,assemble:false,sweep:false,hit:false};
   function startPreview(){
     cancelAnimationFrame(raf); start=performance.now();
-    flags={rumble:false,energy:false,whoosh:false,hit:false};
+    cues={boot:false,assemble:false,sweep:false,hit:false};
     if(soundChk.checked){ ensureAudio()?.resume?.(); }
     const loop=()=>{
       const t=performance.now()-start;
-      if(t>=T1+200 && !flags.rumble){ flags.rumble=true; deepRumble(2.8); }
-      if(t>=T2+200 && !flags.energy){ flags.energy=true; energyPulse(); }
-      if(t>=T3+120 && !flags.whoosh){ flags.whoosh=true; wingWhoosh(); }
-      if(t>=T3+3300 && !flags.hit){ flags.hit=true; lightningHit(); }
+      // Ses cue’ları
+      if(t>=T1+150 && !cues.boot){ cues.boot=true; bootBeepSweep(); }
+      if(t>=T2+120 && !cues.assemble){ cues.assemble=true; assembleGlitch(); }
+      if(t>=T3+200 && !cues.sweep){ cues.sweep=true; sweepRise(); }
+      if(t>=T3+3600 && !cues.hit){ cues.hit=true; impactFlash(); }
       renderAt(t);
-      if(t<TEND) raf=requestAnimationFrame(loop); else st.textContent='Ready';
+      if(t<TEND) raf=requestAnimationFrame(loop); else st.textContent='Hazır';
     };
-    st.textContent='Preview…'; loop();
+    st.textContent='Önizleme…'; loop();
   }
 
   // ---------- Recorder helpers ----------
@@ -286,10 +366,10 @@
     return 'video/webm';
   }
 
-  // ---------- One-click deterministic record ----------
+  // ---------- Tek tuş kayıt (deterministik) ----------
   async function oneClickRecord(){
-    if(!window.MediaRecorder){ alert('MediaRecorder not supported on this browser.'); return; }
-    btnOne.disabled=true; st.textContent='Recording…';
+    if(!window.MediaRecorder){ alert('MediaRecorder bu tarayıcıda yok.'); return; }
+    btnOne.disabled=true; st.textContent='Kayıt…';
     cancelAnimationFrame(raf);
     ensureAudio()?.resume?.();
 
@@ -306,31 +386,30 @@
 
     let chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
     rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime}); const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download='bpc-the-flight.webm';
+      const a=document.createElement('a'); a.href=url; a.download='bpc-the-awakening.webm';
       document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      st.textContent='Ready'; btnOne.disabled=false; };
+      st.textContent='Hazır'; btnOne.disabled=false; };
 
     rec.start();
 
-    // deterministic frames + audio cues
-    let t=0, last={rumble:false,energy:false,whoosh:false,hit:false};
+    // deterministik kare + ses cue’ları
+    let t=0, last={boot:false,assemble:false,sweep:false,hit:false};
     const timer=setInterval(()=>{
       if(soundChk.checked){
-        if(t>=T1+200 && !last.rumble){ last.rumble=true; deepRumble(2.8); }
-        if(t>=T2+200 && !last.energy){ last.energy=true; energyPulse(); }
-        if(t>=T3+120 && !last.whoosh){ last.whoosh=true; wingWhoosh(); }
-        if(t>=T3+3300 && !last.hit){ last.hit=true; lightningHit(); }
+        if(t>=T1+150 && !last.boot){ last.boot=true; bootBeepSweep(); }
+        if(t>=T2+120 && !last.assemble){ last.assemble=true; assembleGlitch(); }
+        if(t>=T3+200 && !last.sweep){ last.sweep=true; sweepRise(); }
+        if(t>=T3+3600 && !last.hit){ last.hit=true; impactFlash(); }
       }
       renderAt(t); t+=dt;
       if(t>=TEND){ clearInterval(timer); setTimeout(()=>rec.stop(),120); }
     }, dt);
   }
 
-  // UI
   btnPrev.onclick=startPreview;
   btnOne.onclick=oneClickRecord;
 
-  // auto
+  // otomatik önizleme
   startPreview();
 })();
 </script>
