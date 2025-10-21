@@ -6,30 +6,20 @@
 <title>Babypeacock — Teaser</title>
 <style>
   html,body{
-    height:100%;
-    margin:0;
-    background:#000;
-    color:#eaf8ff;
+    height:100%;margin:0;
+    background:#000;color:#eaf8ff;
     font-family:system-ui,Poppins,Segoe UI,Roboto,Arial,sans-serif;
     overflow:hidden;
   }
   canvas#stars{position:fixed;inset:0;z-index:0}
-  .title{
-    position:fixed;top:5vh;left:0;right:0;z-index:5;text-align:center
-  }
+  .title{position:fixed;top:5vh;left:0;right:0;z-index:5;text-align:center}
   .title h1{
-    font-weight:800;
-    font-size:clamp(28px,6vw,46px);
+    font-weight:800;font-size:clamp(28px,6vw,46px);
     letter-spacing:.04em;
-    text-shadow:0 0 20px rgba(0,224,164,.3),0 0 2px #fff
+    text-shadow:0 0 20px rgba(0,224,164,.3),0 0 2px #fff;
   }
-  .sub{
-    margin-top:8px;color:#d6efe9;
-    font-size:clamp(12px,3vw,16px);opacity:.95;
-  }
-  .stage{
-    position:fixed;inset:0;display:grid;place-items:center;z-index:2;
-  }
+  .sub{margin-top:8px;color:#d6efe9;font-size:clamp(12px,3vw,16px);opacity:.95;}
+  .stage{position:fixed;inset:0;display:grid;place-items:center;z-index:2;}
   .shipWrap{
     position:relative;width:min(70vw,460px);
     transform:translateY(20vh);
@@ -44,8 +34,7 @@
     position:absolute;left:50%;top:72%;transform:translateX(-50%);
     width:24%;aspect-ratio:1/1;border-radius:50%;
     background:radial-gradient(circle at 50% 50%,rgba(184,255,241,1)0%,rgba(54,255,210,.9)35%,rgba(0,159,147,.5)70%,transparent 75%);
-    mix-blend-mode:screen;filter:blur(6px);opacity:.9;
-    animation:pulse .2s ease-in-out infinite;
+    mix-blend-mode:screen;filter:blur(6px);opacity:.9;animation:pulse .2s ease-in-out infinite;
   }
   .trail{
     position:absolute;left:50%;top:78%;transform:translateX(-50%);
@@ -54,17 +43,14 @@
     filter:blur(8px);opacity:.75;
   }
   @keyframes pulse{0%,100%{opacity:.85}50%{opacity:1}}
-
   .download-btn{
-    position:fixed;
-    bottom:5vh;left:50%;transform:translateX(-50%);
+    position:fixed;bottom:5vh;left:50%;transform:translateX(-50%);
     background:linear-gradient(135deg,#00ffd9,#0077ff);
     color:#000;font-weight:600;
     padding:12px 24px;border-radius:12px;
     text-decoration:none;
     box-shadow:0 0 12px rgba(0,255,210,.4);
-    transition:.2s;
-    z-index:10;
+    transition:.2s;z-index:10;
   }
   .download-btn:hover{transform:translateX(-50%) scale(1.05);filter:brightness(1.2);}
 </style>
@@ -85,9 +71,8 @@
   </div>
 </div>
 
-<!-- 🌌 Örnek .webm video (harici, doğrudan indirilebilir) -->
-<a href="https://upload.wikimedia.org/wikipedia/commons/transcoded/5/57/ISS_sunrise_2011-06-17.ogv/ISS_sunrise_2011-06-17.ogv.360p.webm" 
-   download class="download-btn">
+<!-- ✅ Sağlam WebM video linki -->
+<a href="https://files.catbox.moe/vh2l8o.webm" download class="download-btn">
 🎞️ Download WEBM
 </a>
 
