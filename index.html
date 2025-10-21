@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Babypeacock — Teaser v2.2 (Clean, Loop, Glow)</title>
+<title>Babypeacock — Teaser v2.3 (Arrive+Hold, Crisp, Mascot)</title>
 <style>
   :root{
-    --ship-size: 420px;   /* max gemi genişliği */
-    --tilt: 0deg;         /* gemi eğimi (düz) */
-    --engine-top: 72%;    /* egzoz merkez Y (shipWrap içinde) */
+    --ship-size: 420px;     /* max gemi genişliği */
+    --tilt: 0deg;           /* gemi eğimi */
+    --engine-top: 72%;      /* egzoz merkez Y (shipWrap içinde) */
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -26,28 +26,35 @@
   .title{position:fixed; left:0; right:0; top:5.5vh; z-index:5}
   .title h1{margin:0; font-weight:800; letter-spacing:.04em; font-size:clamp(26px,6vw,44px);
             text-shadow:0 0 20px rgba(0,224,164,.30), 0 0 2px #fff}
-  .title .sub{margin-top:6px; opacity:.95; color:#d6efe9; font-size:clamp(12px,3.2vw,16px)}
+  .sub{margin-top:8px; display:inline-flex; gap:8px; align-items:center; justify-content:center;
+       opacity:.95; color:#d6efe9; font-size:clamp(12px,3.2vw,16px)}
+  /* maskot ikonu (emoji yerine) */
+  #birdIcon{width:22px; height:22px; display:inline-block; vertical-align:middle}
 
   /* sahne */
   .stage{position:fixed; inset:0; z-index:2; pointer-events:none; display:grid; place-items:center}
   .shipWrap{
     position:relative;
     width:min(60vw,var(--ship-size));
-    transform: rotate(var(--tilt));
+    transform: translateY(12vh) rotate(var(--tilt));   /* biraz aşağıdan başla */
     filter: drop-shadow(0 10px 28px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(255,255,210,.12));
-    /* İleri-geri ve hafif süzülme (kaybolmadan) */
-    animation: bob 3.6s ease-in-out infinite, inout 8s ease-in-out infinite;
+    animation: arrive 1.8s cubic-bezier(.18,.6,.12,1) forwards;
   }
-  @keyframes bob{0%,100%{transform:translateY(0) rotate(var(--tilt))}50%{transform:translateY(-8px) rotate(var(--tilt))}}
-  @keyframes inout{
-    0%,100%  { transform: translateY(0) scale(0.96) rotate(var(--tilt)); }
-    50%      { transform: translateY(-6px) scale(1.06) rotate(var(--tilt)); }
+  /* gelişten sonra hafif süzülme (sonsuz) */
+  .shipWrap.held{ animation: none; }
+  .shipWrap.held .float{ animation: bob 3.6s ease-in-out infinite; }
+
+  @keyframes arrive{
+    0%{ transform: translateY(12vh) rotate(var(--tilt)); opacity:0 }
+    30%{ opacity:1 }
+    100%{ transform: translateY(0) rotate(var(--tilt)); opacity:1 }
   }
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 
-  /* Gemi görselini göstereceğimiz canvas */
-  #shipCanvas{width:100%; height:auto; display:block}
+  /* Gemi: canvas çıktısı (siyah arka planı temizlenmiş, yüksek çözünürlükte) */
+  #shipCanvas{width:100%; height:auto; display:block; image-rendering:auto}
 
-  /* Motor parıltısı ve ışık izi (shipWrap içine göre konumlanır) */
+  /* Motor parıltısı ve ışık izi */
   .engine{
     position:absolute; left:50%; top:var(--engine-top);
     transform: translateX(-50%);
@@ -68,7 +75,6 @@
   }
   @keyframes pulse{0%,100%{opacity:.8}50%{opacity:1}}
 
-  /* hareket azaltma */
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important; transition:none!important}
   }
@@ -79,71 +85,86 @@
 
   <div class="title">
     <h1>Babypeacock</h1>
-    <div class="sub">From feather to flight 🦚⚡</div>
+    <div class="sub">
+      <span>From feather to flight</span>
+      <canvas id="birdIcon" width="22" height="22" aria-label="mascot icon"></canvas>
+    </div>
   </div>
 
   <div class="stage">
     <div class="shipWrap" id="shipWrap">
-      <canvas id="shipCanvas"></canvas>
-      <div class="engine"></div>
-      <div class="trail"></div>
+      <div class="float">
+        <canvas id="shipCanvas"></canvas>
+        <div class="engine"></div>
+        <div class="trail"></div>
+      </div>
     </div>
   </div>
 
 <script>
-/* --------- Yıldız arka plan --------- */
+/* ---------- Yıldız arkaplanı ---------- */
 const bg = document.getElementById('stars');
 const g  = bg.getContext('2d',{alpha:false});
-function resizeBg(){ bg.width=innerWidth; bg.height=innerHeight }
-addEventListener('resize', resizeBg, {passive:true}); resizeBg();
+function sizeBg(){ bg.width=innerWidth; bg.height=innerHeight }
+addEventListener('resize', sizeBg, {passive:true}); sizeBg();
 let stars=[];
-function seedStars(n=260){ stars = Array.from({length:n},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,s:Math.random()*1.2+.3})) }
-seedStars();
-(function loop(){
-  g.fillStyle='#000010'; g.fillRect(0,0,bg.width,bg.height);
+function seed(n=260){ stars = Array.from({length:n},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,s:Math.random()*1.2+.3})) }
+seed();
+(function loop(){ g.fillStyle='#000010'; g.fillRect(0,0,bg.width,bg.height);
   g.fillStyle='#cde8ff';
   for(const st of stars){ st.y+=st.s; if(st.y>bg.height){st.y=-2; st.x=Math.random()*bg.width} g.fillRect(st.x,st.y,1.3,1.3) }
   requestAnimationFrame(loop);
 })();
 
-/* --------- Gemi: siyah arka planı şeffaf yap --------- */
-const shipCanvas = document.getElementById('shipCanvas');
-const sc = shipCanvas.getContext('2d');
-const img = new Image();
-img.src = 'Assets.png';    // görselin
-img.onload = () => {
-  drawShip();              // ilk çizim
-  addEventListener('resize', drawShip, {passive:true});
-};
-function drawShip(){
-  // shipCanvas boyutunu shipWrap genişliğine göre ayarla
-  const wrap = document.getElementById('shipWrap');
-  const w = wrap.clientWidth;
+/* ---------- Görselleri yüksek kalitede çiz ve siyahı kaldır ---------- */
+function drawImageWithKey(canvas, img, threshold=38){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); // 2x'e kadar
+  const ctx = canvas.getContext('2d');
   const ratio = img.height / img.width;
-  shipCanvas.width  = Math.floor(w);
-  shipCanvas.height = Math.floor(w * ratio);
 
-  // orijinal boyutta işleme yap (siyahı alfa=0 yap)
+  // çıktı boyutu
+  const cssW = canvas.clientWidth || 200;
+  const cssH = cssW * ratio;
+  canvas.width  = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+
+  // offscreen: orijinali işle
   const off = document.createElement('canvas');
   off.width = img.width; off.height = img.height;
   const ox = off.getContext('2d');
   ox.drawImage(img, 0, 0);
-  const data = ox.getImageData(0,0,off.width,off.height);
-  const d = data.data;
-
-  for(let i=0;i<d.length;i+=4){
-    const r=d[i], g=d[i+1], b=d[i+2];
+  const id = ox.getImageData(0,0,off.width,off.height);
+  const p  = id.data;
+  for(let i=0;i<p.length;i+=4){
+    const r=p[i], g=p[i+1], b=p[i+2];
     const lum = (r+g+b)/3;
-    // siyaha yakınları şeffafla (eşik: 32) + çok koyu yeşiller için küçük marj
-    if (lum < 32 || (r<34 && g<34 && b<34)) {
-      d[i+3] = 0; // alpha = 0
-    }
+    if (lum < threshold || (r<36 && g<36 && b<36)) p[i+3]=0; // siyah ve çok koyular şeffaf
   }
-  ox.putImageData(data,0,0);
+  ox.putImageData(id,0,0);
 
-  // işlenen görseli ana canvas’a ölçekle
-  sc.clearRect(0,0,shipCanvas.width,shipCanvas.height);
-  sc.drawImage(off, 0, 0, shipCanvas.width, shipCanvas.height);
+  // yüksek kaliteyle ölçekle
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+}
+
+/* Gemi (Assets.png) */
+const shipImg = new Image(); shipImg.src='Assets.png';
+const shipCanvas = document.getElementById('shipCanvas');
+shipImg.onload = () => { drawImageWithKey(shipCanvas, shipImg, 34); adjustHold(); };
+addEventListener('resize', () => drawImageWithKey(shipCanvas, shipImg, 34), {passive:true});
+
+/* Mascot ikon (bpc-bird.png) */
+const birdImg = new Image(); birdImg.src='bpc-bird.png';
+const birdCanvas = document.getElementById('birdIcon');
+birdImg.onload = () => { drawImageWithKey(birdCanvas, birdImg, 34); };
+
+/* Geliş animasyonu bittiğinde süzülmeye geç */
+function adjustHold(){
+  const wrap = document.getElementById('shipWrap');
+  // arrive bitince held sınıfını ekleyelim
+  wrap.addEventListener('animationend', () => wrap.classList.add('held'), {once:true});
 }
 </script>
 </body>
