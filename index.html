@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Babypeacock — Teaser v2.4 (Smooth Flight)</title>
+<title>Babypeacock — Teaser v2.5 (Smooth Glide)</title>
 <style>
   :root{
     --ship-size: 420px;
@@ -20,7 +20,6 @@
     overflow:hidden;
   }
 
-  /* yıldızlar */
   canvas#stars{position:fixed;inset:0;z-index:0}
 
   .title{position:fixed;top:6vh;left:0;right:0;z-index:5}
@@ -46,19 +45,15 @@
   .shipWrap{
     position:relative;
     width:min(60vw,var(--ship-size));
-    transform: translateY(16vh) rotate(var(--tilt));
+    transform: translateY(20vh) rotate(var(--tilt));
     filter:drop-shadow(0 10px 28px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(255,255,210,.12));
-    animation: arrive 7s cubic-bezier(.15,.45,.10,1) forwards;
+    animation: glide 8s cubic-bezier(.18,.55,.12,1) forwards;
   }
-  .shipWrap.held{animation:none;}
-  .shipWrap.held .float{animation: bob 6s ease-in-out infinite;}
-
-  @keyframes arrive{
-    0%{transform:translateY(16vh) rotate(var(--tilt));opacity:0}
-    25%{opacity:1}
+  @keyframes glide{
+    0%{transform:translateY(20vh) rotate(var(--tilt));opacity:0}
+    30%{opacity:1}
     100%{transform:translateY(0) rotate(var(--tilt));opacity:1}
   }
-  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 
   #shipCanvas{width:100%;height:auto;display:block;image-rendering:auto}
   .engine{
@@ -92,16 +87,13 @@
 
 <div class="stage">
   <div class="shipWrap" id="shipWrap">
-    <div class="float">
-      <canvas id="shipCanvas"></canvas>
-      <div class="engine"></div>
-      <div class="trail"></div>
-    </div>
+    <canvas id="shipCanvas"></canvas>
+    <div class="engine"></div>
+    <div class="trail"></div>
   </div>
 </div>
 
 <script>
-/* --------- Stars --------- */
 const bg=document.getElementById('stars');const g=bg.getContext('2d',{alpha:false});
 function resizeBg(){bg.width=innerWidth;bg.height=innerHeight}
 addEventListener('resize',resizeBg,{passive:true});resizeBg();
@@ -112,7 +104,6 @@ g.fillStyle='#cde8ff';
 for(const st of stars){st.y+=st.s;if(st.y>bg.height){st.y=-2;st.x=Math.random()*bg.width}g.fillRect(st.x,st.y,1.3,1.3)}
 requestAnimationFrame(loop);})();
 
-/* --------- Image processing --------- */
 function drawImageWithKey(canvas,img,threshold=38){
  const dpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
  const ctx=canvas.getContext('2d');
@@ -130,22 +121,14 @@ function drawImageWithKey(canvas,img,threshold=38){
  ctx.drawImage(off,0,0,canvas.width,canvas.height);
 }
 
-/* --------- Ship --------- */
 const shipImg=new Image();shipImg.src='Assets.png';
 const shipCanvas=document.getElementById('shipCanvas');
-shipImg.onload=()=>{drawImageWithKey(shipCanvas,shipImg,35);afterArrive();};
+shipImg.onload=()=>{drawImageWithKey(shipCanvas,shipImg,35);};
 addEventListener('resize',()=>drawImageWithKey(shipCanvas,shipImg,35),{passive:true});
 
-/* --------- Mascot --------- */
 const birdImg=new Image();birdImg.src='bpc-bird.png';
 const birdCanvas=document.getElementById('birdIcon');
 birdImg.onload=()=>{drawImageWithKey(birdCanvas,birdImg,36);};
-
-/* --------- Transition --------- */
-function afterArrive(){
-  const wrap=document.getElementById('shipWrap');
-  wrap.addEventListener('animationend',()=>wrap.classList.add('held'),{once:true});
-}
 </script>
 </body>
 </html>
