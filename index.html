@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Babypeacock Coin 🚀</title>
+  <title>Babypeacock 🚀</title>
   <style>
     html, body {
       margin: 0;
@@ -45,7 +45,7 @@
       transform: translateX(-50%) rotate(-5deg);
       width: 180px;
       animation: fly 6s ease-in forwards;
-      mix-blend-mode: screen; /* siyah arka plan yok olur */
+      mix-blend-mode: screen;
     }
 
     @keyframes fly {
@@ -58,12 +58,11 @@
 <body>
   <canvas id="stars"></canvas>
 
-  <h1>Babypeacock Coin</h1>
+  <h1>Babypeacock</h1>
   <h2>From feather to flight 🦚⚡</h2>
   <img class="ship" src="Assets.png" alt="BPC Starship">
 
   <script>
-    // Basit yıldız arka plan animasyonu
     const c = document.getElementById("stars");
     const ctx = c.getContext("2d");
     let stars = [];
