@@ -3,108 +3,148 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Babypeacock — Teaser v2.1 Clean Centered</title>
+<title>Babypeacock — Teaser v2.2 (Clean, Loop, Glow)</title>
 <style>
-  :root {
-    --ship-size: 420px;
-    --tilt: 0deg;          /* gemi düz */
-    --engine-x: 38%;       /* ışık pozisyonu */
-    --engine-y: 88%;
-    --loop-sec: 11s;
+  :root{
+    --ship-size: 420px;   /* max gemi genişliği */
+    --tilt: 0deg;         /* gemi eğimi (düz) */
+    --engine-top: 72%;    /* egzoz merkez Y (shipWrap içinde) */
   }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; overflow: hidden; background: radial-gradient(900px at 50% 90%, #000012 0%, #000 100%); color: #fff; font-family: Poppins, sans-serif; }
-
-  canvas#stars { position: fixed; inset: 0; z-index: 0; }
-
-  .title { position: fixed; left: 0; right: 0; top: 6vh; text-align: center; z-index: 5; }
-  .title h1 { margin: 0; font-weight: 800; font-size: 42px; text-shadow: 0 0 25px #00ffe5; }
-  .title .sub { opacity: .9; margin-top: 6px; font-size: 16px; }
-
-  .stage { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
-  .shipWrap {
-    position: absolute; left: 50%;
-    transform: translate(-50%, 40vh) rotate(var(--tilt));
-    width: min(60vw, var(--ship-size));
-    animation: flight var(--loop-sec) linear infinite;
-  }
-  img.ship {
-    display: block; width: 100%; height: auto; object-fit: contain;
-    background: transparent;
-    filter: brightness(1.1) contrast(1.1);
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; overflow:hidden; color:#eaf8ff;
+    background: radial-gradient(1200px 700px at 50% 85%, #000014 0%, #000 90%);
+    font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;
+    text-align:center;
   }
 
-  .engine {
-    position: absolute;
-    left: var(--engine-x);
-    top: var(--engine-y);
-    width: 20%;
-    aspect-ratio: 1 / 1;
-    border-radius: 50%;
-    background: radial-gradient(circle at 50% 50%, rgba(0,255,213,1) 0%, rgba(0,180,255,0.8) 35%, rgba(0,90,255,0.3) 65%, transparent 75%);
-    filter: blur(8px);
-    opacity: 0.9;
-    animation: enginePulse .15s ease-in-out infinite;
+  /* yıldız alanı */
+  canvas#stars{position:fixed; inset:0; z-index:0}
+
+  /* başlık */
+  .title{position:fixed; left:0; right:0; top:5.5vh; z-index:5}
+  .title h1{margin:0; font-weight:800; letter-spacing:.04em; font-size:clamp(26px,6vw,44px);
+            text-shadow:0 0 20px rgba(0,224,164,.30), 0 0 2px #fff}
+  .title .sub{margin-top:6px; opacity:.95; color:#d6efe9; font-size:clamp(12px,3.2vw,16px)}
+
+  /* sahne */
+  .stage{position:fixed; inset:0; z-index:2; pointer-events:none; display:grid; place-items:center}
+  .shipWrap{
+    position:relative;
+    width:min(60vw,var(--ship-size));
+    transform: rotate(var(--tilt));
+    filter: drop-shadow(0 10px 28px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(255,255,210,.12));
+    /* İleri-geri ve hafif süzülme (kaybolmadan) */
+    animation: bob 3.6s ease-in-out infinite, inout 8s ease-in-out infinite;
   }
-  .trail {
-    position: absolute; left: 50%; top: 90%;
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(var(--tilt))}50%{transform:translateY(-8px) rotate(var(--tilt))}}
+  @keyframes inout{
+    0%,100%  { transform: translateY(0) scale(0.96) rotate(var(--tilt)); }
+    50%      { transform: translateY(-6px) scale(1.06) rotate(var(--tilt)); }
+  }
+
+  /* Gemi görselini göstereceğimiz canvas */
+  #shipCanvas{width:100%; height:auto; display:block}
+
+  /* Motor parıltısı ve ışık izi (shipWrap içine göre konumlanır) */
+  .engine{
+    position:absolute; left:50%; top:var(--engine-top);
     transform: translateX(-50%);
-    width: 4px; height: 200px;
-    background: linear-gradient(to bottom, rgba(0,255,204,0.8), rgba(0,80,255,0.1));
-    filter: blur(4px);
+    width:24%; aspect-ratio:1/1; border-radius:50%;
+    background: radial-gradient(circle at 50% 50%, rgba(184,255,241,1) 0%,
+                                 rgba(54,255,210,.9) 35%, rgba(0,159,147,.5) 70%, transparent 75%);
+    mix-blend-mode:screen; filter: blur(6px); opacity:.9;
+    animation: pulse .16s ease-in-out infinite;
   }
+  .trail{
+    position:absolute; left:50%; top:calc(var(--engine-top) + 6%);
+    transform: translateX(-50%);
+    width:4%; height:56vh; pointer-events:none;
+    background:
+      linear-gradient(to bottom, rgba(53,255,210,.55), rgba(0,120,255,.10) 70%, rgba(0,0,0,0) 100%);
+    filter: blur(8px);
+    opacity:.75;
+  }
+  @keyframes pulse{0%,100%{opacity:.8}50%{opacity:1}}
 
-  @keyframes enginePulse { 0%,100%{opacity:.8;} 50%{opacity:1;} }
-  @keyframes flight {
-    0% { transform: translate(-50%, 45vh) rotate(var(--tilt)); opacity: 0; }
-    10% { opacity: 1; }
-    70% { transform: translate(-50%, -15vh) rotate(var(--tilt)); opacity: 1; }
-    95% { opacity: 0; }
-    100% { transform: translate(-50%, 45vh) rotate(var(--tilt)); opacity: 0; }
+  /* hareket azaltma */
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important; transition:none!important}
   }
 </style>
 </head>
 <body>
   <canvas id="stars"></canvas>
+
   <div class="title">
     <h1>Babypeacock</h1>
     <div class="sub">From feather to flight 🦚⚡</div>
   </div>
 
   <div class="stage">
-    <div class="shipWrap">
-      <img class="ship" src="Assets.png" alt="Babypeacock Starship" />
+    <div class="shipWrap" id="shipWrap">
+      <canvas id="shipCanvas"></canvas>
       <div class="engine"></div>
       <div class="trail"></div>
     </div>
   </div>
 
 <script>
-const cvs=document.getElementById('stars');
-const ctx=cvs.getContext('2d');
-function size(){cvs.width=innerWidth;cvs.height=innerHeight;}
-addEventListener('resize',size); size();
+/* --------- Yıldız arka plan --------- */
+const bg = document.getElementById('stars');
+const g  = bg.getContext('2d',{alpha:false});
+function resizeBg(){ bg.width=innerWidth; bg.height=innerHeight }
+addEventListener('resize', resizeBg, {passive:true}); resizeBg();
 let stars=[];
-function initStars(n=250){
-  stars = Array.from({length:n},()=>({
-    x:Math.random()*cvs.width,
-    y:Math.random()*cvs.height,
-    s:Math.random()*1.2+0.3
-  }));
-}
-initStars();
-function draw(){
-  ctx.fillStyle="#000010";
-  ctx.fillRect(0,0,cvs.width,cvs.height);
-  ctx.fillStyle="#aef";
-  for(let st of stars){
-    st.y+=st.s;
-    if(st.y>cvs.height){st.y=0;st.x=Math.random()*cvs.width;}
-    ctx.fillRect(st.x,st.y,1.5,1.5);
+function seedStars(n=260){ stars = Array.from({length:n},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,s:Math.random()*1.2+.3})) }
+seedStars();
+(function loop(){
+  g.fillStyle='#000010'; g.fillRect(0,0,bg.width,bg.height);
+  g.fillStyle='#cde8ff';
+  for(const st of stars){ st.y+=st.s; if(st.y>bg.height){st.y=-2; st.x=Math.random()*bg.width} g.fillRect(st.x,st.y,1.3,1.3) }
+  requestAnimationFrame(loop);
+})();
+
+/* --------- Gemi: siyah arka planı şeffaf yap --------- */
+const shipCanvas = document.getElementById('shipCanvas');
+const sc = shipCanvas.getContext('2d');
+const img = new Image();
+img.src = 'Assets.png';    // görselin
+img.onload = () => {
+  drawShip();              // ilk çizim
+  addEventListener('resize', drawShip, {passive:true});
+};
+function drawShip(){
+  // shipCanvas boyutunu shipWrap genişliğine göre ayarla
+  const wrap = document.getElementById('shipWrap');
+  const w = wrap.clientWidth;
+  const ratio = img.height / img.width;
+  shipCanvas.width  = Math.floor(w);
+  shipCanvas.height = Math.floor(w * ratio);
+
+  // orijinal boyutta işleme yap (siyahı alfa=0 yap)
+  const off = document.createElement('canvas');
+  off.width = img.width; off.height = img.height;
+  const ox = off.getContext('2d');
+  ox.drawImage(img, 0, 0);
+  const data = ox.getImageData(0,0,off.width,off.height);
+  const d = data.data;
+
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const lum = (r+g+b)/3;
+    // siyaha yakınları şeffafla (eşik: 32) + çok koyu yeşiller için küçük marj
+    if (lum < 32 || (r<34 && g<34 && b<34)) {
+      d[i+3] = 0; // alpha = 0
+    }
   }
-  requestAnimationFrame(draw);
+  ox.putImageData(data,0,0);
+
+  // işlenen görseli ana canvas’a ölçekle
+  sc.clearRect(0,0,shipCanvas.width,shipCanvas.height);
+  sc.drawImage(off, 0, 0, shipCanvas.width, shipCanvas.height);
 }
-draw();
 </script>
 </body>
 </html>
