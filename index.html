@@ -1,417 +1,124 @@
 <!DOCTYPE html>
-<html lang="tr"><head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Babypeacock • The Awakening</title>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Babypeacock Coin — Teaser</title>
 <style>
-  :root{--ui-bg:#111;--ui-fg:#eaeaea}
-  html,body{margin:0;height:100%;background:#000;color:#eaeaea;overflow:hidden;
-    font-family:system-ui,Segoe UI,monospace;display:flex;justify-content:center;align-items:center}
-  canvas{width:100%;max-width:1080px;aspect-ratio:16/9;display:block;border-radius:14px;background:#000}
-  .bar{position:fixed;inset:auto 0 0 0;display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap;
-       padding:.7rem;background:linear-gradient(#0008,#0000)}
-  button{font:600 15px/1 system-ui;border-radius:12px;border:1px solid #333;padding:.8rem 1.1rem;background:var(--ui-bg);color:var(--ui-fg);cursor:pointer}
-  #one{background:#0f2a14;border-color:#245b2e} #one[disabled]{opacity:.6;cursor:not-allowed}
-  .note{position:fixed;top:.6rem;right:.6rem;opacity:.6;font:12px/1.1 system-ui}
-  .status{font:600 13px/1 system-ui;opacity:.85;border:1px solid #333;padding:.55rem .8rem;border-radius:10px}
+  :root{
+    /* İhtiyaç olursa sadece bu 3 değeri oynat */
+    --ship-tilt: -8deg;   /* gemi eğimi */
+    --beam-top: 62%;      /* ışık hüzmesi başlangıç yüksekliği */
+    --ship-size: 420px;   /* max gemi genişliği */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:#05080e;color:#eaf8ff;
+    font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
+    overflow:hidden;
+  }
+
+  /* Basit yıldız arkaplanı */
+  canvas#stars{position:fixed; inset:0; z-index:0}
+
+  /* Başlık */
+  .title{
+    position:fixed; left:0; right:0; top:6vh; text-align:center; z-index:5;
+  }
+  .title h1{
+    margin:0; font-weight:800; letter-spacing:.04em;
+    font-size:clamp(26px,6vw,44px);
+    text-shadow:0 0 20px rgba(0,224,164,.30), 0 0 2px #fff;
+    opacity:0; animation:fadeIn .8s ease forwards .4s;
+  }
+  .title .sub{
+    margin-top:6px; opacity:.95; color:#d6efe9;
+    font-size:clamp(12px,3.2vw,16px);
+    animation:fadeIn .8s ease forwards .9s;
+  }
+
+  /* Gemi ve ışık hüzmesi */
+  .stage{position:fixed; inset:0; display:grid; place-items:center}
+  .shipBox{
+    position:relative; width:min(60vw,var(--ship-size)); z-index:3;
+    transform: translateY(10vh) rotate(var(--ship-tilt));
+    animation: shipIn .5s ease-out .9s forwards, lift 4.6s cubic-bezier(.18,.6,.12,1) 2s forwards;
+    filter: drop-shadow(0 10px 26px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(255,255,210,.15));
+  }
+  img.ship{display:block; width:100%; height:auto; object-fit:contain}
+
+  .beam{
+    position:absolute; left:50%; top:var(--beam-top); transform:translateX(-50%) skewX(-6deg);
+    width:36%; height:140vh; pointer-events:none; opacity:0;
+    background:
+      radial-gradient(40% 12% at 50% 0%, rgba(255,240,190,.95) 0%, rgba(255,220,140,.65) 45%, rgba(255,180,80,.25) 70%, rgba(0,0,0,0) 100%),
+      linear-gradient(to bottom, rgba(255,235,170,.35), rgba(0,0,0,0) 65%);
+    filter: blur(2px);
+    animation:fadeIn .6s ease 1.6s forwards;
+  }
+
+  /* CTA: tekrar oynat */
+  .cta{position:fixed; left:50%; bottom:5vh; transform:translateX(-50%); z-index:6}
+  .btn{
+    padding:10px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.06); color:#fff; text-decoration:none; font-weight:600;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); opacity:0;
+    animation:fadeIn .6s ease 6.2s forwards;
+  }
+
+  /* Yıldız parıltıları (küçük ışıltılar) */
+  .spark{
+    position:fixed; width:2px; height:2px; background:#fff; opacity:.9;
+    box-shadow:0 0 6px #fff, 0 0 18px #9fd; transform:scale(0);
+    animation:twinkle 3s ease-in-out infinite;
+  }
+
+  /* Animasyonlar */
+  @keyframes fadeIn{to{opacity:1}}
+  @keyframes shipIn{to{transform: translateY(0) rotate(var(--ship-tilt))}}
+  @keyframes lift{
+    0%  { transform: translateY(0) rotate(var(--ship-tilt)); }
+    60% { transform: translate(18vw,-18vh) rotate(calc(var(--ship-tilt) - 8deg)); }
+    100%{ transform: translate(44vw,-54vh) rotate(calc(var(--ship-tilt) - 12deg)); }
+  }
+  @keyframes twinkle{0%,100%{transform:scale(0);opacity:0}50%{transform:scale(1);opacity:.9}}
+
+  /* Hareket azaltma */
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
 <body>
-<canvas id="cv"></canvas>
-<div class="bar">
-  <button id="prev">Önizleme</button>
-  <button id="one">Tek Tuş Kayıt (WEBM • Sesli)</button>
-  <label><input id="sound" type="checkbox" checked> Ses</label>
-  <span id="st" class="status">Hazır</span>
+
+<canvas id="stars"></canvas>
+
+<div class="title">
+  <h1>Babypeacock Coin</h1>
+  <div class="sub">From feather to flight 🦚⚡</div>
 </div>
-<div class="note">Görsel: <b>bpc-bird.png</b> repo kökünde olmalı</div>
+
+<div class="stage">
+  <div class="shipBox">
+    <!-- GÖRSELİN: Aynı klasördeki Assets.png -->
+    <img class="ship" src="Assets.png" alt="BPC Starship">
+    <div class="beam"></div>
+  </div>
+</div>
+
+<div class="cta"><a class="btn" href="#" onclick="location.reload();return false;">Tekrar Oynat</a></div>
 
 <script>
-(() => {
-  const cv=document.getElementById('cv'), cx=cv.getContext('2d',{alpha:false});
-  const btnPrev=document.getElementById('prev'), btnOne=document.getElementById('one'), st=document.getElementById('st');
-  const soundChk=document.getElementById('sound');
+/* Basit yıldız alanı (performans dostu) */
+const c=document.getElementById('stars'),x=c.getContext('2d',{alpha:false});
+function size(){c.width=innerWidth;c.height=innerHeight} addEventListener('resize',size,{passive:true}); size();
+let W=()=>c.width,H=()=>c.height, S=[];
+function seed(n=240){S=Array.from({length:n},()=>({x:Math.random()*W(),y:Math.random()*H(),s:Math.random()*1.2+.3,z:Math.random()*0.6+.4}))}
+seed();
+(function loop(){x.fillStyle='#05080e';x.fillRect(0,0,W(),H());for(const s of S){s.y+=s.s;if(s.y>H()) s.y=-2, s.x=Math.random()*W(); x.fillStyle=`rgba(173,216,255,${.35+s.z*.65})`; x.fillRect(s.x,s.y,1.2+s.z*1.8,1.2+s.z*1.8);} requestAnimationFrame(loop)})();
 
-  // ---------- Boyut ----------
-  function setSize(w=1920){
-    const W=Math.max(960,Math.min(3840,Math.round(w)));
-    cv.width=W; cv.height=Math.round(W*9/16);
-  }
-  setSize(1920); addEventListener('resize',()=>setSize(cv.width));
-
-  // ---------- Timeline (ms) ----------
-  // S1 Boot/Scan 3s, S2 Particles Assemble 5s, S3 Grid/Neon Transform 6s, S4 Clean Hold 3s
-  const S1=3000, S2=5000, S3=6000, S4=3000;
-  const T1=0, T2=T1+S1, T3=T2+S2, T4=T3+S3, TEND=T4+S4;
-
-  // ---------- Varlıklar (siyah->transparan) ----------
-  const raw=new Image(); raw.crossOrigin='anonymous'; raw.src='bpc-bird.png';
-  let bird=null;
-  raw.onload=()=>{ const off=document.createElement('canvas'),o=off.getContext('2d');
-    off.width=raw.naturalWidth; off.height=raw.naturalHeight; o.drawImage(raw,0,0);
-    const img=o.getImageData(0,0,off.width,off.height), d=img.data;
-    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2]; if(r<22&&g<22&&b<22) d[i+3]=0;}
-    o.putImageData(img,0,0); bird=off;
-  };
-
-  // ---------- Ses ----------
-  let actx=null,mix=null,bBoot=null,bAssemble=null,bSweep=null,bHit=null;
-  function ensureAudio(){ if(!soundChk.checked) return null;
-    if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); }
-    if(!mix){ mix=actx.createGain(); mix.gain.value=.95; mix.connect(actx.destination); }
-    if(!bBoot){ bBoot=actx.createGain(); bBoot.gain.value=.6; bBoot.connect(mix); }
-    if(!bAssemble){ bAssemble=actx.createGain(); bAssemble.gain.value=.75; bAssemble.connect(mix); }
-    if(!bSweep){ bSweep=actx.createGain(); bSweep.gain.value=.8; bSweep.connect(mix); }
-    if(!bHit){ bHit=actx.createGain(); bHit.gain.value=.9; bHit.connect(mix); }
-    return actx;
-  }
-  function noiseBuffer(sec=1.0, curve=1.4){
-    const sr=actx.sampleRate, len=(sr*sec)|0, b=actx.createBuffer(1,len,sr), d=b.getChannelData(0);
-    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,curve);
-    return b;
-  }
-  function lowpass(n,f){const bi=actx.createBiquadFilter(); bi.type='lowpass'; bi.frequency.value=f; n.connect(bi); return bi;}
-  function bandpass(n,f,Q=1){const bi=actx.createBiquadFilter(); bi.type='bandpass'; bi.frequency.value=f; bi.Q.value=Q; n.connect(bi); return bi;}
-
-  function bootBeepSweep(){ // CRT açılışı gibi
-    if(!ensureAudio()) return;
-    const osc=actx.createOscillator(); osc.type='sawtooth';
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(.5,actx.currentTime+.05);
-    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.6);
-    osc.frequency.setValueAtTime(180,actx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(2200, actx.currentTime+.5);
-    osc.connect(g).connect(bBoot); osc.start(); osc.stop(actx.currentTime+.62);
-  }
-  function assembleGlitch(){ // dijital crackle
-    if(!ensureAudio()) return;
-    const s=actx.createBufferSource(); s.buffer=noiseBuffer(.8,1.2);
-    const bp=bandpass(s, 2500, .9); const g=actx.createGain(); g.gain.value=0;
-    g.gain.linearRampToValueAtTime(1,actx.currentTime+.06);
-    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.7);
-    bp.connect(g).connect(bAssemble); s.start();
-  }
-  function sweepRise(){ // enerji yükselişi
-    if(!ensureAudio()) return;
-    const osc=actx.createOscillator(); osc.type='sine';
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(.9,actx.currentTime+.15);
-    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.4);
-    osc.frequency.setValueAtTime(120,actx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1200,actx.currentTime+1.2);
-    osc.connect(g).connect(bSweep); osc.start(); osc.stop(actx.currentTime+1.45);
-  }
-  function impactFlash(){ // final vurgu
-    if(!ensureAudio()) return;
-    const osc=actx.createOscillator(); osc.type='triangle';
-    const g=actx.createGain(); g.gain.value=0; g.gain.linearRampToValueAtTime(1,actx.currentTime+.02);
-    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.45);
-    osc.frequency.setValueAtTime(220,actx.currentTime);
-    osc.connect(g).connect(bHit); osc.start(); osc.stop(actx.currentTime+.48);
-  }
-
-  // ---------- Yardımcılar ----------
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const easeIn=t=>t*t;
-  const easeOut=t=>1-Math.pow(1-t,3);
-  const easeInOut=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
-
-  // ---------- Parçacıklar ----------
-  const N=320;
-  const bits=Array.from({length:N},()=>({
-    x:Math.random(), y:Math.random(),
-    v:(Math.random()*0.7+0.3),
-    a:Math.random()*0.7+0.3,
-    s:Math.random()*2+0.8
-  }));
-
-  // ---------- Glitch / Scanline ----------
-  function drawScanlines(alpha=0.12){
-    const W=cv.width,H=cv.height;
-    cx.save(); cx.globalAlpha=alpha;
-    for(let y=0;y<H;y+=2){ cx.fillStyle='rgba(255,255,255,0.03)'; cx.fillRect(0,y,W,1); }
-    cx.restore();
-  }
-  function glitchSlices(t,intensity=0.5){
-    const W=cv.width,H=cv.height;
-    cx.save();
-    const slices = Math.floor(8*intensity);
-    for(let i=0;i<slices;i++){
-      const h= (H*0.02) + Math.random()*H*0.06;
-      const y= Math.random()*(H-h);
-      const shift=(Math.random()*2-1)*W*0.02*intensity;
-      cx.drawImage(cv, 0, y, W, h, shift, y, W, h);
-    }
-    cx.restore();
-  }
-
-  // ---------- Konik halka ----------
-  function ringStroke(cx, t, r, lw, alpha){
-    cx.save();
-    cx.lineWidth = lw;
-    if(cx.createConicGradient){
-      const g = cx.createConicGradient((t/1000)*0.25, 0, 0);
-      g.addColorStop(0,'#cfe9ff'); g.addColorStop(1,'#66b2ff');
-      cx.strokeStyle=g;
-    } else {
-      cx.strokeStyle='rgba(140,190,255,.9)';
-    }
-    cx.globalAlpha = alpha;
-    cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=lw*1.1;
-    cx.beginPath(); cx.arc(0,0,r,0,Math.PI*2); cx.stroke();
-    cx.restore();
-  }
-
-  // ---------- Tek çizim fonksiyonu ----------
-  function renderAt(t){
-    const W=cv.width,H=cv.height;
-    cx.clearRect(0,0,W,H);
-    cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
-
-    // Ortak: hafif vignette
-    const vg=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.95);
-    vg.addColorStop(0,'rgba(0,0,0,0)');
-    vg.addColorStop(1,'rgba(0,0,0,0.55)');
-    cx.fillStyle=vg; cx.fillRect(0,0,W,H);
-
-    if(t<T2){ // S1 — Boot/Scan
-      // CRT açılışı: dikey fade, scanline ve yatay bozulma
-      const k=clamp((t-T1)/S1,0,1);
-      // merkez parlama
-      const g=cx.createRadialGradient(W/2,H*0.58,0,W/2,H*0.58,W*0.55);
-      g.addColorStop(0,`rgba(160,210,255,${0.12+0.35*easeIn(k)})`);
-      g.addColorStop(1,'rgba(0,0,0,0)');
-      cx.fillStyle=g; cx.fillRect(0,0,W,H);
-
-      // yatay çizgi patlamaları
-      const bars = 6;
-      for(let i=0;i<bars;i++){
-        const yy = (i+1)/(bars+1);
-        const y = H*yy + Math.sin((t/90)+i)*6;
-        cx.fillStyle='rgba(150,200,255,0.09)';
-        cx.fillRect(0,y,W,2);
-      }
-      drawScanlines(0.15);
-      if(Math.random()<0.25) glitchSlices(t, 0.45);
-
-      // logo gölgesi
-      if(bird){
-        cx.save();
-        const a = 0.15 + 0.6*easeIn(k);
-        cx.globalAlpha=a;
-        const s=H*0.48*(0.96+0.04*Math.sin(t/500));
-        cx.translate(W/2,H*0.58);
-        cx.drawImage(bird,-s/2,-s/2,s,s);
-        cx.restore();
-      }
-      // alt metin (çok sönük)
-      cx.fillStyle='rgba(200,220,255,0.08)'; cx.textAlign='center';
-      cx.font=Math.round(H*0.04)+'px system-ui,Segoe UI,Arial';
-      cx.fillText('Initializing...', W/2, H*0.85);
-      return;
-    }
-
-    if(t<T3){ // S2 — Parçacıklar toparlanıyor (dijital dönüşüm)
-      const k=clamp((t-T2)/S2,0,1);
-      // enerji alanı
-      const glow=cx.createRadialGradient(W/2,H*0.58,0,W/2,H*0.58,W*0.6);
-      glow.addColorStop(0,`rgba(120,170,255,${0.10+0.25*k})`);
-      glow.addColorStop(1,'rgba(0,0,0,0)');
-      cx.fillStyle=glow; cx.fillRect(0,0,W,H);
-
-      // parçacıklar -> merkeze akış
-      cx.save(); cx.globalCompositeOperation='screen';
-      for(const b of bits){
-        const tx=W/2, ty=H*0.58;
-        const px=W*(b.x), py=H*(b.y);
-        const fx=px+(tx-px)*easeIn(k)*b.v;
-        const fy=py+(ty-py)*easeIn(k)*b.v;
-        cx.fillStyle='rgba(160,210,255,.6)';
-        cx.beginPath(); cx.arc(fx,fy,b.s*(1.2-0.6*k),0,Math.PI*2); cx.fill();
-      }
-      cx.restore();
-
-      // ortaya beliren wireframe kuş
-      if(bird){
-        const a = 0.2 + 0.75*easeOut(k);
-        const s=H*0.5*(1+0.02*Math.sin(t/400));
-        cx.save(); cx.translate(W/2,H*0.58); cx.globalAlpha=a;
-        // “wireframe” efekti için maske gibi stroke çizgileri
-        cx.drawImage(bird,-s/2,-s/2,s,s);
-        cx.globalCompositeOperation='destination-out'; // çizgileri kes
-        cx.lineWidth=1.5; cx.strokeStyle='rgba(255,255,255,1)';
-        for(let i=0;i<14;i++){ cx.beginPath(); cx.rect(-s/2, -s/2 + (i/14)*s, s, 1); cx.stroke(); }
-        cx.globalCompositeOperation='lighter';
-        cx.shadowColor='rgba(150,200,255,.5)'; cx.shadowBlur=W*0.02;
-        cx.drawImage(bird,-s/2,-s/2,s,s);
-        cx.restore();
-      }
-
-      // alt kelimeler (teaser)
-      const words=['Awakening','Signal','Becoming'];
-      const slot=S2/words.length;
-      cx.fillStyle='#eaf2ff'; cx.textAlign='center';
-      for(let i=0;i<words.length;i++){
-        const tt=clamp((t-T2-i*slot)/slot,0,1);
-        const alpha = tt<.25 ? tt/0.25 : 1- clamp((tt-.75)/.25,0,1);
-        if(alpha>0){ cx.globalAlpha=alpha; cx.font=Math.round(H*0.06)+'px system-ui,Segoe UI,Arial';
-          cx.fillText(words[i], W/2, H*0.16 + i*H*0.06); cx.globalAlpha=1; }
-      }
-      // hafif glitch
-      if(Math.random()<0.18) glitchSlices(t, 0.35);
-      drawScanlines(0.12);
-      return;
-    }
-
-    if(t<T4){ // S3 — Grid + Neon halka + Katı logoya dönüşüm
-      const k=clamp((t-T3)/S3,0,1);
-
-      // 3D grid zemini
-      (function drawGrid(){
-        const rows=18, cols=24;
-        cx.save(); cx.translate(0, cv.height*0.78);
-        cx.strokeStyle='rgba(90,140,220,.25)';
-        for(let i=0;i<=rows;i++){
-          const y=i/rows, yy = Math.pow(y,1.7);
-          const gy = yy*cv.height*0.5;
-          cx.beginPath(); cx.moveTo(0,-gy); cx.lineTo(cv.width,-gy); cx.stroke();
-        }
-        for(let j=0;j<=cols;j++){
-          const x=j/cols*cv.width;
-          cx.beginPath(); cx.moveTo(x,0); cx.lineTo(cv.width/2 + (x-cv.width/2)*0.2, -cv.height*0.5); cx.stroke();
-        }
-        cx.restore();
-      })();
-
-      // neon halka
-      cx.save(); cx.translate(cv.width/2, cv.height/2);
-      const open=easeInOut(clamp((k-0.08)/0.5,0,1));
-      ringStroke(cx, t, cv.height*0.28, cv.width*0.015*open, 0.9*open);
-      cx.restore();
-
-      // logo: wireframe -> solid geçiş
-      if(bird){
-        const trans = easeInOut(clamp((k-0.15)/0.5,0,1));
-        const s= cv.height*0.5*(1-0.06*trans);
-        cx.save(); cx.translate(cv.width/2, cv.height*0.56);
-        // önce wireframe izi
-        cx.globalAlpha=1-trans;
-        cx.shadowColor='rgba(160,200,255,.45)'; cx.shadowBlur=cv.width*0.02;
-        cx.drawImage(bird,-s/2,-s/2,s,s);
-        // sonra katı parlak
-        cx.globalAlpha=trans;
-        cx.shadowColor='rgba(190,230,255,.6)'; cx.shadowBlur=cv.width*0.025;
-        cx.drawImage(bird,-s/2,-s/2,s,s);
-        cx.restore();
-
-        // micro “pulse”
-        const pulse = 0.04*Math.sin(t/260);
-        cx.save(); cx.globalCompositeOperation='screen'; cx.globalAlpha=0.22*trans;
-        cx.drawImage(bird, cv.width/2 - s*(1+pulse)/2, cv.height*0.56 - s*(1+pulse)/2, s*(1+pulse), s*(1+pulse));
-        cx.restore();
-      }
-
-      // başlık
-      const a=clamp((k-0.62)/0.22,0,1);
-      if(a>0){
-        cx.globalAlpha=a; cx.fillStyle='#eaf2ff'; cx.textAlign='center';
-        cx.font=Math.round(cv.height*0.085)+'px system-ui,Segoe UI,Arial';
-        cx.fillText('Babypeacock', cv.width/2, cv.height*0.16);
-        cx.font=Math.round(cv.height*0.05)+'px system-ui,Segoe UI,Arial';
-        cx.fillText('The Awakening.', cv.width/2, cv.height*0.24);
-        cx.globalAlpha=1;
-      }
-
-      // arada küçük glitch patlamaları
-      if(Math.random()<0.12) glitchSlices(t, 0.28);
-      drawScanlines(0.1);
-      return;
-    }
-
-    // S4 — Clean hold
-    if(bird){
-      cx.save(); cx.translate(W/2,H*0.56); cx.globalAlpha=0.98;
-      cx.shadowColor='rgba(190,230,255,.55)'; cx.shadowBlur=W*0.022;
-      const s=H*0.46; cx.drawImage(bird,-s/2,-s/2,s,s); cx.restore();
-    }
-    cx.fillStyle='#eaf2ff'; cx.textAlign='center';
-    cx.font=Math.round(H*0.085)+'px system-ui,Segoe UI,Arial';
-    cx.fillText('Babypeacock', W/2, H*0.18);
-    cx.font=Math.round(H*0.05)+'px system-ui,Segoe UI,Arial';
-    cx.fillText('The Awakening.', W/2, H*0.26);
-    drawScanlines(0.08);
-  }
-
-  // ---------- Önizleme ----------
-  let raf=0, start=0, cues={boot:false,assemble:false,sweep:false,hit:false};
-  function startPreview(){
-    cancelAnimationFrame(raf); start=performance.now();
-    cues={boot:false,assemble:false,sweep:false,hit:false};
-    if(soundChk.checked){ ensureAudio()?.resume?.(); }
-    const loop=()=>{
-      const t=performance.now()-start;
-      // Ses cue’ları
-      if(t>=T1+150 && !cues.boot){ cues.boot=true; bootBeepSweep(); }
-      if(t>=T2+120 && !cues.assemble){ cues.assemble=true; assembleGlitch(); }
-      if(t>=T3+200 && !cues.sweep){ cues.sweep=true; sweepRise(); }
-      if(t>=T3+3600 && !cues.hit){ cues.hit=true; impactFlash(); }
-      renderAt(t);
-      if(t<TEND) raf=requestAnimationFrame(loop); else st.textContent='Hazır';
-    };
-    st.textContent='Önizleme…'; loop();
-  }
-
-  // ---------- Recorder helpers ----------
-  function pickWebmMime(){
-    const c=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
-    for(const m of c){ if(MediaRecorder.isTypeSupported?.(m)) return m; }
-    return 'video/webm';
-  }
-
-  // ---------- Tek tuş kayıt (deterministik) ----------
-  async function oneClickRecord(){
-    if(!window.MediaRecorder){ alert('MediaRecorder bu tarayıcıda yok.'); return; }
-    btnOne.disabled=true; st.textContent='Kayıt…';
-    cancelAnimationFrame(raf);
-    ensureAudio()?.resume?.();
-
-    const FPS=60, dt=1000/FPS;
-    const stream=cv.captureStream(FPS);
-    if(soundChk.checked && actx){
-      const dest=actx.createMediaStreamDestination();
-      if(mix){ mix.disconnect(); mix.connect(dest); mix.connect(actx.destination); }
-      stream.addTrack(dest.stream.getAudioTracks()[0]);
-    }
-    let mime=pickWebmMime(); let rec;
-    try{ rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:7_000_000}); }
-    catch(e){ rec=new MediaRecorder(stream); mime='video/webm'; }
-
-    let chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
-    rec.onstop=()=>{ const blob=new Blob(chunks,{type:mime}); const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download='bpc-the-awakening.webm';
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      st.textContent='Hazır'; btnOne.disabled=false; };
-
-    rec.start();
-
-    // deterministik kare + ses cue’ları
-    let t=0, last={boot:false,assemble:false,sweep:false,hit:false};
-    const timer=setInterval(()=>{
-      if(soundChk.checked){
-        if(t>=T1+150 && !last.boot){ last.boot=true; bootBeepSweep(); }
-        if(t>=T2+120 && !last.assemble){ last.assemble=true; assembleGlitch(); }
-        if(t>=T3+200 && !last.sweep){ last.sweep=true; sweepRise(); }
-        if(t>=T3+3600 && !last.hit){ last.hit=true; impactFlash(); }
-      }
-      renderAt(t); t+=dt;
-      if(t>=TEND){ clearInterval(timer); setTimeout(()=>rec.stop(),120); }
-    }, dt);
-  }
-
-  btnPrev.onclick=startPreview;
-  btnOne.onclick=oneClickRecord;
-
-  // otomatik önizleme
-  startPreview();
-})();
+/* Etrafta ışıltı yıldızlar */
+for(let i=0;i<12;i++){const d=document.createElement('div');d.className='spark';d.style.left=(Math.random()*100)+'vw';d.style.top=(Math.random()*100)+'vh';d.style.animationDelay=(Math.random()*3)+'s';document.body.appendChild(d)}
 </script>
+
 </body>
 </html>
