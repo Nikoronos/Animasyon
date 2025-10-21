@@ -1,77 +1,49 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Babypeacock — Teaser v2.5 (Smooth Glide)</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Babypeacock — Teaser v2.6 🎬</title>
 <style>
-  :root{
-    --ship-size: 420px;
-    --tilt: 0deg;
-    --engine-top: 72%;
-  }
+  :root{ --ship-size: 460px; --tilt: 0deg; --engine-top: 72%; }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{
-    background: radial-gradient(1200px 700px at 50% 85%, #000015 0%, #000 90%);
-    color:#eaf8ff;
-    font-family:Poppins,system-ui,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;
-    text-align:center;
-    overflow:hidden;
-  }
-
+  html,body{height:100%; background:#000; color:#eaf8ff; font-family:system-ui,Poppins,Segoe UI,Roboto,Arial,sans-serif; overflow:hidden;}
   canvas#stars{position:fixed;inset:0;z-index:0}
-
-  .title{position:fixed;top:6vh;left:0;right:0;z-index:5}
-  .title h1{
-    margin:0;
-    font-weight:800;
-    letter-spacing:.04em;
-    font-size:clamp(28px,6vw,46px);
-    text-shadow:0 0 20px rgba(0,224,164,.30),0 0 2px #fff;
-  }
-  .sub{
-    margin-top:8px;
-    color:#d6efe9;
-    font-size:clamp(12px,3vw,16px);
-    opacity:.95;
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-  }
+  .title{position:fixed;top:5vh;left:0;right:0;z-index:5;text-align:center}
+  .title h1{margin:0;font-weight:800;letter-spacing:.04em;font-size:clamp(28px,6vw,46px);text-shadow:0 0 20px rgba(0,224,164,.3),0 0 2px #fff}
+  .sub{margin-top:8px;color:#d6efe9;font-size:clamp(12px,3vw,16px);opacity:.95;display:inline-flex;align-items:center;gap:6px}
   #birdIcon{width:22px;height:22px;display:inline-block;vertical-align:middle}
 
   .stage{position:fixed;inset:0;z-index:2;display:grid;place-items:center;pointer-events:none}
-  .shipWrap{
-    position:relative;
-    width:min(60vw,var(--ship-size));
-    transform: translateY(20vh) rotate(var(--tilt));
+  .shipWrap{position:relative;width:min(70vw,var(--ship-size));transform:translateY(20vh) rotate(var(--tilt));
     filter:drop-shadow(0 10px 28px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(255,255,210,.12));
-    animation: glide 8s cubic-bezier(.18,.55,.12,1) forwards;
-  }
-  @keyframes glide{
-    0%{transform:translateY(20vh) rotate(var(--tilt));opacity:0}
-    30%{opacity:1}
-    100%{transform:translateY(0) rotate(var(--tilt));opacity:1}
-  }
+    animation: glide 8s cubic-bezier(.18,.55,.12,1) forwards;}
+  @keyframes glide{0%{transform:translateY(20vh) rotate(var(--tilt));opacity:0}30%{opacity:1}100%{transform:translateY(0) rotate(var(--tilt));opacity:1}}
+
+  .hold .float{ animation: bob 8s ease-in-out infinite; }
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 
   #shipCanvas{width:100%;height:auto;display:block;image-rendering:auto}
-  .engine{
-    position:absolute;left:50%;top:var(--engine-top);
-    transform:translateX(-50%);
+
+  .engine{position:absolute;left:50%;top:var(--engine-top);transform:translateX(-50%);
     width:24%;aspect-ratio:1/1;border-radius:50%;
     background:radial-gradient(circle at 50% 50%,rgba(184,255,241,1)0%,rgba(54,255,210,.9)35%,rgba(0,159,147,.5)70%,transparent 75%);
-    mix-blend-mode:screen;filter:blur(6px);opacity:.9;
-    animation:pulse .18s ease-in-out infinite;
+    mix-blend-mode:screen;filter:blur(6px);opacity:.9;animation:pulse .2s ease-in-out infinite}
+  .trail{position:absolute;left:50%;top:calc(var(--engine-top)+6%);transform:translateX(-50%);
+    width:4%;height:56vh;background:linear-gradient(to bottom,rgba(53,255,210,.55),rgba(0,120,255,.1)70%,rgba(0,0,0,0)100%);
+    filter:blur(8px);opacity:.75}
+  @keyframes pulse{0%,100%{opacity:.85}50%{opacity:1}}
+
+  /* 🎬 Download Button */
+  .download-btn{
+    position:fixed;bottom:4vh;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,#00ffd9,#00b8ff);
+    color:#000;font-weight:600;padding:12px 22px;border-radius:9999px;
+    text-decoration:none;box-shadow:0 0 18px rgba(0,255,204,.45);
+    font-family:'Poppins',sans-serif;letter-spacing:.5px;
+    z-index:20;transition:.25s ease;
   }
-  .trail{
-    position:absolute;left:50%;top:calc(var(--engine-top)+6%);
-    transform:translateX(-50%);
-    width:4%;height:56vh;
-    background:linear-gradient(to bottom,rgba(53,255,210,.55),rgba(0,120,255,.10)70%,rgba(0,0,0,0)100%);
-    filter:blur(8px);opacity:.75;
-  }
-  @keyframes pulse{0%,100%{opacity:.8}50%{opacity:1}}
+  .download-btn:hover{transform:translateX(-50%) scale(1.06);}
 </style>
 </head>
 <body>
@@ -87,48 +59,59 @@
 
 <div class="stage">
   <div class="shipWrap" id="shipWrap">
-    <canvas id="shipCanvas"></canvas>
-    <div class="engine"></div>
-    <div class="trail"></div>
+    <div class="float">
+      <canvas id="shipCanvas"></canvas>
+      <div class="engine"></div>
+      <div class="trail"></div>
+    </div>
   </div>
 </div>
 
+<!-- 🎬 Download Button -->
+<a href="babypeacock-teaser.mp4" download class="download-btn">🎬 Download Teaser</a>
+
 <script>
+/* Yıldızlar */
 const bg=document.getElementById('stars');const g=bg.getContext('2d',{alpha:false});
 function resizeBg(){bg.width=innerWidth;bg.height=innerHeight}
 addEventListener('resize',resizeBg,{passive:true});resizeBg();
-let stars=[];function seed(n=300){stars=Array.from({length:n},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,s:Math.random()*1.2+.3}))}
+let stars=[];function seed(n=320){stars=Array.from({length:n},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,s:Math.random()*1.2+.3}))}
 seed();
 (function loop(){g.fillStyle='#000010';g.fillRect(0,0,bg.width,bg.height);
-g.fillStyle='#cde8ff';
-for(const st of stars){st.y+=st.s;if(st.y>bg.height){st.y=-2;st.x=Math.random()*bg.width}g.fillRect(st.x,st.y,1.3,1.3)}
+g.fillStyle='#cde8ff';for(const st of stars){st.y+=st.s;if(st.y>bg.height){st.y=-2;st.x=Math.random()*bg.width}g.fillRect(st.x,st.y,1.3,1.3)}
 requestAnimationFrame(loop);})();
 
+/* PNG’yi ultra net çiz ve siyahı şeffafla */
 function drawImageWithKey(canvas,img,threshold=38){
  const dpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
  const ctx=canvas.getContext('2d');
  const ratio=img.height/img.width;
- const cssW=canvas.clientWidth||200;const cssH=cssW*ratio;
- canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);
- const off=document.createElement('canvas');off.width=img.width;off.height=img.height;
- const ox=off.getContext('2d');ox.drawImage(img,0,0);
- const id=ox.getImageData(0,0,off.width,off.height);const p=id.data;
- for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2];const lum=(r+gg+b)/3;
-  if(lum<threshold||(r<36&&gg<36&&b<36))p[i+3]=0;}
+ const cssW=canvas.clientWidth||200, cssH=cssW*ratio;
+ canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
+ const off=document.createElement('canvas'); off.width=img.width; off.height=img.height;
+ const ox=off.getContext('2d'); ox.drawImage(img,0,0);
+ const id=ox.getImageData(0,0,off.width,off.height); const p=id.data;
+ for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2]; const lum=(r+gg+b)/3;
+  if(lum<threshold||(r<36&&gg<36&&b<36)) p[i+3]=0;}  
  ox.putImageData(id,0,0);
  ctx.clearRect(0,0,canvas.width,canvas.height);
- ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+ ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
  ctx.drawImage(off,0,0,canvas.width,canvas.height);
 }
-
-const shipImg=new Image();shipImg.src='Assets.png';
+/* Gemi */
+const shipImg=new Image(); shipImg.src='Assets.png';
 const shipCanvas=document.getElementById('shipCanvas');
-shipImg.onload=()=>{drawImageWithKey(shipCanvas,shipImg,35);};
+shipImg.onload=()=>{ drawImageWithKey(shipCanvas,shipImg,35); };
 addEventListener('resize',()=>drawImageWithKey(shipCanvas,shipImg,35),{passive:true});
 
-const birdImg=new Image();birdImg.src='bpc-bird.png';
+/* Maskot */
+const birdImg=new Image(); birdImg.src='bpc-bird.png';
 const birdCanvas=document.getElementById('birdIcon');
-birdImg.onload=()=>{drawImageWithKey(birdCanvas,birdImg,36);};
+birdImg.onload=()=>{ drawImageWithKey(birdCanvas,birdImg,36); };
+
+/* Glide bitince sonsuz sakin bob’a geç */
+const wrap=document.getElementById('shipWrap');
+wrap.addEventListener('animationend',()=> wrap.classList.add('hold'), {once:true});
 </script>
 </body>
 </html>
