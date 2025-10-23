@@ -3,188 +3,191 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Babypeacock — Uzak Yakın Zoom Mars İnişi</title>
+<title>Babypeacock — Mars İnişi</title>
 <style>
   :root{
-    --descent: 6.2s;     /* uzaktan yakına + aşağı iniş süresi */
-    --shake: .8s;        /* sarsıntı süresi */
-    --dust: 1.4s;        /* toz halkası süresi */
+    --descent: 6s;
+    --shake: .8s;
+    --dust: 1.4s;
   }
-  html,body{height:100%;margin:0;background:#000;color:#fff;font-family:system-ui,Segoe UI,Roboto,Arial}
+  html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui;background:#000;}
   .stage{
-    position:fixed; inset:0; overflow:hidden; touch-action:manipulation;
-    background:#1a1a1a url("./mars.png") center/cover no-repeat fixed;
+    position:fixed; inset:0;
+    background:url("mars.png") center/cover no-repeat;
+    overflow:hidden; touch-action:manipulation;
   }
-  .stage::after{content:"";position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(to top, rgba(0,0,0,.30) 0%, rgba(0,0,0,0) 55%);}
 
-  /* Üst bar */
-  .safe{ position:fixed; z-index:20;
-    top:env(safe-area-inset-top,0); left:env(safe-area-inset-left,0); right:env(safe-area-inset-right,0);
-    padding:clamp(8px,2vmin,16px); display:flex; gap:10px; align-items:center;}
-  .brand{ font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.45)}
-  .btn{ margin-left:auto; font-size:14px; padding:.55rem .9rem; border-radius:999px;
-    background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.18); color:#fff; cursor:pointer;}
-  .btn:active{ transform:scale(.98)}
-  .hint{ position:fixed; right:12px; bottom:10px; font-size:12px; opacity:.8; user-select:none;
-    background:rgba(0,0,0,.35); padding:6px 10px; border-radius:10px; backdrop-filter:blur(4px); z-index:20;}
+  /* Yazılar */
+  .title{
+    position:fixed; top:12px; left:14px;
+    color:#fff; font-size:22px; font-weight:800;
+    text-shadow:0 0 4px rgba(0,0,0,.65); z-index:10;
+  }
+  .btn{
+    position:fixed; top:10px; right:10px; z-index:10;
+    padding:10px 18px; border-radius:20px;
+    background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.25);
+    color:#fff; font-size:15px;
+  }
+  .hint{
+    position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,.45); padding:6px 12px; border-radius:10px;
+    color:#fff; font-size:13px; opacity:.85; z-index:10;
+  }
 
-  /* Lander: ekrana üstten uzakta küçük girer → yaklaşa yaklaşa aşağı iner */
+  /* Gemi */
   .lander{
     position:absolute; left:50%; top:50%;
-    width:min(24vmin,240px); aspect-ratio:1/1; transform:translate(-50%,-50%);
-    z-index:10; will-change: transform, filter, opacity;
-    animation: descend var(--descent) cubic-bezier(.1,.8,.2,1) forwards;
+    width:min(25vmin,250px);
+    aspect-ratio:1/1;
+    transform:translate(-50%,-50%);
+    animation:descend var(--descent) cubic-bezier(.1,.8,.2,1) forwards;
+    z-index:5;
   }
   .ship{
-    width:100%; height:100%; object-fit:contain; display:block;
-    /* Şeffaf PNG için; gerekirse parıltı güzel dursun */
+    width:100%; height:100%; object-fit:contain;
     mix-blend-mode:screen;
-    filter:brightness(1.28) contrast(1.1) drop-shadow(0 10px 18px rgba(0,0,0,.45));
+    filter:brightness(1.35) drop-shadow(0 5px 12px rgba(0,0,0,.55));
   }
 
-  /* Motor parıltısı (üstten disk) */
+  /* Parıltı */
   .glow{
-    position:absolute; left:50%; top:66%; transform:translate(-50%,-50%);
-    width:120%; height:120%; border-radius:50%; pointer-events:none;
-    background:radial-gradient(45% 45% at 50% 50%, rgba(255,210,130,.65), rgba(255,145,60,.35) 55%, rgba(255,145,60,0) 72%);
-    filter:blur(10px); opacity:0; mix-blend-mode:screen;
-    animation: glow var(--descent) ease-out forwards;
+    position:absolute; left:50%; top:68%; transform:translate(-50%,-50%);
+    width:120%; height:120%; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,180,80,.7), rgba(255,100,40,.15), transparent 70%);
+    filter:blur(10px); opacity:0;
+    animation:glow var(--descent) ease-out forwards;
+    z-index:3;
   }
 
-  /* Gölge & toz alanı (iniş noktası) */
+  /* Gölge */
   .shadow{
-    position:absolute; left:50%; top:74%; transform:translate(-50%,-50%);
-    width:42vmin; height:42vmin; z-index:3;
-    background:radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.48), rgba(0,0,0,0) 70%);
-    filter:blur(8px); opacity:0; animation: shIn var(--descent) ease-out forwards;
+    position:absolute; left:50%; top:77%; transform:translate(-50%,-50%);
+    width:40vmin; height:40vmin;
+    background:radial-gradient(circle, rgba(0,0,0,.5), transparent 70%);
+    filter:blur(10px); opacity:0;
+    animation:shIn var(--descent) ease-out forwards;
+    z-index:1;
   }
+
+  /* Toz halkası */
   .ring{
-    position:absolute; left:50%; top:74%; transform:translate(-50%,-50%);
-    width:4vmin; height:4vmin; border-radius:50%; z-index:12; opacity:0;
-    box-shadow:0 0 0 0 rgba(167,104,61,0);
-    animation: ring var(--dust) ease-out calc(var(--descent) - .1s) forwards;
+    position:absolute; left:50%; top:77%; transform:translate(-50%,-50%);
+    width:2vmin; height:2vmin; border-radius:50%;
+    box-shadow:0 0 0 0 rgba(210,140,90,0);
+    opacity:0; z-index:3;
+    animation:ring var(--dust) ease-out calc(var(--descent) - .2s) forwards;
   }
-  .field{ position:absolute; inset:0; pointer-events:none; z-index:12; }
-  .dot{ position:absolute; width:.9vmin; height:.9vmin; border-radius:50%;
-        background:rgba(167,104,61,.92); filter:blur(.3px); opacity:0; }
 
-  /* Ekran sarsıntısı */
-  .shake{ animation: shake var(--shake) ease-in-out both; }
+  .field{ position:absolute; inset:0; pointer-events:none; z-index:6; }
+  .dot{
+    position:absolute; width:.9vmin; height:.9vmin;
+    background:rgba(210,140,90,.95);
+    border-radius:50%; filter:blur(.4px); opacity:0;
+  }
 
-  /* ANİMASYONLAR */
-  /* UZAKTAN → YAKINA + AŞAĞI İNİŞ */
+  /* Sarsıntı */
+  .shake{ animation:shake var(--shake) ease-in-out both; }
+
   @keyframes descend{
     from{
-      transform:translate(-50%,-50%) translateY(-65vh) scale(.14) rotate(-2deg);
-      filter:blur(5px); opacity:.35;
+      transform:translate(-50%,-50%) translateY(-65vh) scale(.15);
+      opacity:.3; filter:blur(6px);
     }
     60%{
-      transform:translate(-50%,-50%) translateY(  0vh) scale(.65) rotate(0deg);
-      filter:blur(.8px); opacity:.9;
+      transform:translate(-50%,-50%) translateY(0vh) scale(.7);
+      opacity:.95; filter:blur(1px);
     }
     to{
-      transform:translate(-50%,-50%) translateY( 24vh) scale(1.06) rotate(0deg);
-      filter:blur(0); opacity:1;
+      transform:translate(-50%,-50%) translateY(25vh) scale(1.05);
+      opacity:1; filter:blur(0);
     }
   }
   @keyframes glow{
-    0%{ opacity:0; transform:translate(-50%,-50%) scale(.7) }
-    55%{ opacity:.9 }
-    100%{ opacity:0; transform:translate(-50%,-50%) scale(1.1) }
+    0%{opacity:0;}
+    60%{opacity:.85;}
+    100%{opacity:0;}
   }
   @keyframes shIn{
-    0%{ opacity:0; transform:translate(-50%,-50%) scale(.25) }
-    60%{ opacity:.65; transform:translate(-50%,-50%) scale(.95) }
-    100%{ opacity:.85; transform:translate(-50%,-50%) scale(1) }
+    0%{opacity:0;transform:scale(.3);}
+    100%{opacity:.9;transform:scale(1);}
   }
   @keyframes ring{
-    0%{   opacity:0; box-shadow:0 0 0 0 rgba(167,104,61,0) }
-    1%{   opacity:.28 }
-    100%{ opacity:0; box-shadow:0 0 56vmin 16vmin rgba(167,104,61,.34) }
+    0%{opacity:0;box-shadow:0 0 0 0 rgba(210,140,90,0);}
+    10%{opacity:.4;}
+    100%{opacity:0;box-shadow:0 0 50vmin 15vmin rgba(210,140,90,.3);}
   }
   @keyframes shake{
-    0%{ transform: translate(0,0) }
-    20%{ transform: translate(2px,-2px) }
-    40%{ transform: translate(-3px,2px) }
-    60%{ transform: translate(3px,1px) }
-    80%{ transform: translate(-2px,-1px) }
-    100%{ transform: translate(0,0) }
+    20%{transform:translate(2px,-2px)}
+    40%{transform:translate(-2px,3px)}
+    60%{transform:translate(3px,2px)}
+    80%{transform:translate(-2px,-1px)}
   }
 </style>
 </head>
 <body>
-  <div class="stage" id="stage">
-    <div class="safe">
-      <div class="brand">🦚 Babypeacock — Uzak Yakın Zoom Mars İnişi</div>
-      <button class="btn" id="replay">Tekrar Oynat</button>
-    </div>
-    <div class="hint">👆 Ekrana dokun: tekrar oynat</div>
+<div class="stage" id="stage">
+  <div class="title">🦚 Babypeacock — Mars İnişi</div>
+  <button class="btn" id="replay">Tekrar Oynat</button>
+  <div class="hint">👆 Dokun: tekrar oynat</div>
 
-    <!-- İniş etkileri -->
-    <div class="shadow" id="shadow"></div>
-    <div class="ring" id="ring"></div>
-    <div class="field" id="field"></div>
+  <div class="shadow"></div>
+  <div class="ring"></div>
+  <div class="field" id="field"></div>
 
-    <!-- Gemi -->
-    <div class="lander" id="lander">
-      <img class="ship" src="./drone.png" alt="BPC Drone">
-      <div class="glow"></div>
-    </div>
+  <div class="lander" id="lander">
+    <img class="ship" src="Drone.png" alt="">
+    <div class="glow"></div>
   </div>
+</div>
 
 <script>
 const stage  = document.getElementById('stage');
 const lander = document.getElementById('lander');
-const ring   = document.getElementById('ring');
 const field  = document.getElementById('field');
 const replay = document.getElementById('replay');
 
 function particles(n=120){
-  field.innerHTML='';
+  field.innerHTML = '';
   const cx = innerWidth/2;
-  const cy = innerHeight*0.74; // iniş halkası hizası
+  const cy = innerHeight*0.77;
   for(let i=0;i<n;i++){
-    const d=document.createElement('div'); d.className='dot';
-    d.style.left = (cx + (Math.random()*20-10))+'px';
-    d.style.top  = (cy + (Math.random()*16- 8))+'px';
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.style.left = cx + 'px';
+    d.style.top = cy + 'px';
     field.appendChild(d);
-    const ang=Math.random()*Math.PI*2, dist=10+Math.random()*26, up=-2+Math.random()*4, dur=650+Math.random()*950;
-    requestAnimationFrame(()=>{
-      d.animate([
-        { transform:'translate(0,0)', opacity:.0 },
-        { transform:`translate(${Math.cos(ang)*dist}vmin, ${Math.sin(ang)*dist+up}vmin)`, opacity:.95, offset:.25 },
-        { transform:`translate(${Math.cos(ang)*dist*1.2}vmin, ${Math.sin(ang)*dist*1.2+up}vmin)`, opacity:0 }
-      ], { duration:dur, easing:'ease-out', fill:'forwards', delay:Math.random()*120 });
-    });
+
+    const ang = Math.random()*Math.PI*2;
+    const dist = 10 + Math.random()*25;
+    const dur = 600 + Math.random()*1000;
+
+    d.animate([
+      {transform:'translate(0,0)',opacity:0},
+      {transform:`translate(${Math.cos(ang)*dist}vmin,${Math.sin(ang)*dist}vmin)`,opacity:.95,offset:.3},
+      {opacity:0}
+    ],{duration:dur,easing:'ease-out',fill:'forwards',delay:Math.random()*120});
   }
 }
+
 function shakeOnce(){
   stage.classList.add('shake');
-  setTimeout(()=>stage.classList.remove('shake'), 800);
+  setTimeout(()=>stage.classList.remove('shake'),800);
 }
+
 function restart(){
-  // animasyonları sıfırla
-  lander.style.animation='none'; ring.style.animation='none';
-  requestAnimationFrame(()=>{ lander.style.animation=''; ring.style.animation=''; });
-
-  // efekt zamanlaması (inişten hemen önce)
-  const T = 6200;
-  setTimeout(()=>{ shakeOnce(); particles(120); }, T - 140);
+  lander.style.animation='none';
+  setTimeout(()=>lander.style.animation='',30);
+  particles();
+  shakeOnce();
 }
 
-// ilk yüklemede otomatik efekt
-setTimeout(()=>{ shakeOnce(); particles(120); }, 6200 - 140);
+replay.onclick = restart;
+stage.onclick = (e)=>{ if(!e.target.closest('.btn')&&!e.target.closest('.title')) restart(); };
 
-// etkileşim
-replay.addEventListener('click', restart);
-stage.addEventListener('click', (e)=>{
-  if(e.target.closest('.safe') || e.target.id==='replay') return;
-  restart();
-});
+setTimeout(()=>{particles();shakeOnce();},5800);
 
-// görsel ön yükleme
-['mars.png','drone.png'].forEach(src=>{ const i=new Image(); i.src=src; });
+['Drone.png','mars.png'].forEach(src=>{const i=new Image();i.src=src});
 </script>
 </body>
 </html>
