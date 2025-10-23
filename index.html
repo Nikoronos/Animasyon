@@ -3,21 +3,19 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>BPC — Top-Down Mars İnişi (Procedural)</title>
+<title>BPC — Top-Down Mars İnişi (Pad + Flame + Tilt + Radio)</title>
 <style>
   :root{
-    --descent: 6.5s;   /* iniş süresi */
+    --descent: 6.7s;   /* iniş süresi */
     --shake: .7s;      /* sarsıntı süresi */
     --dust:  1.1s;     /* toz halkası süresi */
   }
   html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui;overflow:hidden}
 
-  /* Arka plan (canvas) + vignette */
   #bg{position:fixed; inset:0; display:block}
   .vignette::after{content:"";position:fixed;inset:0;pointer-events:none;
     background:radial-gradient(120% 80% at 50% 35%, rgba(0,0,0,0), rgba(0,0,0,.25))}
 
-  /* UI */
   .safe{position:fixed; left:12px; top:12px; z-index:20; display:flex; gap:10px; align-items:center}
   .brand{font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.55)}
   .btn{margin-left:8px; padding:.5rem .9rem; border-radius:999px;
@@ -25,22 +23,31 @@
   .hint{position:fixed; left:50%; bottom:12px; transform:translateX(-50%);
         background:rgba(0,0,0,.45); padding:6px 12px; border-radius:10px; z-index:20}
 
-  /* GEMİ — ortada kocaman başlar, küçülerek zemine iner */
+  /* GEMİ — ortada büyük başlar, küçülerek zemine iner + tilt */
   .lander{
     position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
     width:min(60vmin,520px); aspect-ratio:1/1; z-index:10; will-change:transform,filter,opacity;
-    animation: descend var(--descent) cubic-bezier(.2,.85,.15,1) forwards,
-               idle 3s ease-in-out var(--descent) infinite alternate;
+    animation:
+      descend var(--descent) cubic-bezier(.2,.85,.15,1) forwards,
+      tilt var(--descent) ease-in-out forwards,
+      idle 3s ease-in-out var(--descent) infinite alternate;
   }
   .ship{
     width:100%; height:100%; object-fit:contain; display:block;
     mix-blend-mode:screen; filter:brightness(1.22) contrast(1.06) drop-shadow(0 10px 18px rgba(0,0,0,.5));
   }
-  .glow{
-    position:absolute; left:50%; top:66%; transform:translate(-50%,-50%);
-    width:150%; height:150%; border-radius:50%; pointer-events:none;
-    background:radial-gradient(45% 45% at 50% 50%, rgba(90,190,255,.6), rgba(30,140,255,.22) 55%, rgba(30,140,255,0) 72%);
-    filter:blur(14px); opacity:0; mix-blend-mode:screen; animation: glow var(--descent) ease-out forwards;
+  /* Motor alevi (alt egzoz) */
+  .flame{
+    position:absolute; left:50%; top:84%; transform:translate(-50%,-50%);
+    width:36%; height:36%; pointer-events:none; z-index:-1;
+    background:
+      radial-gradient(45% 65% at 50% 60%, rgba(255,220,120,.80), rgba(255,150,60,.42) 55%, rgba(255,120,40,0) 72%),
+      conic-gradient(from 0deg, rgba(255,200,120,.5), rgba(255,120,40,.2), rgba(255,200,120,.5));
+    filter:blur(10px);
+    border-radius:50% 50% 70% 70% / 60% 60% 100% 100%;
+    opacity:0;
+    animation: flame var(--descent) ease-out forwards;
+    mix-blend-mode:screen;
   }
 
   /* Zemin efektleri */
@@ -64,8 +71,20 @@
     70% { transform:translate(-50%,-50%) translateY(14vh)  scale(1.05) }
     to  { transform:translate(-50%,-50%) translateY(24vh)  scale(.85)  }
   }
+  /* Tilt: başta sağ-sol hafif eğik, zemine yakın dikleşir */
+  @keyframes tilt{
+    0%{   transform:translate(-50%,-50%) translateY(-6vh)  scale(1.9) rotate(8deg) }
+    35%{  transform:translate(-50%,-50%) translateY(4vh)   scale(1.35) rotate(-6deg)}
+    70%{  transform:translate(-50%,-50%) translateY(14vh)  scale(1.05) rotate(3deg) }
+    100%{ transform:translate(-50%,-50%) translateY(24vh)  scale(.85)  rotate(0deg) }
+  }
   @keyframes idle{ from{ transform:translate(-50%,-50%) translateY(24vh) scale(.845) } to{ transform:translate(-50%,-50%) translateY(25.2vh) scale(.855) } }
   @keyframes glow{ 0%{opacity:0} 60%{opacity:.85} 100%{opacity:0} }
+  @keyframes flame{
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.4)}
+    40%{opacity:.9; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:.2; transform:translate(-50%,-50%) scale(.85)}
+  }
   @keyframes shIn{ 0%{opacity:0; transform:translate(-50%,-50%) scale(.3)} 100%{opacity:.85; transform:translate(-50%,-50%) scale(1)} }
   @keyframes ringFx{
     0%  {opacity:0; box-shadow:0 0 0 0 rgba(210,140,90,0)}
@@ -91,11 +110,11 @@
 
 <div class="lander" id="lander">
   <img class="ship" src="Drone.png" alt="">
-  <div class="glow"></div>
+  <div class="flame"></div>
 </div>
 
 <script>
-/* ===== Top-Down Mars zeminini CANVAS ile üret ===== */
+/* ===== Mars Zeminini CANVAS ile üret + İniş pisti (BPC) ===== */
 const cvs = document.getElementById('bg');
 const ctx = cvs.getContext('2d', { alpha:false });
 let W=0,H=0, stones=[];
@@ -106,7 +125,6 @@ function resize(){
   W = cvs.width = innerWidth;
   H = cvs.height = innerHeight;
 
-  // düzensiz kaya formları (5–10 köşe, pürüzlü)
   stones = [];
   for(let i=0;i<360;i++){
     stones.push({
@@ -122,12 +140,10 @@ function resize(){
 }
 addEventListener('resize', resize, {passive:true}); resize();
 
-/* zemin + taşlar */
 function draw(t){
-  // temel zemin (koyu → açık kızıl)
+  // zemin gradyanı
   const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#6f3624');
-  g.addColorStop(1,'#8b472c');
+  g.addColorStop(0,'#6f3624'); g.addColorStop(1,'#8b472c');
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
   // yüzey doku lekeleri
@@ -139,35 +155,52 @@ function draw(t){
     ctx.fillStyle=d; ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill();
   }
 
-  // düzensiz taşlar (siyahımsı gölge + highlight)
+  // İniş pisti (BPC pad) – ekranın alt orta
+  const px = W/2, py = H*0.76, pr = Math.min(W,H)*0.11;
+  // dış gölge
+  const padG = ctx.createRadialGradient(px,py, pr*0.6, px,py, pr*1.25);
+  padG.addColorStop(0,'rgba(0,0,0,.28)'); padG.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = padG; ctx.beginPath(); ctx.arc(px,py,pr*1.25,0,2*Math.PI); ctx.fill();
+  // ana daire
+  ctx.fillStyle = 'rgba(235,210,150,0.08)';
+  ctx.strokeStyle= 'rgba(235,210,150,0.45)';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(px,py,pr,0,2*Math.PI); ctx.fill(); ctx.stroke();
+  // iç halka
+  ctx.strokeStyle='rgba(235,210,150,0.35)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(px,py,pr*0.68,0,2*Math.PI); ctx.stroke();
+  // “BPC” yazısı (logo)
+  ctx.fillStyle='rgba(255,240,210,0.9)';
+  ctx.font = `${Math.round(pr*0.42)}px system-ui,Segoe UI,Arial`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('BPC', px, py);
+
+  // düzensiz taşlar
   for(const s of stones){
-    const sc = 1 + t*2.0;           // inişe yaklaştıkça büyü
+    const sc = 1 + t*2.0;
     const Rr = s.r * sc;
 
     ctx.save();
     ctx.translate(s.x, s.y);
     ctx.rotate(s.rot);
 
-    // gölge
     ctx.shadowColor = 'rgba(0,0,0,0.35)';
     ctx.shadowBlur  = 6;
     ctx.shadowOffsetX = 1.5;
     ctx.shadowOffsetY = 1.6;
 
-    // pürüzlü çokgen
     ctx.beginPath();
     for(let i=0;i<s.verts;i++){
       const ang = (i/s.verts)*Math.PI*2;
       const rr  = Rr * (0.8 + Math.random()*0.4) * s.rough;
-      const px  = Math.cos(ang)*rr;
-      const py  = Math.sin(ang)*rr*0.9;
-      (i===0) ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+      const px2  = Math.cos(ang)*rr;
+      const py2  = Math.sin(ang)*rr*0.9;
+      (i===0) ? ctx.moveTo(px2,py2) : ctx.lineTo(px2,py2);
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(55,32,25,0.95)'; // koyu kahve-siyahımsı
+    ctx.fillStyle = 'rgba(55,32,25,0.95)';
     ctx.fill();
 
-    // üst-sol highlight
     ctx.shadowColor = 'transparent';
     ctx.fillStyle = 'rgba(210,150,100,0.25)';
     ctx.beginPath();
@@ -177,10 +210,9 @@ function draw(t){
     ctx.restore();
   }
 
-  // kenarlara vignette
+  // vignette
   const vg = ctx.createRadialGradient(W/2,H/2, Math.min(W,H)*.35, W/2,H/2, Math.max(W,H)*.95);
-  vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(0,0,0,.22)');
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.22)');
   ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
 }
 
@@ -191,13 +223,13 @@ const field  = document.getElementById('field');
 
 let t=0, playing=true;
 function loop(){
-  if(playing){ t += 1/60 / 6.5; if(t>1) t=1; }
+  if(playing){ t += 1/60 / 6.7; if(t>1) t=1; }
   draw(t);
   requestAnimationFrame(loop);
 }
 loop();
 
-/* Daha AZ toz parçacığı */
+/* Toz parçacıkları (azaltılmış) */
 function particles(n=45){
   field.innerHTML='';
   const cx = innerWidth/2, cy = innerHeight*0.76;
@@ -208,9 +240,9 @@ function particles(n=45){
     field.appendChild(d);
 
     const ang=Math.random()*Math.PI*2;
-    const dist=6+Math.random()*14;  // daha kısa mesafe
+    const dist=6+Math.random()*14;
     const up  =-1+Math.random()*2;
-    const dur = 480+Math.random()*700; // daha kısa ömür
+    const dur = 480+Math.random()*700;
 
     d.animate([
       {transform:'translate(0,0)',opacity:0},
@@ -220,8 +252,36 @@ function particles(n=45){
   }
 }
 
+/* Radyo efekti (dosyasız WebAudio) */
+function radioChirp(){
+  const ac = new (window.AudioContext||window.webkitAudioContext)();
+  // chirp (sweep sine)
+  const osc = ac.createOscillator();
+  const gain= ac.createGain();
+  osc.type='sine';
+  const now = ac.currentTime;
+  osc.frequency.setValueAtTime(1800, now);
+  osc.frequency.exponentialRampToValueAtTime(380, now+0.25);
+  gain.gain.setValueAtTime(0.0, now);
+  gain.gain.linearRampToValueAtTime(0.25, now+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now+0.28);
+  osc.connect(gain).connect(ac.destination);
+  osc.start(now);
+  osc.stop(now+0.30);
+
+  // hafif statik (noise burst)
+  const buffer = ac.createBuffer(1, ac.sampleRate*0.18, ac.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<data.length;i++){ data[i] = (Math.random()*2-1) * (1-i/data.length); }
+  const noise = ac.createBufferSource(); noise.buffer=buffer;
+  const nGain = ac.createGain(); nGain.gain.value=0.12;
+  noise.connect(nGain).connect(ac.destination);
+  noise.start(now+0.02); noise.stop(now+0.20);
+}
+
 /* tetikleme zamanları */
-setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 140);
+const T = 6700; // --descent ile senkron
+setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); radioChirp(); }, T - 140);
 
 /* sarsıntı */
 function shake(){ document.body.classList.add('shake'); setTimeout(()=>document.body.classList.remove('shake'),700); }
@@ -237,7 +297,7 @@ function restart(){
   lander.style.animation='none'; ring.style.animation='none';
   t=0; playing=true; field.innerHTML='';
   requestAnimationFrame(()=>{ lander.style.animation=''; });
-  setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 140);
+  setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); radioChirp(); }, T - 140);
 }
 
 /* görsel ön yükleme */
