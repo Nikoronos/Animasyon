@@ -6,12 +6,13 @@
 <title>BPC — Top-Down Mars İnişi (Procedural)</title>
 <style>
   :root{
-    --descent: 6.5s;       /* iniş süresi */
-    --shake: .7s;          /* sarsıntı süresi */
-    --dust: 1.4s;          /* toz halkası süresi */
+    --descent: 6.5s;   /* iniş süresi */
+    --shake: .7s;      /* sarsıntı süresi */
+    --dust:  1.1s;     /* toz halkası süresi */
   }
   html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui;overflow:hidden}
-  /* Arka plan canvas */
+
+  /* Arka plan (canvas) + vignette */
   #bg{position:fixed; inset:0; display:block}
   .vignette::after{content:"";position:fixed;inset:0;pointer-events:none;
     background:radial-gradient(120% 80% at 50% 35%, rgba(0,0,0,0), rgba(0,0,0,.25))}
@@ -38,18 +39,18 @@
   .glow{
     position:absolute; left:50%; top:66%; transform:translate(-50%,-50%);
     width:150%; height:150%; border-radius:50%; pointer-events:none;
-    background:radial-gradient(45% 45% at 50% 50%, rgba(90,190,255,.65), rgba(30,140,255,.25) 55%, rgba(30,140,255,0) 72%);
+    background:radial-gradient(45% 45% at 50% 50%, rgba(90,190,255,.6), rgba(30,140,255,.22) 55%, rgba(30,140,255,0) 72%);
     filter:blur(14px); opacity:0; mix-blend-mode:screen; animation: glow var(--descent) ease-out forwards;
   }
 
-  /* İniş efekti (zeminde) */
-  .ring{position:fixed; left:50%; top:76%; transform:translate(-50%,-50%);
-        width:2vmin; height:2vmin; border-radius:50%; z-index:8; opacity:0;
-        box-shadow:0 0 0 0 rgba(210,140,90,0)}
+  /* Zemin efektleri */
   .shadow{position:fixed; left:50%; top:76%; transform:translate(-50%,-50%);
           width:42vmin; height:42vmin; z-index:7; opacity:0;
           background:radial-gradient(circle, rgba(0,0,0,.5), rgba(0,0,0,0) 70%);
           filter:blur(10px); animation: shIn var(--descent) ease-out forwards;}
+  .ring{position:fixed; left:50%; top:76%; transform:translate(-50%,-50%);
+        width:2vmin; height:2vmin; border-radius:50%; z-index:8; opacity:0;
+        box-shadow:0 0 0 0 rgba(210,140,90,0)}
   .field{position:fixed; inset:0; pointer-events:none; z-index:9}
   .dot{position:absolute; width:.9vmin; height:.9vmin; border-radius:50%;
        background:rgba(210,140,90,.95); filter:blur(.35px); opacity:0}
@@ -64,12 +65,12 @@
     to  { transform:translate(-50%,-50%) translateY(24vh)  scale(.85)  }
   }
   @keyframes idle{ from{ transform:translate(-50%,-50%) translateY(24vh) scale(.845) } to{ transform:translate(-50%,-50%) translateY(25.2vh) scale(.855) } }
-  @keyframes glow{ 0%{opacity:0} 60%{opacity:.9} 100%{opacity:0} }
+  @keyframes glow{ 0%{opacity:0} 60%{opacity:.85} 100%{opacity:0} }
   @keyframes shIn{ 0%{opacity:0; transform:translate(-50%,-50%) scale(.3)} 100%{opacity:.85; transform:translate(-50%,-50%) scale(1)} }
   @keyframes ringFx{
-    0%{opacity:0; box-shadow:0 0 0 0 rgba(210,140,90,0)}
-    12%{opacity:.44}
-    100%{opacity:0; box-shadow:0 0 56vmin 18vmin rgba(210,140,90,.32)}
+    0%  {opacity:0; box-shadow:0 0 0 0 rgba(210,140,90,0)}
+    12% {opacity:.35}
+    100%{opacity:0; box-shadow:0 0 40vmin 12vmin rgba(210,140,90,.26)}
   }
   @keyframes shake{20%{transform:translate(2px,-2px)}40%{transform:translate(-3px,2px)}60%{transform:translate(3px,1px)}80%{transform:translate(-2px,-1px)}}
 </style>
@@ -84,79 +85,106 @@
 </div>
 <div class="hint">👆 Dokun: tekrar oynat</div>
 
-<!-- Zemin efektleri -->
 <div class="shadow"></div>
 <div class="ring" id="ring"></div>
 <div class="field" id="field"></div>
 
-<!-- Gemi -->
 <div class="lander" id="lander">
   <img class="ship" src="Drone.png" alt="">
   <div class="glow"></div>
 </div>
 
 <script>
-/* ===== Mars Zeminini CANVAS ile üret (TOP-DOWN) ===== */
+/* ===== Top-Down Mars zeminini CANVAS ile üret ===== */
 const cvs = document.getElementById('bg');
 const ctx = cvs.getContext('2d', { alpha:false });
 let W=0,H=0, stones=[];
 
 function R(a,b){ return a + Math.random()*(b-a) }
+
 function resize(){
   W = cvs.width = innerWidth;
   H = cvs.height = innerHeight;
-  // taşları yeniden üret
+
+  // düzensiz kaya formları (5–10 köşe, pürüzlü)
   stones = [];
   for(let i=0;i<360;i++){
-    stones.push({ x:Math.random()*W, y:Math.random()*H, r:R(0.8,2.4), v:R(0,1) });
+    stones.push({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: 0.9 + Math.random()*2.6,
+      rot: Math.random()*Math.PI*2,
+      verts: 5 + Math.floor(Math.random()*6),
+      rough: 0.65 + Math.random()*0.55
+    });
   }
   draw(0);
 }
 addEventListener('resize', resize, {passive:true}); resize();
 
-/* yüzey dokusu */
+/* zemin + taşlar */
 function draw(t){
-  // temel zemin (koyu → açık)
+  // temel zemin (koyu → açık kızıl)
   const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#7f3b25'); g.addColorStop(1,'#9a4c2f');
+  g.addColorStop(0,'#6f3624');
+  g.addColorStop(1,'#8b472c');
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-  // yumuşak doku lekeleri
-  for(let i=0;i<140;i++){
-    const x=Math.random()*W, y=Math.random()*H, r=R(30,110);
+  // yüzey doku lekeleri
+  for(let i=0;i<120;i++){
+    const x=Math.random()*W, y=Math.random()*H, r=30+Math.random()*110;
     const d=ctx.createRadialGradient(x,y,0,x,y,r);
-    d.addColorStop(0,`rgba(120,60,34,${R(.05,.12)})`);
+    d.addColorStop(0,`rgba(90,45,28,${0.05+Math.random()*0.07})`);
     d.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=d; ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill();
   }
-  // küçük krater/parıltılar
-  for(let i=0;i<8;i++){
-    const x=R(40,W-40), y=R(40,H-40), r=R(20,60);
-    const k=ctx.createRadialGradient(x,y,r*1.12,x,y,r*.2);
-    k.addColorStop(0,'rgba(0,0,0,.28)'); k.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=k; ctx.beginPath(); ctx.arc(x,y,r*1.12,0,2*Math.PI); ctx.fill();
-    const iG=ctx.createRadialGradient(x,y,r*.65,x,y,0);
-    iG.addColorStop(0,'rgba(255,230,190,.35)'); iG.addColorStop(1,'rgba(255,230,190,0)');
-    ctx.fillStyle=iG; ctx.beginPath(); ctx.arc(x,y,r*.78,0,2*Math.PI); ctx.fill();
-  }
 
-  // taşlar: inişe yaklaştıkça scale artar (derinlik hissi)
+  // düzensiz taşlar (siyahımsı gölge + highlight)
   for(const s of stones){
-    const sc = 1 + t*2.0;
-    ctx.fillStyle='rgba(60,35,25,.65)';
-    ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r*1.25*sc, s.r*.9*sc, .2, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(190,120,80,.9)';
-    ctx.beginPath(); ctx.arc(s.x-0.6, s.y-0.6, s.r*sc, 0, 2*Math.PI); ctx.fill();
+    const sc = 1 + t*2.0;           // inişe yaklaştıkça büyü
+    const Rr = s.r * sc;
+
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rot);
+
+    // gölge
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur  = 6;
+    ctx.shadowOffsetX = 1.5;
+    ctx.shadowOffsetY = 1.6;
+
+    // pürüzlü çokgen
+    ctx.beginPath();
+    for(let i=0;i<s.verts;i++){
+      const ang = (i/s.verts)*Math.PI*2;
+      const rr  = Rr * (0.8 + Math.random()*0.4) * s.rough;
+      const px  = Math.cos(ang)*rr;
+      const py  = Math.sin(ang)*rr*0.9;
+      (i===0) ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(55,32,25,0.95)'; // koyu kahve-siyahımsı
+    ctx.fill();
+
+    // üst-sol highlight
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = 'rgba(210,150,100,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(-Rr*0.25, -Rr*0.25, Rr*0.45, Rr*0.28, -0.3, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
-  // kenarlara doğru hafif vignette
-  const vg = ctx.createRadialGradient(W/2,H/2, Math.min(W,H)*.35, W/2,H/2, Math.max(W,H)*.9);
+  // kenarlara vignette
+  const vg = ctx.createRadialGradient(W/2,H/2, Math.min(W,H)*.35, W/2,H/2, Math.max(W,H)*.95);
   vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(0,0,0,.2)');
+  vg.addColorStop(1,'rgba(0,0,0,.22)');
   ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
 }
 
-/* ===== Zamanlama / Efektler ===== */
+/* ===== ZAMANLAMA / EFEKTLER ===== */
 const lander = document.getElementById('lander');
 const ring   = document.getElementById('ring');
 const field  = document.getElementById('field');
@@ -169,41 +197,47 @@ function loop(){
 }
 loop();
 
-/* Toz parçacıkları (iniş) */
-function particles(n=110){
+/* Daha AZ toz parçacığı */
+function particles(n=45){
   field.innerHTML='';
   const cx = innerWidth/2, cy = innerHeight*0.76;
   for(let i=0;i<n;i++){
     const d = document.createElement('div'); d.className='dot';
-    d.style.left = (cx + (Math.random()*20-10))+'px';
-    d.style.top  = (cy + (Math.random()*16- 8))+'px';
+    d.style.left = (cx + (Math.random()*18-9))+'px';
+    d.style.top  = (cy + (Math.random()*12-6))+'px';
     field.appendChild(d);
-    const ang=Math.random()*Math.PI*2, dist=8+Math.random()*22, up=-2+Math.random()*4, dur=550+Math.random()*900;
+
+    const ang=Math.random()*Math.PI*2;
+    const dist=6+Math.random()*14;  // daha kısa mesafe
+    const up  =-1+Math.random()*2;
+    const dur = 480+Math.random()*700; // daha kısa ömür
+
     d.animate([
       {transform:'translate(0,0)',opacity:0},
-      {transform:`translate(${Math.cos(ang)*dist}vmin, ${Math.sin(ang)*dist+up}vmin)`,opacity:.95,offset:.25},
+      {transform:`translate(${Math.cos(ang)*dist}vmin, ${Math.sin(ang)*dist+up}vmin)`,opacity:.9,offset:.28},
       {opacity:0}
     ],{duration:dur,easing:'ease-out',fill:'forwards',delay:Math.random()*120});
   }
 }
 
 /* tetikleme zamanları */
-setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 160);
+setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 140);
 
 /* sarsıntı */
 function shake(){ document.body.classList.add('shake'); setTimeout(()=>document.body.classList.remove('shake'),700); }
 
 /* replay */
-document.getElementById('replay').onclick = restart;
+const replayBtn = document.getElementById('replay');
+replayBtn.onclick = restart;
 document.body.addEventListener('click', (e)=>{
-  if(e.target.id==='replay' || e.target.closest('.safe')) return;
+  if(e.target===replayBtn || e.target.closest('.safe')) return;
   restart();
 });
 function restart(){
   lander.style.animation='none'; ring.style.animation='none';
   t=0; playing=true; field.innerHTML='';
   requestAnimationFrame(()=>{ lander.style.animation=''; });
-  setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 160);
+  setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 140);
 }
 
 /* görsel ön yükleme */
