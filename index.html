@@ -3,19 +3,24 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>BPC — Top-Down Mars İnişi (Pad + Flame + Tilt + Radio)</title>
+<title>Babypeacock — Top-Down Mars İnişi</title>
 <style>
   :root{ --descent:6.7s; --shake:.7s; --dust:1.1s; }
   html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui;overflow:hidden}
   #bg{position:fixed; inset:0; display:block}
   .vignette::after{content:"";position:fixed;inset:0;pointer-events:none;
     background:radial-gradient(120% 80% at 50% 35%, rgba(0,0,0,0), rgba(0,0,0,.25))}
+
+  /* Üst başlık (mavi-yeşil degrade) */
   .safe{position:fixed; left:12px; top:12px; z-index:20; display:flex; gap:10px; align-items:center}
-  .brand{font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.55)}
+  .brand{
+    font-weight:800; font-size:20px; letter-spacing:.2px;
+    background:linear-gradient(90deg,#22d3ee,#10b981);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 1px 2px rgba(0,0,0,.35);
+  }
   .btn{margin-left:8px; padding:.5rem .9rem; border-radius:999px;
        border:1px solid rgba(255,255,255,.22); background:rgba(0,0,0,.45); color:#fff}
-  .hint{position:fixed; left:50%; bottom:12px; transform:translateX(-50%);
-        background:rgba(0,0,0,.45); padding:6px 12px; border-radius:10px; z-index:20}
 
   /* GEMİ: büyük başlar → küçülerek zemine iner + tilt */
   .lander{
@@ -75,10 +80,9 @@
 <div class="vignette"></div>
 
 <div class="safe">
-  <div class="brand">🦚 BPC — Top-Down Mars İnişi</div>
+  <div class="brand">Babypeacock — Top-Down Mars İnişi</div>
   <button class="btn" id="replay">Tekrar Oynat</button>
 </div>
-<div class="hint">👆 Dokun: tekrar oynat</div>
 
 <div class="shadow"></div>
 <div class="ring" id="ring"></div>
@@ -190,48 +194,76 @@ function particles(n=45){
   }
 }
 
-/* Yeni — Astronot telsiz + radyo paraziti (daha tok) */
+/* ===== Sesler ===== */
+let sweepCtx, sweepOsc, sweepNoise, sweepGain; // tarama sesi için referanslar
+
+// İniş boyunca süren radyo frekans taraması (daha tok, parazitli)
+function startRadioSweep(){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) return;
+  sweepCtx=new AC();
+  const now=sweepCtx.currentTime;
+
+  // taşıyıcı ve frekans süpürme
+  sweepOsc=sweepCtx.createOscillator();
+  sweepOsc.type='sine';
+  sweepOsc.frequency.setValueAtTime(420,now);
+  sweepOsc.frequency.linearRampToValueAtTime(1200, now + 1.6);
+  sweepOsc.frequency.linearRampToValueAtTime(500,  now + 3.2);
+  sweepOsc.frequency.linearRampToValueAtTime(800,  now + 5.0);
+
+  // parazit
+  const buf=sweepCtx.createBuffer(1, sweepCtx.sampleRate*2, sweepCtx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<data.length;i++){ data[i]=(Math.random()*2-1)*0.6; }
+  sweepNoise=sweepCtx.createBufferSource(); sweepNoise.buffer=buf; sweepNoise.loop=true;
+
+  // filtre ve seviye
+  const lp=sweepCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900;
+  sweepGain=sweepCtx.createGain(); sweepGain.gain.setValueAtTime(0.0,now);
+  sweepGain.gain.linearRampToValueAtTime(0.18, now+0.08); // yumuşak açılış
+
+  sweepNoise.connect(lp).connect(sweepGain).connect(sweepCtx.destination);
+  sweepOsc.connect(lp).connect(sweepGain);
+
+  sweepNoise.start(now+0.02);
+  sweepOsc.start(now);
+}
+function stopRadioSweep(){
+  if(!sweepCtx) return;
+  const now=sweepCtx.currentTime;
+  sweepGain.gain.cancelScheduledValues(now);
+  sweepGain.gain.exponentialRampToValueAtTime(0.0001, now+0.12);
+  try{ sweepOsc.stop(now+0.14); sweepNoise.stop(now+0.14);}catch(e){}
+  setTimeout(()=>{ try{sweepCtx.close();}catch(e){}; sweepCtx=null; },180);
+}
+
+// İniş anında kısa telsiz “carrier + statik” patlaması
 function radioComms(){
   const AC=window.AudioContext||window.webkitAudioContext;
   if(!AC) return;
-  const ac=new AC();
-  const now=ac.currentTime;
+  const ac=new AC(); const now=ac.currentTime;
 
-  // taşıyıcı
-  const osc=ac.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(620,now);
-
-  // boğuk kask filtresi
-  const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=850;
-
-  // parazit (white noise burst)
+  const osc=ac.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(520,now);
+  const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=800;
   const buf=ac.createBuffer(1, ac.sampleRate*1, ac.sampleRate);
   const data=buf.getChannelData(0); for(let i=0;i<data.length;i++){ data[i]=(Math.random()*2-1)*(1-i/data.length); }
   const noise=ac.createBufferSource(); noise.buffer=buf;
 
-  // stereo hafif kayma
-  const pan=ac.createStereoPanner(); pan.pan.value=-0.15+Math.random()*0.3;
-
-  // seviye
   const g=ac.createGain(); g.gain.setValueAtTime(0,now);
   g.gain.linearRampToValueAtTime(0.22,now+0.03);
   g.gain.exponentialRampToValueAtTime(0.02,now+0.9);
 
-  noise.connect(lp).connect(pan).connect(g).connect(ac.destination);
+  noise.connect(lp).connect(g).connect(ac.destination);
   osc.connect(lp).connect(g);
-
-  // küçük "carrier pop"
-  const comp=ac.createDynamicsCompressor(); g.connect(comp).connect(ac.destination);
-
   osc.start(now); noise.start(now+0.01);
   osc.stop(now+0.95); noise.stop(now+1.0);
-
-  // iOS autoplay için: eğer suspended ise ilk dokunuşta resume
-  if(ac.state==='suspended'){ const resume=()=>{ac.resume(); window.removeEventListener('touchstart',resume); window.removeEventListener('click',resume);}; window.addEventListener('touchstart',resume,{once:true}); window.addEventListener('click',resume,{once:true}); }
 }
 
 /* tetikleme */
 const T=6700;
-setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); radioComms(); }, T-140);
+startRadioSweep(); // iniş başlarken tarama sesi
+setTimeout(()=>{ stopRadioSweep(); ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); radioComms(); }, T-140);
 
 /* sarsıntı */
 function shake(){ document.body.classList.add('shake'); setTimeout(()=>document.body.classList.remove('shake'),700); }
@@ -244,7 +276,9 @@ function restart(){
   lander.style.animation='none'; ring.style.animation='none';
   t=0; playing=true; field.innerHTML='';
   requestAnimationFrame(()=>{ lander.style.animation=''; });
-  setTimeout(()=>{ ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); radioComms(); }, T-140);
+
+  stopRadioSweep(); startRadioSweep(); // sesi başa sar
+  setTimeout(()=>{ stopRadioSweep(); ring.style.animation='ringFx var(--dust) ease-out 0s 1 forwards'; particles(); shake(); radioComms(); }, T-140);
 }
 
 /* preload */
