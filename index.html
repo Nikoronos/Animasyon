@@ -3,82 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Babypeacock — Mars Üstten İniş</title>
+<title>Babypeacock — Üstten Mars İnişi (Zoom Kamera)</title>
 <style>
   :root{
-    --descent-time: 6s;          /* iniş süresi */
-    --shake-time: .8s;           /* sarsıntı süresi */
-    --dust-time: 1.6s;           /* toz halkası süresi */
-    --idle-bob-time: 2.6s;       /* yerde hafif salınım */
+    --descent: 6s;      /* gemi iniş süresi */
+    --shake: .8s;       /* sarsıntı */
+    --dust: 1.6s;       /* toz halkası */
   }
   html,body{height:100%;margin:0;background:#000;color:#fff;font-family:system-ui,Segoe UI,Roboto,Arial}
-  /* Sahne: canvas üstüne UI/ship bindiriliyor */
-  .stage{ position:fixed; inset:0; overflow:hidden; touch-action:manipulation; }
-  #marsCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; background:#120b08; }
-
+  .scene{position:fixed; inset:0; overflow:hidden; touch-action:manipulation; background:#120b08;}
+  /* Kamera katmanı: tüm zemini ve gemiyi birlikte yakınlaştırır */
+  .camera{position:absolute; inset:0; transform-origin:50% 50%;
+          animation: camZoom var(--descent) cubic-bezier(.1,.8,.2,1) forwards;}
   /* UI */
   .safe{ position:fixed; top:env(safe-area-inset-top,0); left:env(safe-area-inset-left,0); right:env(safe-area-inset-right,0);
-         padding:clamp(8px,2vmin,16px); display:flex; gap:10px; align-items:center; z-index:5;}
+         padding:clamp(8px,2vmin,16px); display:flex; gap:10px; align-items:center; z-index:20;}
   .brand{ font-weight:800; letter-spacing:.2px; text-shadow:0 1px 2px rgba(0,0,0,.45); }
   .btn{ margin-left:auto; font-size:14px; padding:.5rem .8rem; border-radius:999px; background:rgba(0,0,0,.45);
         border:1px solid rgba(255,255,255,.15); color:#fff; cursor:pointer; }
   .btn:active{ transform:scale(.98) }
   .hint{ position:fixed; right:12px; bottom:10px; font-size:12px; opacity:.75; user-select:none; background:rgba(0,0,0,.35);
-         padding:6px 10px; border-radius:10px; backdrop-filter:blur(4px); z-index:5;}
+         padding:6px 10px; border-radius:10px; backdrop-filter:blur(4px); z-index:20;}
 
-  /* Gemi grubu */
-  .lander{ position:absolute; left:50%; top:15vh; width:min(22vmin,220px); aspect-ratio:1/1; transform:translate(-50%,-50%);
-           animation: descend var(--descent-time) cubic-bezier(.1,.8,.2,1) forwards,
-                      bob var(--idle-bob-time) ease-in-out var(--descent-time) infinite alternate; z-index:4; }
-  .ship{ width:100%; height:100%; background:url("./Assets.png") center/contain no-repeat;
-         /* Siyah fonu yok et */
-         mix-blend-mode:screen; filter:drop-shadow(0 10px 18px rgba(0,0,0,.45)); position:relative; }
+  /* Mars zemini (canvas) */
+  #mars{ position:absolute; inset:0; width:100%; height:100%; display:block; background:#120b08; }
 
-  /* Üstten görünümde motor etkisi: merkezden dışa sıcak parıltı */
-  .engine-glow{ position:absolute; left:50%; top:60%; transform:translate(-50%,-50%); width:85%; height:85%;
-                background:radial-gradient(55% 55% at 50% 50%, rgba(255,210,130,.65), rgba(255,145,60,.35) 50%, rgba(255,145,60,0) 70%);
-                filter:blur(8px); opacity:.0; pointer-events:none;
-                animation: glow var(--descent-time) ease-out forwards; mix-blend-mode:screen; }
+  /* Gemi (üstten görünüm) */
+  .lander{ position:absolute; left:50%; top:35%; width:min(22vmin,220px); aspect-ratio:1/1; transform:translate(-50%,-50%);
+           z-index:10; animation: descend var(--descent) cubic-bezier(.1,.8,.2,1) forwards; }
+  .sprite{ width:100%; height:100%; object-fit:contain; display:block;
+           /* siyah kutuyu yok etme: ekran karışımı + biraz aydınlatma */
+           mix-blend-mode:screen; filter:brightness(1.35) contrast(1.1) drop-shadow(0 10px 18px rgba(0,0,0,.45));
+           will-change:transform; }
 
-  /* Gölge (üstten görünüm için dairesel) */
-  .shadow{ position:absolute; left:50%; top:calc(50% + 18vmin); transform:translate(-50%,-50%); width:30vmin; height:30vmin;
+  /* Motor ışıması (üstten) */
+  .glow{ position:absolute; left:50%; top:55%; transform:translate(-50%,-50%); width:110%; height:110%;
+         pointer-events:none; border-radius:50%;
+         background:radial-gradient(45% 45% at 50% 50%, rgba(255,210,130,.65), rgba(255,145,60,.35) 55%, rgba(255,145,60,0) 72%);
+         filter:blur(10px); opacity:0; mix-blend-mode:screen; animation: glow var(--descent) ease-out forwards; }
+
+  /* Gölge ve toz (üstten halka) */
+  .shadow{ position:absolute; left:50%; top:65%; transform:translate(-50%,-50%); width:36vmin; height:36vmin;
            background:radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.45), rgba(0,0,0,0) 70%);
-           filter:blur(6px); opacity:0; z-index:1;
-           animation: shadow-in var(--descent-time) ease-out forwards; }
-
-  /* Toz halkası ve parçacıklar (üstten dairesel yayılım) */
-  .dust-ring{ position:absolute; left:50%; top:calc(50% + 18vmin); transform:translate(-50%,-50%); width:4vmin; height:4vmin;
-              border-radius:50%; box-shadow:0 0 0 0 rgba(167,104,61,0); opacity:0; z-index:2;
-              animation: dust var(--dust-time) ease-out calc(var(--descent-time) - .15s) forwards; }
-  .dustfield{ position:absolute; left:0; top:0; right:0; bottom:0; z-index:3; pointer-events:none; }
-  .particle{ position:absolute; width:.9vmin; height:.9vmin; border-radius:50%; background:rgba(167,104,61,.92); filter:blur(.3px); opacity:0; }
+           filter:blur(8px); opacity:0; z-index:2; animation: shIn var(--descent) ease-out forwards; }
+  .ring{ position:absolute; left:50%; top:65%; transform:translate(-50%,-50%); width:4vmin; height:4vmin; border-radius:50%;
+         box-shadow:0 0 0 0 rgba(167,104,61,0); opacity:0; z-index:6;
+         animation: ring var(--dust) ease-out calc(var(--descent) - .15s) forwards; }
+  .field{ position:absolute; inset:0; pointer-events:none; z-index:7; }
+  .dot{ position:absolute; width:.9vmin; height:.9vmin; border-radius:50%; background:rgba(167,104,61,.92); filter:blur(.3px); opacity:0; }
 
   /* Ekran sarsıntısı */
-  .shake{ animation: screen-shake var(--shake-time) ease-in-out both; }
+  .shake{ animation: shake var(--shake) ease-in-out both; }
 
   /* Animasyonlar */
+  @keyframes camZoom{ from{ transform:scale(1.12) } 60%{ transform:scale(1.02) } to{ transform:scale(1.0) } }
   @keyframes descend{
-    from{ transform:translate(-50%,-75vh) scale(1.05) rotate(-2deg); }
-    72% { transform:translate(-50%, calc(50% - 2vmin)) scale(1.0) rotate(0deg); }
-    to  { transform:translate(-50%, 50%) scale(1.0) rotate(0deg); }
-  }
-  @keyframes bob{ from{ transform: translate(-50%, calc(50% - .8vmin)) } to{ transform: translate(-50%, calc(50% + .8vmin)) } }
-  @keyframes shadow-in{
-    from{ opacity:0; transform:translate(-50%,50%) scale(.25) }
-    60% { opacity:.65; transform:translate(-50%,50%) scale(.95) }
-    to  { opacity:.85; transform:translate(-50%,50%) scale(1) }
-  }
-  @keyframes dust{
-    0%{   opacity:0; box-shadow:0 0 0 0 rgba(167,104,61,0) }
-    1%{   opacity:.22 }
-    100%{ opacity:0; box-shadow:0 0 48vmin 14vmin rgba(167,104,61,.34) }
+    from{ transform:translate(-50%,-80vh) scale(.55) rotate(-3deg); filter:blur(3px) }
+    70% { transform:translate(-50%,-5vh)  scale(1.02) rotate(0deg); filter:blur(0.5px) }
+    to  { transform:translate(-50%, 50%)   scale(1.00) rotate(0deg); filter:blur(0) }
   }
   @keyframes glow{
     0%{ opacity:.0; transform:translate(-50%,-50%) scale(.8) }
     60%{ opacity:.9; }
-    100%{ opacity:.0; transform:translate(-50%,-50%) scale(1.1) }
+    100%{ opacity:.0; transform:translate(-50%,-50%) scale(1.12) }
   }
-  @keyframes screen-shake{
+  @keyframes shIn{ from{opacity:0; transform:translate(-50%,-50%) scale(.25)} 60%{opacity:.65; transform:translate(-50%,-50%) scale(.95)} to{opacity:.85; transform:translate(-50%,-50%) scale(1)} }
+  @keyframes ring{
+    0%{   opacity:0; box-shadow:0 0 0 0 rgba(167,104,61,0) }
+    1%{   opacity:.28 }
+    100%{ opacity:0; box-shadow:0 0 60vmin 18vmin rgba(167,104,61,.34) }
+  }
+  @keyframes shake{
     0%{ transform: translate(0,0) }
     20%{ transform: translate(2px,-2px) }
     40%{ transform: translate(-3px,2px) }
@@ -89,150 +84,130 @@
 </style>
 </head>
 <body>
-  <div class="stage" id="stage">
-    <canvas id="marsCanvas"></canvas>
-
+  <div class="scene" id="scene">
     <div class="safe">
       <div class="brand">🦚 Babypeacock — Üstten Mars İnişi</div>
       <button class="btn" id="replay">Tekrar Oynat</button>
     </div>
+    <div class="hint">👆 Ekrana dokun: tekrar oynat</div>
 
-    <!-- Gemi & efektleri -->
-    <div class="lander" id="lander">
-      <div class="ship" aria-label="BabyPeacock Lander">
-        <div class="engine-glow"></div>
+    <!-- Kamera katmanı -->
+    <div class="camera" id="camera">
+      <canvas id="mars"></canvas>
+
+      <!-- Gölge/Toz -->
+      <div class="shadow" id="shadow"></div>
+      <div class="ring" id="ring"></div>
+      <div class="field" id="field"></div>
+
+      <!-- Gemi -->
+      <div class="lander" id="lander">
+        <img class="sprite" src="./Assets.png" alt="BPC Lander">
+        <div class="glow"></div>
       </div>
     </div>
-    <div class="shadow" id="shadow"></div>
-    <div class="dust-ring" id="ring"></div>
-    <div class="dustfield" id="dustfield"></div>
-
-    <div class="hint">👆 Ekrana dokun: tekrar oynat</div>
   </div>
 
 <script>
-/* ---------- Mars yüzeyini kuşbakışı çizen basit painter ---------- */
-const cvs = document.getElementById('marsCanvas');
-const ctx = cvs.getContext('2d', { alpha:false });
-
-function resizeCanvas(){
-  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  cvs.width = Math.floor(innerWidth * dpr);
-  cvs.height = Math.floor(innerHeight * dpr);
-  cvs.style.width = '100%';
-  cvs.style.height = '100%';
+/* ---------- Mars zemini (kuşbakışı) ---------- */
+const cvs = document.getElementById('mars');
+const ctx = cvs.getContext('2d',{alpha:false});
+function R(a,b){ return a + Math.random()*(b-a) }
+function size(){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  cvs.width = Math.floor(innerWidth*dpr);
+  cvs.height= Math.floor(innerHeight*dpr);
+  cvs.style.width='100%'; cvs.style.height='100%';
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  paintMars();
+  paint();
 }
-window.addEventListener('resize', resizeCanvas, { passive:true });
-
-function rand(a,b){ return a + Math.random()*(b-a); }
-
-function paintMars(){
-  const w = innerWidth, h = innerHeight;
-  // taban renk
-  const base = ctx.createLinearGradient(0,0,0,h);
-  base.addColorStop(0,'#a65633');  // daha açık
-  base.addColorStop(1,'#8a4a2e');  // daha koyu
-  ctx.fillStyle = base;
-  ctx.fillRect(0,0,w,h);
-
-  // doku: yumuşak lekeler
-  for(let i=0;i<180;i++){
-    const x = Math.random()*w, y = Math.random()*h;
-    const r = rand(20,120);
-    const g = ctx.createRadialGradient(x,y,0,x,y,r);
-    g.addColorStop(0, `rgba(130,70,40,${rand(.08,.16)})`);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+function paint(){
+  const w=innerWidth,h=innerHeight;
+  // taban renk gradyanı
+  const g=ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#a65633');
+  g.addColorStop(1,'#8a4a2e');
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  // doku lekeleri
+  for(let i=0;i<140;i++){
+    const x=Math.random()*w,y=Math.random()*h,r=R(30,120);
+    const d=ctx.createRadialGradient(x,y,0,x,y,r);
+    d.addColorStop(0,`rgba(130,70,40,${R(.07,.14)})`);
+    d.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=d; ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill();
   }
-
-  // kraterler
-  for(let i=0;i<8;i++){
-    const x = rand(40,w-40), y = rand(40,h-40), r = rand(24,60);
-    // dış gölge
-    const k = ctx.createRadialGradient(x,y,r*1.1,x,y,r*.2);
-    k.addColorStop(0,'rgba(0,0,0,.28)');
-    k.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle = k; ctx.beginPath(); ctx.arc(x,y,r*1.1,0,2*Math.PI); ctx.fill();
-    // iç kenar parlak
-    const iG = ctx.createRadialGradient(x,y,r*.65,x,y,0);
-    iG.addColorStop(0,'rgba(255,230,190,.35)');
-    iG.addColorStop(1,'rgba(255,230,190,0)');
-    ctx.fillStyle = iG; ctx.beginPath(); ctx.arc(x,y,r*.8,0,2*Math.PI); ctx.fill();
+  // krater kenarları (soft)
+  for(let i=0;i<7;i++){
+    const x=R(40,w-40),y=R(40,h-40),r=R(26,60);
+    const k=ctx.createRadialGradient(x,y,r*1.1,x,y,r*.2);
+    k.addColorStop(0,'rgba(0,0,0,.28)'); k.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=k; ctx.beginPath(); ctx.arc(x,y,r*1.1,0,2*Math.PI); ctx.fill();
+    const iG=ctx.createRadialGradient(x,y,r*.65,x,y,0);
+    iG.addColorStop(0,'rgba(255,230,190,.35)'); iG.addColorStop(1,'rgba(255,230,190,0)');
+    ctx.fillStyle=iG; ctx.beginPath(); ctx.arc(x,y,r*.8,0,2*Math.PI); ctx.fill();
   }
-
-  // kayalar
-  for(let i=0;i<160;i++){
-    const x = Math.random()*w, y = Math.random()*h;
-    const r = rand(2,6);
-    ctx.fillStyle = 'rgba(60,35,25,.65)';
+  // küçük kayalar
+  for(let i=0;i<120;i++){
+    const x=Math.random()*w,y=Math.random()*h,r=R(2,6);
+    ctx.fillStyle='rgba(60,35,25,.65)';
     ctx.beginPath(); ctx.ellipse(x,y,r*1.2,r,.2,0,2*Math.PI); ctx.fill();
-    ctx.fillStyle = 'rgba(190,120,80,.9)';
+    ctx.fillStyle='rgba(190,120,80,.9)';
     ctx.beginPath(); ctx.arc(x-0.6,y-0.6,r,0,2*Math.PI); ctx.fill();
   }
-
-  // yumuşak vignette
-  const vg = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)*.3, w/2,h/2, Math.max(w,h)*.8);
-  vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(0,0,0,.25)');
-  ctx.fillStyle = vg; ctx.fillRect(0,0,w,h);
 }
-resizeCanvas();
+size(); addEventListener('resize', size,{passive:true});
 
-/* ---------- Animasyon kontrol ---------- */
-const stage  = document.getElementById('stage');
+/* ---------- Efekt ve kontrol ---------- */
+const scene  = document.getElementById('scene');
+const camera = document.getElementById('camera');
 const lander = document.getElementById('lander');
+const ring   = document.getElementById('ring');
+const field  = document.getElementById('field');
 const replay = document.getElementById('replay');
-const dustfield = document.getElementById('dustfield');
 
-function burstParticles(count=110){
-  dustfield.innerHTML = '';
-  const rect = lander.getBoundingClientRect();
-  const cx = rect.left + rect.width/2;
-  const cy = rect.top  + rect.height/2 + (window.innerHeight*0.18); // gölge / ring hizası
-  for(let i=0;i<count;i++){
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const angle = Math.random()*Math.PI*2;
-    const dist = 10 + Math.random()*26;       // vmin
-    const up   = -2 + Math.random()*4;        // hafif dikey varyasyon
-    const dur  = 600 + Math.random()*900;     // ms
-    p.style.left = (cx + (Math.random()*20-10)) + 'px';
-    p.style.top  = (cy + (Math.random()*16-8)) + 'px';
-    dustfield.appendChild(p);
+function particles(n=110){
+  field.innerHTML='';
+  const L = lander.getBoundingClientRect();
+  const cx = L.left+L.width/2, cy = L.top+L.height/2 + (innerHeight*0.15);
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div'); d.className='dot';
+    d.style.left = (cx + (Math.random()*20-10))+'px';
+    d.style.top  = (cy + (Math.random()*16- 8))+'px';
+    field.appendChild(d);
+    const ang=Math.random()*Math.PI*2, dist=10+Math.random()*26, up=-2+Math.random()*4, dur=600+Math.random()*900;
     requestAnimationFrame(()=>{
-      p.animate([
+      d.animate([
         { transform:'translate(0,0)', opacity:.0 },
-        { transform:`translate(${Math.cos(angle)*dist}vmin, ${Math.sin(angle)*dist + up}vmin)`, opacity:.95, offset:.25 },
-        { transform:`translate(${Math.cos(angle)*dist*1.2}vmin, ${Math.sin(angle)*dist*1.2 + up}vmin)`, opacity:0 }
-      ], { duration: dur, easing:'ease-out', fill:'forwards', delay: Math.random()*120 });
+        { transform:`translate(${Math.cos(ang)*dist}vmin, ${Math.sin(ang)*dist+up}vmin)`, opacity:.95, offset:.25 },
+        { transform:`translate(${Math.cos(ang)*dist*1.2}vmin, ${Math.sin(ang)*dist*1.2+up}vmin)`, opacity:0 }
+      ], { duration:dur, easing:'ease-out', fill:'forwards', delay:Math.random()*120 });
     });
   }
 }
-
-function restart(){
-  // animasyon sınıflarını başa al
-  lander.style.animation = 'none';
-  const l = lander.cloneNode(true);
-  lander.replaceWith(l);
-  // ring/shadow alanları zaten ayrı
-  const descentMs = 6000;
-  setTimeout(()=>{ stage.classList.add('shake'); burstParticles(120); }, descentMs - 170);
-  setTimeout(()=> stage.classList.remove('shake'), descentMs - 170 + 800);
-  requestAnimationFrame(()=>{ l.style.animation = ''; });
-  // görsel ön yükleme
-  const i = new Image(); i.src = './Assets.png';
+function shakeOnce(){
+  camera.classList.add('shake');
+  setTimeout(()=>camera.classList.remove('shake'), 800);
 }
+function restart(){
+  // kamera ve inişi başa sar
+  camera.style.animation='none'; lander.style.animation='none';
+  ring.style.animation='none';
+  requestAnimationFrame(()=>{
+    camera.style.animation=''; lander.style.animation='';
+    ring.style.animation='';
+  });
+  // efekt zamanlaması
+  setTimeout(()=>{ shakeOnce(); particles(120); }, 6000-170);
+}
+
 replay.addEventListener('click', restart);
-stage.addEventListener('click', (e)=>{
-  if(e.target.closest('.safe') || e.target.id === 'replay') return;
+scene.addEventListener('click', (e)=>{
+  if(e.target.closest('.safe') || e.target.id==='replay') return;
   restart();
 });
 
-// İlk inişte de efektleri tetikle
-setTimeout(()=>{ stage.classList.add('shake'); burstParticles(120); }, 6000 - 170);
-setTimeout(()=> stage.classList.remove('shake'), 6000 - 170 + 800);
+// ilk yüklemede de efekt
+setTimeout(()=>{ shakeOnce(); particles(120); }, 6000-170);
 </script>
 </body>
 </html>
