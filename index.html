@@ -1,219 +1,64 @@
-<!doctype html>
-<html lang="tr">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>BPC — Top-Down 3D Mars İnişi (Procedural)</title>
-<style>
-  :root{
-    --descent: 6.5s;   /* iniş süresi */
-    --shake: .7s;
-  }
-  html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui;overflow:hidden}
-  /* Arka planı canvas ile çiziyoruz */
-  #bg{position:fixed; inset:0; display:block}
-  /* Üstten hafif vignette */
-  .vignette::after{content:"";position:fixed;inset:0;pointer-events:none;
-    background:radial-gradient(120% 80% at 50% 10%, rgba(0,0,0,0), rgba(0,0,0,.3))}
-  /* UI */
-  .safe{position:fixed; left:12px; top:12px; z-index:10; display:flex; gap:10px; align-items:center}
-  .brand{font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.5)}
-  .btn{margin-left:8px; padding:.5rem .8rem; border-radius:999px; border:1px solid rgba(255,255,255,.2);
-       background:rgba(0,0,0,.45); color:#fff}
-  .hint{position:fixed; left:50%; bottom:12px; transform:translateX(-50%);
-        background:rgba(0,0,0,.45); padding:6px 12px; border-radius:10px; z-index:10}
-
-  /* GEMİ — ekranda kocaman başlar, küçülerek zemine iner */
-  .lander{
-    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:min(58vmin,520px); aspect-ratio:1/1; z-index:5;
-    animation: descend var(--descent) cubic-bezier(.2,.85,.15,1) forwards,
-               bob 3s ease-in-out var(--descent) infinite alternate;
-  }
-  .ship{width:100%; height:100%; object-fit:contain; display:block;
-        mix-blend-mode:screen; filter:brightness(1.2) contrast(1.06) drop-shadow(0 10px 18px rgba(0,0,0,.5))}
-  /* Motor ışıması */
-  .glow{position:absolute; left:50%; top:66%; transform:translate(-50%,-50%);
-        width:150%; height:150%; border-radius:50%; pointer-events:none;
-        background:radial-gradient(45% 45% at 50% 50%, rgba(90,190,255,.65), rgba(30,140,255,.25) 55%, rgba(30,140,255,0) 72%);
-        filter:blur(14px); opacity:0; mix-blend-mode:screen;
-        animation: glow var(--descent) ease-out forwards}
-  /* İniş halkası & parçacıklar (zeminde) */
-  .ring{position:fixed; left:50%; top:76%; transform:translate(-50%,-50%);
-        width:2vmin; height:2vmin; border-radius:50%; z-index:6; opacity:0;
-        box-shadow:0 0 0 0 rgba(210,140,90,0)}
-  .field{position:fixed; inset:0; pointer-events:none; z-index:6}
-  .dot{position:absolute; width:.9vmin; height:.9vmin; border-radius:50%;
-       background:rgba(210,140,90,.95); filter:blur(.35px); opacity:0}
-
-  /* Kamera sarsıntısı */
-  .shake{animation:shake var(--shake) ease-in-out both}
-
-  /* Animasyonlar */
-  @keyframes descend{
-    from{ transform:translate(-50%,-50%) translateY(-6vh) scale(1.9) }
-    70% { transform:translate(-50%,-50%) translateY(14vh)  scale(1.05) }
-    to  { transform:translate(-50%,-50%) translateY(24vh)  scale(.85)  }
-  }
-  @keyframes bob{ from{ transform:translate(-50%,-50%) translateY(24vh) scale(.845) } to{ transform:translate(-50%,-50%) translateY(25.2vh) scale(.855) } }
-  @keyframes glow{ 0%{opacity:0} 60%{opacity:.9} 100%{opacity:0} }
-  @keyframes ringFx{
-    0%{opacity:0;box-shadow:0 0 0 0 rgba(210,140,90,0)}
-    10%{opacity:.42}
-    100%{opacity:0;box-shadow:0 0 56vmin 18vmin rgba(210,140,90,.32)}
-  }
-  @keyframes shake{20%{transform:translate(2px,-2px)}40%{transform:translate(-3px,2px)}60%{transform:translate(3px,1px)}80%{transform:translate(-2px,-1px)}}
-</style>
-</head>
-<body>
 <canvas id="bg"></canvas>
-<div class="vignette"></div>
-
-<div class="safe">
-  <div class="brand">🦚 BPC — Top-Down İniş (Kod Üretimli Mars)</div>
-  <button class="btn" id="replay">Tekrar Oynat</button>
-</div>
-<div class="hint">👆 Dokun: tekrar oynat</div>
-
-<!-- iniş etkileri (zemin) -->
-<div class="ring" id="ring"></div>
-<div class="field" id="field"></div>
-
-<!-- GEMİ -->
-<div class="lander" id="lander">
-  <img class="ship" src="Drone.png" alt="">
-  <div class="glow"></div>
-</div>
-
 <script>
-/* ---------- Mars zeminini CANVAS ile üret ---------- */
 const cvs = document.getElementById('bg');
-const ctx = cvs.getContext('2d', { alpha:false });
-let W=0,H=0, stones=[];
+const ctx = cvs.getContext('2d');
+let W,H,stones=[];
 
-function R(a,b){ return a + Math.random()*(b-a) }
 function resize(){
   W = cvs.width = innerWidth;
   H = cvs.height = innerHeight;
-  makeTerrain();
-  draw(0); // ilk kare
-}
-addEventListener('resize', resize, {passive:true}); resize();
 
-// basit 2D “perspektif” için ufuk ve ground shading + taşlar
-function makeTerrain(){
   stones = [];
-  const baseCount = 180;
-  for(let i=0;i<baseCount;i++){
+  for(let i=0;i<350;i++){
     stones.push({
       x: Math.random()*W,
-      // taşlar çoğunlukla zeminin alt kısmında
-      y: R(H*0.48, H*0.98),
-      r: R(1.2, 3.2),
-      d: Math.random() // varyasyon
+      y: Math.random()*H,
+      r: Math.random()*2.2 + 0.8,
     });
   }
 }
+resize();
+addEventListener('resize', resize);
 
-function draw(progress){
-  // progress: 0..1 (1 iniş anına yakın)
-  // gökyüzüne doğru açılan ufuk + sıcak kızıl gradyan
-  const skyH = H*0.38 - progress*H*0.12;   // inişte ufuk biraz aşağı kayar
-  // üst kısım (uzak tozlu katman)
-  const g1 = ctx.createLinearGradient(0,0,0,skyH);
-  g1.addColorStop(0,'#38221b');
-  g1.addColorStop(1,'#5e3325');
-  ctx.fillStyle = g1; ctx.fillRect(0,0,W,skyH);
+/* Mars yüzeyi — düz top-down */
+function drawMars(t){
+  // temel zemin
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#8A3F25');
+  g.addColorStop(1,'#6C311C');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
 
-  // zemin (yakın sıcak tonlar)
-  const g2 = ctx.createLinearGradient(0,skyH,0,H);
-  g2.addColorStop(0,'#7a3f27');
-  g2.addColorStop(1,'#8f4b2e');
-  ctx.fillStyle = g2; ctx.fillRect(0,skyH,W,H);
-
-  // yüzey doku lekeleri
-  for(let i=0;i<160;i++){
-    const x=Math.random()*W, y=R(skyH,H), r=R(20,120);
+  // hafif yüzey dokuları
+  for(let i=0;i<90;i++){
+    const x=Math.random()*W, y=Math.random()*H, r=Math.random()*120+40;
     const d=ctx.createRadialGradient(x,y,0,x,y,r);
-    d.addColorStop(0,`rgba(120,60,34,${R(.05,.12)})`);
+    d.addColorStop(0,`rgba(100,45,25,${Math.random()*.07})`);
     d.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=d; ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle=d;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
   }
 
-  // taşlar (inişe yaklaştıkça büyür ve çok az yukarı sürüklenir)
+  // taşlar: inişe göre scale değişimi
   for(const s of stones){
-    const sc = 1 + progress*2.2;
-    const sy = s.y - progress*H*0.18 + s.d*4;
-    ctx.fillStyle='rgba(60,35,25,.65)';
-    ctx.beginPath(); ctx.ellipse(s.x, sy, s.r*1.3*sc, s.r*.9*sc, .2, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(190,120,80,.9)';
-    ctx.beginPath(); ctx.arc(s.x-0.6, sy-0.6, s.r*sc, 0, 2*Math.PI); ctx.fill();
-  }
+    const scale = 1 + t*1.9; // yaklaştıkça taş büyüyor
+    ctx.fillStyle='rgba(30,15,10,.4)';
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y, s.r*1.2*scale, s.r*.9*scale, .3, 0, Math.PI*2);
+    ctx.fill();
 
-  // yerel vignette hafif
-  const vg = ctx.createRadialGradient(W/2,H*0.8, Math.min(W,H)*.3, W/2,H*0.8, Math.max(W,H)*.9);
-  vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(0,0,0,.22)');
-  ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(190,120,80,.9)';
+    ctx.beginPath();
+    ctx.arc(s.x-1, s.y-1, s.r*scale, 0, 2*Math.PI);
+    ctx.fill();
+  }
 }
 
-/* ---------- İniş zamanlaması ---------- */
-const lander = document.getElementById('lander');
-const ring   = document.getElementById('ring');
-const field  = document.getElementById('field');
 let t=0, playing=true;
-
 function loop(){
-  if(playing){ t += 1/60 / (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--descent'))||6.5); }
-  if(t>1) t=1;
-  draw(t);
+  if(playing) t+=0.002; if(t>1) t=1;
+  drawMars(t);
   requestAnimationFrame(loop);
 }
 loop();
-
-/* Toz parçacıkları (iniş anı) */
-function particles(n=110){
-  field.innerHTML='';
-  const cx = innerWidth/2, cy = innerHeight*0.76;
-  for(let i=0;i<n;i++){
-    const d = document.createElement('div'); d.className='dot';
-    d.style.left = (cx + (Math.random()*20-10))+'px';
-    d.style.top  = (cy + (Math.random()*16- 8))+'px';
-    field.appendChild(d);
-    const ang=Math.random()*Math.PI*2, dist=8+Math.random()*22, up=-2+Math.random()*4, dur=550+Math.random()*900;
-    d.animate([
-      {transform:'translate(0,0)',opacity:0},
-      {transform:`translate(${Math.cos(ang)*dist}vmin, ${Math.sin(ang)*dist+up}vmin)`,opacity:.95,offset:.25},
-      {opacity:0}
-    ],{duration:dur,easing:'ease-out',fill:'forwards',delay:Math.random()*120});
-  }
-}
-
-/* İnişten hemen önce efektleri tetikle */
-setTimeout(()=>{ ring.style.animation='ringFx 1.4s ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 160);
-
-/* Sarsıntı */
-function shake(){
-  document.body.classList.add('shake');
-  setTimeout(()=>document.body.classList.remove('shake'),700);
-}
-
-/* Replay */
-document.getElementById('replay').onclick = restart;
-document.body.addEventListener('click', (e)=>{
-  if(e.target.id==='replay' || e.target.closest('.safe')) return;
-  restart();
-});
-function restart(){
-  // animasyonları başa sar
-  lander.style.animation='none'; ring.style.animation='none';
-  t=0; playing=true; field.innerHTML='';
-  requestAnimationFrame(()=>{ lander.style.animation=''; });
-  setTimeout(()=>{ ring.style.animation='ringFx 1.4s ease-out 0s 1 forwards'; particles(); shake(); }, 6500 - 160);
-}
-
-/* Görseli önceden yükle */
-(new Image()).src='Drone.png';
 </script>
-</body>
-</html>
