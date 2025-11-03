@@ -73,14 +73,21 @@
       <button class="logout" id="logoutBtn" onclick="logout()">Logout</button>
     </div>
 
+    <!-- Auth -->
     <div id="auth" class="auth">
       <h2>Join the Community</h2>
-      <p><strong>Code:</strong> BPC545776</p>
-      <input type="text" id="accessCode" placeholder="Enter code..." style="padding:12px;border-radius:12px;border:none;width:100%;margin:10px 0;">
-      <button onclick="loginWithCode()">Login</button>
-      <p style="font-size:.8rem;margin-top:10px;">Use the code to get your fixed BPC ID.</p>
+      <p style="font-size:.9rem;opacity:.95;">
+        Enter your <b>BPC ID</b> (example: <code>BPC123456</code>).<br>
+        Your ID is saved on this device for next visits.
+      </p>
+      <input type="text" id="accessCode" placeholder="Enter your BPC ID (e.g., BPC123456)" style="padding:12px;border-radius:12px;border:none;width:100%;margin:10px 0;">
+      <button onclick="loginWithCode()">Enter</button>
+      <p style="font-size:.8rem;margin-top:10px;opacity:.9;">
+        Tip: Keep your BPC ID safe. (Moderator reserved)
+      </p>
     </div>
 
+    <!-- Feed -->
     <div id="feed" style="display:none;margin-top:10px;">
       <div class="user-info">You: <span id="currentUserId"></span></div>
       <div class="post-form">
@@ -102,12 +109,13 @@
     </div>
   </div>
 
+  <!-- Firebase RTDB -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
     import { getDatabase, ref, push, set, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5v5v5v5",
+      apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5z5v5z5",
       authDomain: "bpc-social.firebaseapp.com",
       databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "bpc-social",
@@ -119,62 +127,120 @@
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
     const postsRef = ref(db,"posts");
-    let currentUser=null;
-    const MODS=["BPC545776"];
+    let currentUser = null;
 
-    function generateBPCID(){return `BPC${Math.floor(100000+Math.random()*900000)}`;}
+    // Only YOU are moderator
+    const MOD_ID = "BPC545776";
 
-    window.loginWithCode=function(){
-      const code=document.getElementById('accessCode').value.trim();
-      if(code==="BPC545776"){const id="BPC545776";localStorage.setItem("bpc_user_id",id);initUser(id);}
-      else alert("Invalid code!");
+    function generateBPCID(){
+      return `BPC${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+
+    // Login with code (persist same code on this device)
+    window.loginWithCode = function(){
+      const inputEl = document.getElementById("accessCode");
+      const typed    = (inputEl.value || "").trim().toUpperCase();
+      const saved    = localStorage.getItem("bpc_user_id");
+
+      // If a code is already saved and user left input empty → reuse saved
+      if(!typed && saved){
+        initUser(saved);
+        return;
+      }
+
+      // If nothing saved & nothing typed → create one and show it
+      if(!typed && !saved){
+        const newId = generateBPCID();
+        alert(`Your BPC ID:\n${newId}\n\nPlease keep it safe and use it next time.`);
+        localStorage.setItem("bpc_user_id", newId);
+        initUser(newId);
+        return;
+      }
+
+      // If typed → validate format or allow mod
+      const isMod = (typed === MOD_ID);
+      const isValidUserCode = /^BPC\d{6}$/.test(typed);
+
+      if(!isMod && !isValidUserCode){
+        alert("Invalid BPC ID. Use the format: BPC123456");
+        return;
+      }
+
+      // If there is already a saved code & typed is different, confirm overwrite
+      if(saved && saved !== typed){
+        const ok = confirm(`This device already has ID: ${saved}\nReplace with: ${typed}?`);
+        if(!ok) { initUser(saved); return; }
+      }
+
+      localStorage.setItem("bpc_user_id", typed);
+      initUser(typed);
     };
+
     function initUser(id){
-      currentUser={id,avatar:"bpc-bird.png"};
-      document.getElementById('currentUserId').textContent=id;
-      document.getElementById('auth').style.display='none';
-      document.getElementById('feed').style.display='block';
-      document.getElementById('logoutBtn').style.display='inline-block';
+      currentUser = { id, avatar:"bpc-bird.png" };
+      document.getElementById('currentUserId').textContent = id;
+      document.getElementById('auth').style.display  = 'none';
+      document.getElementById('feed').style.display  = 'block';
+      document.getElementById('logoutBtn').style.display = 'inline-block';
       listenToPosts();
     }
-    window.logout=function(){localStorage.removeItem("bpc_user_id");location.reload();}
-    window.onload=()=>{const s=localStorage.getItem("bpc_user_id");if(s)initUser(s);};
 
-    window.toggleEmojiPanel=function(){const p=document.getElementById('emojiPanel');p.style.display=p.style.display==='block'?'none':'block';};
-    window.addEmoji=function(e){const t=document.getElementById('postContent');t.value+=(t.value?' ':'')+e;toggleEmojiPanel();};
+    window.logout = function(){
+      localStorage.removeItem("bpc_user_id");
+      location.reload();
+    };
 
-    window.createPost=function(){
-      if(!currentUser){alert("Login first.");return;}
-      const content=document.getElementById('postContent').value.trim();
-      if(!content)return;
-      const newRef=push(postsRef);
-      set(newRef,{userId:currentUser.id,content,timestamp:Date.now(),comments:{},reactions:{}})
-        .then(()=>{document.getElementById('postContent').value='';})
-        .catch(err=>{console.error("Post error:",err);alert("Post failed.");});
+    // Auto-login if saved
+    window.onload = () => {
+      const saved = localStorage.getItem("bpc_user_id");
+      if(saved) initUser(saved);
+    };
+
+    // Emoji panel
+    window.toggleEmojiPanel = function(){
+      const p = document.getElementById('emojiPanel');
+      p.style.display = (p.style.display === 'block' ? 'none' : 'block');
+    };
+    window.addEmoji = function(e){
+      const t = document.getElementById('postContent');
+      t.value += (t.value ? ' ' : '') + e;
+      toggleEmojiPanel();
+    };
+
+    // Create post
+    window.createPost = function(){
+      if(!currentUser){ alert("Login first."); return; }
+      const content = (document.getElementById('postContent').value || '').trim();
+      if(!content) return;
+
+      const newRef = push(postsRef);
+      set(newRef, { userId: currentUser.id, content, timestamp: Date.now(), comments:{}, reactions:{} })
+        .then(() => { document.getElementById('postContent').value = ''; })
+        .catch(err => { console.error("Post error:", err); alert("Post failed."); });
     };
 
     function listenToPosts(){
-      onValue(postsRef,snap=>{
-        const data=snap.val();
-        const arr=data?Object.entries(data).map(([id,p])=>({id,...p})):[];
-        arr.sort((a,b)=>b.timestamp-a.timestamp);
+      onValue(postsRef, snap => {
+        const data = snap.val();
+        const arr = data ? Object.entries(data).map(([id,p]) => ({ id, ...p })) : [];
+        arr.sort((a,b) => b.timestamp - a.timestamp);
         renderPosts(arr);
       });
     }
 
     function renderPosts(posts){
-      const c=document.getElementById('posts');
-      c.innerHTML=posts.map(p=>{
-        const t=new Date(p.timestamp).toLocaleString('en-GB');
-        const r=p.reactions||{};
-        const mod=MODS.includes(currentUser?.id);
+      const c = document.getElementById('posts');
+      c.innerHTML = posts.map(p => {
+        const t = new Date(p.timestamp).toLocaleString('en-GB');
+        const r = p.reactions || {};
+        const isMod = (currentUser?.id === MOD_ID);
         return `
         <div class="post">
           <div class="post-header">
             <img src="bpc-bird.png"><div>
               <div class="post-user">
                 ${escapeHtml(p.userId)}
-                ${MODS.includes(p.userId)?'<span class="mod-badge">MOD</span>':''}
+                ${p.userId === MOD_ID ? '<span class="mod-badge">MOD</span>' : ''}
                 <span class="user-badge">${escapeHtml(p.userId)}</span>
               </div>
               <div class="post-time">${t}</div>
@@ -187,7 +253,7 @@
             <button class="emoji-btn" onclick="addReaction('${p.id}','Heart')">❤️ ${r['Heart']||0}</button>
             <button class="emoji-btn" onclick="addReaction('${p.id}','Rocket')">🚀 ${r['Rocket']||0}</button>
             <button class="report-btn" onclick="reportPost('${p.id}')">Report</button>
-            ${mod?`<button class="delete-btn" onclick="deletePost('${p.id}')">Delete</button>`:''}
+            ${isMod?`<button class="delete-btn" onclick="deletePost('${p.id}')">Delete</button>`:''}
           </div>
           <div id="comments-${p.id}" class="comment-section">
             ${(Object.entries(p.comments||{}).map(([cid,c])=>`
@@ -201,29 +267,32 @@
       }).join('');
     }
 
-    window.toggleComments=function(id){
-      const el=document.getElementById(`comments-${id}`);
-      el.style.display=el.style.display==='block'?'none':'block';
+    window.toggleComments = function(id){
+      const el = document.getElementById(`comments-${id}`);
+      el.style.display = el.style.display === 'block' ? 'none' : 'block';
     };
-    window.addComment=function(id){
-      const input=document.getElementById(`comment-input-${id}`);
-      const txt=input.value.trim();
-      if(!txt||!currentUser)return;
-      push(ref(db,`posts/${id}/comments`),{userId:currentUser.id,text:txt,time:new Date().toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit'})});
+    window.addComment = function(id){
+      const input = document.getElementById(`comment-input-${id}`);
+      const txt = (input.value || '').trim();
+      if(!txt || !currentUser) return;
+      push(ref(db,`posts/${id}/comments`), { userId: currentUser.id, text: txt, time: new Date().toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit'}) });
       input.value='';
     };
-    window.addReaction=function(id,type){runTransaction(ref(db,`posts/${id}/reactions/${type}`),c=>(c||0)+1);};
-    window.reportPost=function(id){
+    window.addReaction = function(id,type){
+      runTransaction(ref(db,`posts/${id}/reactions/${type}`), c => (c || 0) + 1);
+    };
+    window.reportPost = function(id){
       if(confirm("Are you sure you want to report this post?")){
-        set(ref(db,`reports/${id}`),{userId:currentUser.id,time:Date.now()});
+        set(ref(db,`reports/${id}`), { userId: currentUser.id, time: Date.now() });
         alert("Reported!");
       }
     };
-    window.deletePost=function(id){
-      if(!MODS.includes(currentUser?.id))return;
+    window.deletePost = function(id){
+      if(currentUser?.id !== MOD_ID) return;
       if(confirm("Delete this post?")) remove(ref(db,`posts/${id}`));
     };
-    function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+    function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
   </script>
 </body>
 </html>
