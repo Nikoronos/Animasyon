@@ -45,18 +45,27 @@
     }
     .post-form {
       max-width: 100%; margin: 0 auto 20px;
+      position: relative;
     }
     textarea {
       width: 100%; padding: 12px; border: none; border-radius: 12px;
       background: rgba(255,255,255,.9); color: #333; font-size: 1rem;
       min-height: 80px; resize: none; margin-bottom: 10px;
     }
-    button {
-      background: #28a745; color: #fff; border: none; padding: 12px 20px;
-      border-radius: 12px; font-size: 1rem; cursor: pointer; width: 100%;
-      font-weight: bold;
+    .post-actions-row {
+      display: flex; gap: 8px; align-items: center;
     }
-    button:hover { background: #218838; }
+    .emoji-toggle {
+      background: #28a745; color: #fff; border: none;
+      padding: 10px 16px; border-radius: 20px; font-size: .9rem;
+      cursor: pointer;
+    }
+    .send-btn {
+      background: #28a745; color: #fff; border: none;
+      padding: 10px 20px; border-radius: 20px; font-size: 1rem;
+      cursor: pointer; font-weight: bold; flex: 1;
+    }
+    .send-btn:hover { background: #218838; }
     .post {
       background: rgba(255,255,255,.15); border-radius: 15px; padding: 15px;
       margin: 15px 0; backdrop-filter: blur(8px);
@@ -130,11 +139,12 @@
     .emoji-panel {
       position: absolute; background: #222; border-radius: 12px;
       padding: 10px; display: none; z-index: 100;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5); left: 0; top: 50px;
+      width: 120px;
     }
     .emoji-panel button {
       background: none; border: none; font-size: 1.5rem;
-      padding: 8px; cursor: pointer;
+      padding: 8px; cursor: pointer; width: 100%; text-align: left;
     }
     .report-btn, .delete-btn {
       background: #dc3545; color: #fff; border: none;
@@ -150,6 +160,8 @@
       .logo h1 { font-size: 1.2rem; }
       .logout { font-size: .8rem; padding: 6px 12px; }
       .drone { width: 90px; }
+      .post-actions-row { flex-direction: column; }
+      .send-btn { width: 100%; }
     }
   </style>
 </head>
@@ -178,8 +190,8 @@
       <div class="user-info">Sen: <span id="currentUserId"></span></div>
       <div class="post-form">
         <textarea id="postContent" placeholder="Mars'ta ne düşünüyorsun?"></textarea>
-        <div style="position:relative; display:inline-block;">
-          <button onclick="toggleEmojiPanel()">Emoji</button>
+        <div class="post-actions-row">
+          <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
             <button onclick="addEmoji('Like')">Like</button>
             <button onclick="addEmoji('Heart')">Heart</button>
@@ -188,20 +200,20 @@
             <button onclick="addEmoji('Star')">Star</button>
             <button onclick="addEmoji('Laugh')">Laugh</button>
           </div>
+          <button class="send-btn" onclick="createPost()">Gönder</button>
         </div>
-        <button onclick="createPost()">Gönder</button>
       </div>
       <div id="posts"></div>
     </div>
   </div>
 
-  <!-- Drone yerine assets.png -->
-  <img src="assets.png" alt="Assets" class="drone"/>
+  <!-- Drone (drone.png geri geldi) -->
+  <img src="drone.png" alt="Drone" class="drone"/>
 
   <!-- Firebase RTDB -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+    import { getDatabase, ref, push, set, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5z5v5z5v5",
@@ -269,7 +281,6 @@
       toggleEmojiPanel();
     };
 
-    // GÖNDERİ OLUŞTUR – PUSH + ID EKLE
     window.createPost = function() {
       const content = document.getElementById('postContent').value.trim();
       if (!content) return alert("Boş gönderi olamaz!");
@@ -287,7 +298,7 @@
         document.getElementById('postContent').value = '';
       }).catch(err => {
         console.error("Gönderi hatası:", err);
-        alert("Gönderi eklenemedi. Konsolu kontrol et.");
+        alert("Gönderi eklenemedi.");
       });
     };
 
@@ -297,8 +308,6 @@
         const posts = data ? Object.entries(data).map(([id, p]) => ({ id, ...p })) : [];
         posts.sort((a, b) => b.timestamp - a.timestamp);
         renderPosts(posts);
-      }, (error) => {
-        console.error("RTDB Hatası:", error);
       });
     }
 
