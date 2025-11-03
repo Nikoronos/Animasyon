@@ -5,163 +5,97 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BPC-SOCIAL</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body{
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: url('mars.png') no-repeat center center fixed;
       background-size: cover;
-      color: #fff;
-      min-height: 100vh;
-      position: relative;
-      margin: 0;
+      color:#fff; min-height:100vh; position:relative;
     }
-    .overlay {
-      background: rgba(139, 69, 19, 0.75);
-      min-height: 100vh;
-      padding: 15px;
+    .overlay{ background:rgba(139,69,19,.75); min-height:100vh; padding:16px; }
+    .header{ display:flex; justify-content:space-between; align-items:center; }
+    .logo{ display:flex; gap:10px; align-items:center; }
+    .logo img{ width:48px; height:48px; border-radius:50%; box-shadow:0 0 12px rgba(255,255,0,.6); }
+    .logo h1{ font-size:1.4rem; letter-spacing:.5px; }
+    .logout{
+      background:#e74c3c; color:#fff; border:none; border-radius:999px;
+      padding:10px 18px; font-weight:600; cursor:pointer; display:none;
+      box-shadow:0 4px 12px rgba(0,0,0,.3);
     }
-    .header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 15px; position: relative; z-index: 10;
+
+    .user-info{ margin:10px 0 6px; font-weight:700; opacity:.95; }
+    .post-form{
+      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
+      border-radius:16px; padding:12px; backdrop-filter: blur(2px);
+      box-shadow:0 6px 18px rgba(0,0,0,.25);
     }
-    .logo {
-      display: flex; align-items: center; gap: 10px;
+    textarea#postContent{
+      width:100%; min-height:84px; resize:vertical; border:none; border-radius:12px;
+      padding:12px; outline:none; font-size:1rem; color:#222; background:#fff;
     }
-    .logo img {
-      width: 50px; height: 50px; border-radius: 50%;
-      border: 2px solid #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+    .post-actions-row{ display:flex; gap:10px; align-items:center; margin-top:10px; position:relative; }
+    .emoji-toggle{
+      background:#222; color:#fff; border:none; border-radius:20px; padding:10px 16px; cursor:pointer;
     }
-    .logo h1 {
-      font-size: 1.4rem; text-shadow: 0 0 8px #000;
+    .send-btn{
+      flex:1; background:#2ecc71; color:#fff; border:none; border-radius:14px;
+      padding:12px 18px; font-size:1.05rem; font-weight:700; cursor:pointer;
+      box-shadow:0 6px 14px rgba(0,0,0,.25);
     }
-    .logout {
-      background: #dc3545; color: #fff; border: none;
-      padding: 8px 16px; border-radius: 20px; font-size: .9rem;
-      cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,.3);
-      display: none;
+    .emoji-panel{
+      position:absolute; left:0; top:50px; width:140px; z-index:100;
+      background:#222; border-radius:12px; padding:8px; display:none;
+      box-shadow:0 10px 24px rgba(0,0,0,.45);
     }
-    .user-info {
-      text-align: center; margin: 10px 0; font-size: 1rem; font-weight: bold;
+    .emoji-panel button{
+      width:100%; background:none; border:none; text-align:left; cursor:pointer;
+      font-size:1.2rem; padding:8px 10px; color:#fff;
     }
-    .post-form {
-      max-width: 100%; margin: 0 auto 20px;
-      position: relative;
+
+    #posts{ margin-top:14px; display:flex; flex-direction:column; gap:12px; }
+    .post{
+      background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.2);
+      border-radius:16px; padding:12px; box-shadow:0 6px 16px rgba(0,0,0,.25);
     }
-    textarea {
-      width: 100%; padding: 12px; border: none; border-radius: 12px;
-      background: rgba(255,255,255,.9); color: #333; font-size: 1rem;
-      min-height: 80px; resize: none; margin-bottom: 10px;
+    .post-header{ display:flex; gap:10px; align-items:center; margin-bottom:6px; }
+    .post-header img{ width:36px; height:36px; border-radius:50%; }
+    .post-user{ font-weight:800; display:flex; align-items:center; gap:6px; }
+    .user-badge{
+      background:#000; color:#fff; font-weight:700; border-radius:10px; font-size:.7rem;
+      padding:2px 8px; opacity:.85;
     }
-    .post-actions-row {
-      display: flex; gap: 8px; align-items: center;
+    .mod-badge{ background:#ff6b6b; color:#fff; font-size:.65rem; padding:2px 6px; border-radius:8px; }
+    .post-time{ font-size:.8rem; opacity:.9; }
+    .post-content{
+      background:#fff; color:#222; border-radius:12px; padding:10px; margin:8px 0; line-height:1.35;
     }
-    .emoji-toggle {
-      background: #28a745; color: #fff; border: none;
-      padding: 10px 16px; border-radius: 20px; font-size: .9rem;
-      cursor: pointer;
+
+    .post-actions{ display:flex; flex-wrap:wrap; gap:8px; }
+    .comment-btn, .emoji-btn, .report-btn, .delete-btn{
+      background:#1f9cf0; color:#fff; border:none; border-radius:12px; padding:8px 12px; cursor:pointer;
+      box-shadow:0 4px 10px rgba(0,0,0,.25); font-weight:700;
     }
-    .send-btn {
-      background: #28a745; color: #fff; border: none;
-      padding: 10px 20px; border-radius: 20px; font-size: 1rem;
-      cursor: pointer; font-weight: bold; flex: 1;
+    .emoji-btn{ background:#8e44ad; }
+    .report-btn{ background:#dc3545; }
+    .delete-btn{ background:#e67e22; }
+
+    .comment-section{ display:none; padding:10px; }
+    .comment{ background:#fff; color:#222; border-radius:8px; padding:8px 12px; margin:6px 0; font-size:.92rem; }
+    .comment-input{ display:flex; gap:8px; margin-top:8px; }
+    .comment-input input{
+      flex:1; padding:10px; border:none; border-radius:12px; background:#fff; color:#222;
     }
-    .send-btn:hover { background: #218838; }
-    .post {
-      background: rgba(255,255,255,.15); border-radius: 15px; padding: 15px;
-      margin: 15px 0; backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,.2); max-width: 100%;
-    }
-    .post-header {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
-    }
-    .post-header img {
-      width: 40px; height: 40px; border-radius: 50%;
-    }
-    .post-user {
-      font-weight: bold; font-size: .95rem;
-    }
-    .user-badge {
-      background: #007bff; color: #fff; font-size: .7rem;
-      padding: 2px 8px; border-radius: 12px; margin-left: 5px;
-    }
-    .post-time {
-      font-size: .75rem; opacity: .85;
-    }
-    .post-content {
-      margin: 10px 0; line-height: 1.5; font-size: 1rem; word-wrap: anywhere;
-    }
-    .post-actions {
-      display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
-    }
-    .emoji-btn {
-      background: rgba(0,0,0,.15); border: 1px solid rgba(255,255,255,.25);
-      font-size: 1.1rem; cursor: pointer; padding: 6px 10px;
-      border-radius: 16px; width: auto;
-    }
-    .comment-btn {
-      background: #28a745; color: #fff; padding: 8px 16px;
-      border-radius: 20px; font-size: .9rem; width: auto;
-    }
-    .comment-section {
-      margin-top: 12px; background: rgba(0,0,0,.2);
-      border-radius: 10px; padding: 10px; display: none;
-    }
-    .comment {
-      background: rgba(255,255,255,.1); padding: 8px 12px;
-      border-radius: 8px; margin: 6px 0; font-size: .9rem;
-    }
-    .comment-input {
-      display: flex; gap: 8px; margin-top: 10px;
-    }
-    .comment-input input {
-      flex: 1; padding: 10px; border: none; border-radius: 20px;
-      background: #fff; color: #333; font-size: .9rem;
-    }
-    .comment-input button {
-      width: auto; padding: 10px 16px; font-size: .9rem;
-    }
-    .drone {
-      position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: 10px; width: 120px; height: auto; z-index: 5;
-      pointer-events: none; animation: floatY 3.5s ease-in-out infinite;
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6));
-    }
-    @keyframes floatY {
-      0%, 100% { transform: translate(-50%, 0); }
-      50% { transform: translate(-50%, -10px); }
-    }
-    .auth {
-      text-align: center; max-width: 300px; margin: 100px auto 0;
-    }
-    .auth button {
-      margin-top: 20px;
-    }
-    .emoji-panel {
-      position: absolute; background: #222; border-radius: 12px;
-      padding: 10px; display: none; z-index: 100;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5); left: 0; top: 50px;
-      width: 120px;
-    }
-    .emoji-panel button {
-      background: none; border: none; font-size: 1.5rem;
-      padding: 8px; cursor: pointer; width: 100%; text-align: left;
-    }
-    .report-btn, .delete-btn {
-      background: #dc3545; color: #fff; border: none;
-      padding: 6px 10px; border-radius: 12px; font-size: 0.8rem;
-      margin-left: 5px;
-    }
-    .mod-badge {
-      background: #ff6b6b; color: #fff; font-size: 0.6rem;
-      padding: 2px 6px; border-radius: 8px; margin-left: 5px;
-    }
-    @media (max-width: 480px) {
-      .header { padding: 0 10px; }
-      .logo h1 { font-size: 1.2rem; }
-      .logout { font-size: .8rem; padding: 6px 12px; }
-      .drone { width: 90px; }
-      .post-actions-row { flex-direction: column; }
-      .send-btn { width: 100%; }
+    .comment-input button{ padding:10px 14px; border:none; border-radius:12px; background:#2ecc71; color:#fff; cursor:pointer; }
+
+    .auth{ text-align:center; max-width:320px; margin:80px auto 0; }
+    .auth button{ margin-top:14px; padding:10px 14px; border:none; border-radius:12px; background:#2ecc71; color:#fff; font-weight:700; cursor:pointer; }
+
+    @media (max-width:480px){
+      .header{ padding:0 6px; }
+      .logo h1{ font-size:1.2rem; }
+      .logout{ font-size:.8rem; padding:6px 12px; }
+      .post-actions-row{ flex-direction:column; align-items:stretch; }
+      .send-btn{ width:100%; }
     }
   </style>
 </head>
@@ -170,7 +104,7 @@
     <!-- Header -->
     <div class="header">
       <div class="logo">
-        <img src="bpc-bird.png" alt="BPC Kuş"/>
+        <img src="bpc-bird.png" alt="BPC Kuş">
         <h1>BPC-SOCIAL</h1>
       </div>
       <button class="logout" id="logoutBtn" onclick="logout()">Çıkış</button>
@@ -180,9 +114,9 @@
     <div id="auth" class="auth">
       <h2>Topluluğa Katıl</h2>
       <p><strong>Kod:</strong> BPC545776</p>
-      <input type="text" id="accessCode" placeholder="Kodu gir..." style="padding:12px; border-radius:12px; border:none; width:100%; margin:10px 0;"/>
+      <input type="text" id="accessCode" placeholder="Kodu gir..." style="padding:12px; border-radius:12px; border:none; width:100%; margin:10px 0;">
       <button onclick="loginWithCode()">Giriş Yap</button>
-      <p style="font-size:0.8rem; margin-top:10px;">Kod ile sabit BPC ID alırsın.</p>
+      <p style="font-size:.8rem; margin-top:10px; opacity:.9;">Kod ile sabit BPC ID alırsın.</p>
     </div>
 
     <!-- Feed -->
@@ -193,12 +127,12 @@
         <div class="post-actions-row">
           <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
-            <button onclick="addEmoji('Like')">Like</button>
-            <button onclick="addEmoji('Heart')">Heart</button>
-            <button onclick="addEmoji('Rocket')">Rocket</button>
-            <button onclick="addEmoji('Fire')">Fire</button>
-            <button onclick="addEmoji('Star')">Star</button>
-            <button onclick="addEmoji('Laugh')">Laugh</button>
+            <button onclick="addEmoji('👍')">👍 Like</button>
+            <button onclick="addEmoji('❤️')">❤️ Heart</button>
+            <button onclick="addEmoji('🚀')">🚀 Rocket</button>
+            <button onclick="addEmoji('🔥')">🔥 Fire</button>
+            <button onclick="addEmoji('⭐')">⭐ Star</button>
+            <button onclick="addEmoji('😂')">😂 Laugh</button>
           </div>
           <button class="send-btn" onclick="createPost()">Gönder</button>
         </div>
@@ -207,85 +141,81 @@
     </div>
   </div>
 
-  <!-- Drone (drone.png geri geldi) -->
-  <img src="drone.png" alt="Drone" class="drone"/>
-
-  <!-- Firebase RTDB -->
+  <!-- Firebase RTDB (modüler v10) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
     import { getDatabase, ref, push, set, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
+    // ---- KENDİ PROJE AYARLARIN ----
     const firebaseConfig = {
       apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5z5v5z5v5",
       authDomain: "bpc-social.firebaseapp.com",
-      databaseURL: "https://bpc-social-default-rtdb.eur.firebasedatabase.app",
+      // Bölge: Belgium (europe-west1)
+      databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "bpc-social",
       storageBucket: "bpc-social.appspot.com",
       messagingSenderId: "123456789",
       appId: "1:123456789:web:abcdef123456"
     };
+    // -------------------------------
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const postsRef = ref(db, 'posts');
+    const db  = getDatabase(app);
+    const postsRef = ref(db, "posts");
 
     let currentUser = null;
     const MODERATORS = ["BPC545776"];
 
-    function generateBPCID() {
-      return `BPC${Math.floor(100000 + Math.random() * 900000)}`;
-    }
+    // ----- Auth -----
+    function generateBPCID(){ return `BPC${Math.floor(100000 + Math.random()*900000)}`; }
 
-    window.loginWithCode = function() {
-      const code = document.getElementById('accessCode').value.trim();
-      if (code === "BPC545776") {
+    window.loginWithCode = function(){
+      const code = (document.getElementById('accessCode').value || '').trim();
+      if(code === "BPC545776"){
         const userId = "BPC545776";
-        localStorage.setItem('bpc_user_id', userId);
+        localStorage.setItem("bpc_user_id", userId);
         initUser(userId);
-      } else {
+      }else{
         alert("Geçersiz kod!");
       }
     };
-
-    window.createUser = function() {
-      let userId = localStorage.getItem('bpc_user_id');
-      if (!userId) {
-        userId = generateBPCID();
-        localStorage.setItem('bpc_user_id', userId);
-      }
-      initUser(userId);
-    };
-
-    function initUser(userId) {
-      currentUser = { id: userId, avatar: "bpc-bird.png" };
+    function initUser(userId){
+      currentUser = { id:userId, avatar:"bpc-bird.png" };
       document.getElementById('currentUserId').textContent = userId;
       document.getElementById('auth').style.display = 'none';
       document.getElementById('feed').style.display = 'block';
       document.getElementById('logoutBtn').style.display = 'inline-block';
       listenToPosts();
     }
-
-    window.logout = function() {
-      localStorage.removeItem('bpc_user_id');
+    window.logout = function(){
+      localStorage.removeItem("bpc_user_id");
       location.reload();
     };
 
-    window.toggleEmojiPanel = function() {
-      const panel = document.getElementById('emojiPanel');
-      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    // İlk açılışta kaydedilmiş ID varsa otomatik giriş
+    window.onload = () => {
+      const saved = localStorage.getItem("bpc_user_id");
+      if(saved){ initUser(saved); }
     };
 
-    window.addEmoji = function(emoji) {
-      const textarea = document.getElementById('postContent');
-      textarea.value += ` ${emoji}`;
+    // ----- Emoji Panel -----
+    window.toggleEmojiPanel = function(){
+      const p = document.getElementById('emojiPanel');
+      p.style.display = (p.style.display === 'block' ? 'none' : 'block');
+    };
+    window.addEmoji = function(emojiChar){
+      const ta = document.getElementById('postContent');
+      ta.value += (ta.value ? ' ' : '') + emojiChar;
       toggleEmojiPanel();
     };
 
-    window.createPost = function() {
-      const content = document.getElementById('postContent').value.trim();
-      if (!content) return alert("Boş gönderi olamaz!");
+    // ----- Post Oluştur -----
+    window.createPost = function(){
+      if(!currentUser){ alert("Önce giriş yap."); return; }
+      const content = (document.getElementById('postContent').value || '').trim();
+      if(!content){ return; }
 
-      const newPostRef = push(postsRef);
+      const newRef = push(postsRef);
       const post = {
         userId: currentUser.id,
         content,
@@ -294,34 +224,34 @@
         reactions: {}
       };
 
-      set(newPostRef, post).then(() => {
+      set(newRef, post).then(()=>{
         document.getElementById('postContent').value = '';
-      }).catch(err => {
+      }).catch(err=>{
         console.error("Gönderi hatası:", err);
         alert("Gönderi eklenemedi.");
       });
     };
 
-    function listenToPosts() {
-      onValue(postsRef, (snapshot) => {
-        const data = snapshot.val();
-        const posts = data ? Object.entries(data).map(([id, p]) => ({ id, ...p })) : [];
-        posts.sort((a, b) => b.timestamp - a.timestamp);
+    // ----- Postları Dinle & Render Et -----
+    function listenToPosts(){
+      onValue(postsRef, (snap)=>{
+        const data = snap.val();
+        const posts = data ? Object.entries(data).map(([id,p])=>({id, ...p})) : [];
+        posts.sort((a,b)=> b.timestamp - a.timestamp);
         renderPosts(posts);
       });
     }
 
-    function renderPosts(posts) {
+    function renderPosts(posts){
       const container = document.getElementById('posts');
-      container.innerHTML = posts.map(post => {
+      container.innerHTML = posts.map(post=>{
         const time = new Date(post.timestamp).toLocaleString('tr-TR');
         const reactions = post.reactions || {};
         const isMod = MODERATORS.includes(currentUser?.id);
-
         return `
           <div class="post">
             <div class="post-header">
-              <img src="bpc-bird.png" />
+              <img src="bpc-bird.png" alt="avatar">
               <div>
                 <div class="post-user">
                   ${escapeHtml(post.userId)}
@@ -334,20 +264,18 @@
             <div class="post-content">${escapeHtml(post.content)}</div>
             <div class="post-actions">
               <button class="comment-btn" onclick="toggleComments('${post.id}')">Yorum Yap</button>
-              <button class="emoji-btn" onclick="addReaction('${post.id}', 'Like')">Like ${reactions['Like'] || 0}</button>
-              <button class="emoji-btn" onclick="addReaction('${post.id}', 'Heart')">Heart ${reactions['Heart'] || 0}</button>
-              <button class="emoji-btn" onclick="addReaction('${post.id}', 'Rocket')">Rocket ${reactions['Rocket'] || 0}</button>
+              <button class="emoji-btn" onclick="addReaction('${post.id}','Like')">👍 ${reactions['Like']||0}</button>
+              <button class="emoji-btn" onclick="addReaction('${post.id}','Heart')">❤️ ${reactions['Heart']||0}</button>
+              <button class="emoji-btn" onclick="addReaction('${post.id}','Rocket')">🚀 ${reactions['Rocket']||0}</button>
               <button class="report-btn" onclick="reportPost('${post.id}')">Rapor</button>
               ${isMod ? `<button class="delete-btn" onclick="deletePost('${post.id}')">Sil</button>` : ''}
             </div>
             <div id="comments-${post.id}" class="comment-section">
-              ${Object.entries(post.comments || {}).map(([cid, c]) => `
-                <div class="comment">
-                  <strong>${escapeHtml(c.userId)}:</strong> ${escapeHtml(c.text)} <small>(${c.time})</small>
-                </div>
-              `).join('')}
+              ${(Object.entries(post.comments||{}).map(([cid,c])=>`
+                <div class="comment"><strong>${escapeHtml(c.userId)}:</strong> ${escapeHtml(c.text)} <small>(${c.time})</small></div>
+              `).join(''))}
               <div class="comment-input">
-                <input type="text" id="comment-input-${post.id}" placeholder="Yorum yaz..." />
+                <input id="comment-input-${post.id}" type="text" placeholder="Yorum yaz...">
                 <button onclick="addComment('${post.id}')">Gönder</button>
               </div>
             </div>
@@ -356,56 +284,41 @@
       }).join('');
     }
 
-    window.addComment = function(postId) {
+    // ----- Yorum / Reaksiyon / Rapor / Sil -----
+    window.toggleComments = function(id){
+      const el = document.getElementById(`comments-${id}`);
+      el.style.display = (el.style.display === 'block' ? 'none' : 'block');
+    };
+    window.addComment = function(postId){
       const input = document.getElementById(`comment-input-${postId}`);
-      const text = input.value.trim();
-      if (!text) return;
-
+      const text = (input.value || '').trim();
+      if(!text || !currentUser) return;
       const commentRef = ref(db, `posts/${postId}/comments`);
-      push(commentRef, {
-        userId: currentUser.id,
-        text,
-        time: new Date().toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-      });
+      push(commentRef, { userId: currentUser.id, text, time: new Date().toLocaleString('tr-TR', {hour:'2-digit', minute:'2-digit'}) });
       input.value = '';
     };
-
-    window.addReaction = function(postId, type) {
-      const reactionRef = ref(db, `posts/${postId}/reactions/${type}`);
-      runTransaction(reactionRef, (current) => (current || 0) + 1);
+    window.addReaction = function(postId, type){
+      const rxRef = ref(db, `posts/${postId}/reactions/${type}`);
+      runTransaction(rxRef, curr => (curr || 0) + 1);
     };
-
-    window.reportPost = function(postId) {
-      if (confirm("Rapor etmek istediğine emin misin?")) {
-        const reportRef = ref(db, `reports/${postId}`);
-        set(reportRef, { userId: currentUser.id, time: Date.now() });
+    window.reportPost = function(postId){
+      if(confirm("Rapor etmek istediğine emin misin?")){
+        const repRef = ref(db, `reports/${postId}`);
+        set(repRef, { userId: currentUser.id, time: Date.now() });
         alert("Raporlandı!");
       }
     };
-
-    window.deletePost = function(postId) {
-      if (confirm("Silmek istediğine emin misin?")) {
+    window.deletePost = function(postId){
+      if(!MODERATORS.includes(currentUser?.id)) return;
+      if(confirm("Silmek istediğine emin misin?")){
         remove(ref(db, `posts/${postId}`));
       }
     };
 
-    window.toggleComments = function(id) {
-      const el = document.getElementById(`comments-${id}`);
-      el.style.display = el.style.display === 'block' ? 'none' : 'block';
-    };
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+    // ----- XSS koruması -----
+    function escapeHtml(text){
+      const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
     }
-
-    window.onload = () => {
-      const savedId = localStorage.getItem('bpc_user_id');
-      if (savedId) {
-        initUser(savedId);
-      }
-    };
   </script>
 </body>
 </html>
