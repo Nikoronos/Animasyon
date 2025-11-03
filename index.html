@@ -1,129 +1,90 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BPC-SOCIAL</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
+    *{margin:0;padding:0;box-sizing:border-box;}
     body{
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: url('mars.png') no-repeat center center fixed;
-      background-size: cover;
-      color:#fff; min-height:100vh; position:relative;
+      font-family:'Segoe UI',sans-serif;
+      background:url('mars.png') no-repeat center center fixed;
+      background-size:cover;
+      color:#fff;min-height:100vh;
     }
-    .overlay{ background:rgba(139,69,19,.75); min-height:100vh; padding:16px; }
-    .header{ display:flex; justify-content:space-between; align-items:center; }
-    .logo{ display:flex; gap:10px; align-items:center; }
-    .logo img{ width:48px; height:48px; border-radius:50%; box-shadow:0 0 12px rgba(255,255,0,.6); }
-    .logo h1{ font-size:1.4rem; letter-spacing:.5px; }
+    .overlay{background:rgba(139,69,19,.75);min-height:100vh;padding:16px;}
+    .header{display:flex;justify-content:space-between;align-items:center;}
+    .logo{display:flex;align-items:center;gap:10px;}
+    .logo img{width:48px;height:48px;border-radius:50%;box-shadow:0 0 12px rgba(255,255,0,.6);}
+    .logo h1{font-size:1.4rem;}
     .logout{
-      background:#e74c3c; color:#fff; border:none; border-radius:999px;
-      padding:10px 18px; font-weight:600; cursor:pointer; display:none;
-      box-shadow:0 4px 12px rgba(0,0,0,.3);
+      display:none;background:#e74c3c;color:#fff;border:none;
+      border-radius:999px;padding:10px 18px;font-weight:600;cursor:pointer;
     }
 
-    .user-info{ margin:10px 0 6px; font-weight:700; opacity:.95; }
-    .post-form{
-      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
-      border-radius:16px; padding:12px; backdrop-filter: blur(2px);
-      box-shadow:0 6px 18px rgba(0,0,0,.25);
-    }
+    .user-info{margin:10px 0 6px;font-weight:700;}
+    .post-form{background:rgba(255,255,255,.12);border-radius:16px;padding:12px;}
     textarea#postContent{
-      width:100%; min-height:84px; resize:vertical; border:none; border-radius:12px;
-      padding:12px; outline:none; font-size:1rem; color:#222; background:#fff;
+      width:100%;min-height:84px;resize:vertical;border:none;border-radius:12px;
+      padding:12px;font-size:1rem;color:#222;background:#fff;
     }
-    .post-actions-row{ display:flex; gap:10px; align-items:center; margin-top:10px; position:relative; }
-    .emoji-toggle{
-      background:#222; color:#fff; border:none; border-radius:20px; padding:10px 16px; cursor:pointer;
-    }
-    .send-btn{
-      flex:1; background:#2ecc71; color:#fff; border:none; border-radius:14px;
-      padding:12px 18px; font-size:1.05rem; font-weight:700; cursor:pointer;
-      box-shadow:0 6px 14px rgba(0,0,0,.25);
-    }
-    .emoji-panel{
-      position:absolute; left:0; top:50px; width:140px; z-index:100;
-      background:#222; border-radius:12px; padding:8px; display:none;
-      box-shadow:0 10px 24px rgba(0,0,0,.45);
-    }
-    .emoji-panel button{
-      width:100%; background:none; border:none; text-align:left; cursor:pointer;
-      font-size:1.2rem; padding:8px 10px; color:#fff;
-    }
+    .post-actions-row{display:flex;gap:10px;align-items:center;margin-top:10px;position:relative;}
+    .emoji-toggle{background:#222;color:#fff;border:none;border-radius:20px;padding:10px 16px;cursor:pointer;}
+    .send-btn{flex:1;background:#2ecc71;color:#fff;border:none;border-radius:14px;padding:12px 18px;font-weight:700;cursor:pointer;}
+    .emoji-panel{position:absolute;left:0;top:50px;width:140px;z-index:100;background:#222;border-radius:12px;padding:8px;display:none;}
+    .emoji-panel button{width:100%;background:none;border:none;text-align:left;cursor:pointer;font-size:1.2rem;padding:8px 10px;color:#fff;}
 
-    #posts{ margin-top:14px; display:flex; flex-direction:column; gap:12px; }
-    .post{
-      background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.2);
-      border-radius:16px; padding:12px; box-shadow:0 6px 16px rgba(0,0,0,.25);
-    }
-    .post-header{ display:flex; gap:10px; align-items:center; margin-bottom:6px; }
-    .post-header img{ width:36px; height:36px; border-radius:50%; }
-    .post-user{ font-weight:800; display:flex; align-items:center; gap:6px; }
-    .user-badge{
-      background:#000; color:#fff; font-weight:700; border-radius:10px; font-size:.7rem;
-      padding:2px 8px; opacity:.85;
-    }
-    .mod-badge{ background:#ff6b6b; color:#fff; font-size:.65rem; padding:2px 6px; border-radius:8px; }
-    .post-time{ font-size:.8rem; opacity:.9; }
-    .post-content{
-      background:#fff; color:#222; border-radius:12px; padding:10px; margin:8px 0; line-height:1.35;
-    }
+    #posts{margin-top:14px;display:flex;flex-direction:column;gap:12px;}
+    .post{background:rgba(255,255,255,.1);border-radius:16px;padding:12px;}
+    .post-header{display:flex;gap:10px;align-items:center;margin-bottom:6px;}
+    .post-header img{width:36px;height:36px;border-radius:50%;}
+    .post-user{font-weight:800;display:flex;align-items:center;gap:6px;}
+    .user-badge{background:#000;color:#fff;font-size:.7rem;border-radius:10px;padding:2px 8px;}
+    .mod-badge{background:#ff6b6b;color:#fff;font-size:.65rem;padding:2px 6px;border-radius:8px;}
+    .post-time{font-size:.8rem;}
+    .post-content{background:#fff;color:#222;border-radius:12px;padding:10px;margin:8px 0;}
 
-    .post-actions{ display:flex; flex-wrap:wrap; gap:8px; }
-    .comment-btn, .emoji-btn, .report-btn, .delete-btn{
-      background:#1f9cf0; color:#fff; border:none; border-radius:12px; padding:8px 12px; cursor:pointer;
-      box-shadow:0 4px 10px rgba(0,0,0,.25); font-weight:700;
+    .post-actions{display:flex;flex-wrap:wrap;gap:8px;}
+    .comment-btn,.emoji-btn,.report-btn,.delete-btn{
+      background:#1f9cf0;color:#fff;border:none;border-radius:12px;
+      padding:8px 12px;cursor:pointer;font-weight:700;
     }
-    .emoji-btn{ background:#8e44ad; }
-    .report-btn{ background:#dc3545; }
-    .delete-btn{ background:#e67e22; }
+    .emoji-btn{background:#8e44ad;}
+    .report-btn{background:#dc3545;}
+    .delete-btn{background:#e67e22;}
 
-    .comment-section{ display:none; padding:10px; }
-    .comment{ background:#fff; color:#222; border-radius:8px; padding:8px 12px; margin:6px 0; font-size:.92rem; }
-    .comment-input{ display:flex; gap:8px; margin-top:8px; }
-    .comment-input input{
-      flex:1; padding:10px; border:none; border-radius:12px; background:#fff; color:#222;
-    }
-    .comment-input button{ padding:10px 14px; border:none; border-radius:12px; background:#2ecc71; color:#fff; cursor:pointer; }
+    .comment-section{display:none;padding:10px;}
+    .comment{background:#fff;color:#222;border-radius:8px;padding:8px 12px;margin:6px 0;font-size:.92rem;}
+    .comment-input{display:flex;gap:8px;margin-top:8px;}
+    .comment-input input{flex:1;padding:10px;border:none;border-radius:12px;background:#fff;color:#222;}
+    .comment-input button{padding:10px 14px;border:none;border-radius:12px;background:#2ecc71;color:#fff;cursor:pointer;}
 
-    .auth{ text-align:center; max-width:320px; margin:80px auto 0; }
-    .auth button{ margin-top:14px; padding:10px 14px; border:none; border-radius:12px; background:#2ecc71; color:#fff; font-weight:700; cursor:pointer; }
-
-    @media (max-width:480px){
-      .header{ padding:0 6px; }
-      .logo h1{ font-size:1.2rem; }
-      .logout{ font-size:.8rem; padding:6px 12px; }
-      .post-actions-row{ flex-direction:column; align-items:stretch; }
-      .send-btn{ width:100%; }
-    }
+    .auth{text-align:center;max-width:320px;margin:80px auto 0;}
+    .auth button{margin-top:14px;padding:10px 14px;border:none;border-radius:12px;background:#2ecc71;color:#fff;font-weight:700;cursor:pointer;}
   </style>
 </head>
 <body>
   <div class="overlay">
-    <!-- Header -->
     <div class="header">
       <div class="logo">
-        <img src="bpc-bird.png" alt="BPC Kuş">
+        <img src="bpc-bird.png" alt="BPC Bird">
         <h1>BPC-SOCIAL</h1>
       </div>
-      <button class="logout" id="logoutBtn" onclick="logout()">Çıkış</button>
+      <button class="logout" id="logoutBtn" onclick="logout()">Logout</button>
     </div>
 
-    <!-- Giriş -->
     <div id="auth" class="auth">
-      <h2>Topluluğa Katıl</h2>
-      <p><strong>Kod:</strong> BPC545776</p>
-      <input type="text" id="accessCode" placeholder="Kodu gir..." style="padding:12px; border-radius:12px; border:none; width:100%; margin:10px 0;">
-      <button onclick="loginWithCode()">Giriş Yap</button>
-      <p style="font-size:.8rem; margin-top:10px; opacity:.9;">Kod ile sabit BPC ID alırsın.</p>
+      <h2>Join the Community</h2>
+      <p><strong>Code:</strong> BPC545776</p>
+      <input type="text" id="accessCode" placeholder="Enter code..." style="padding:12px;border-radius:12px;border:none;width:100%;margin:10px 0;">
+      <button onclick="loginWithCode()">Login</button>
+      <p style="font-size:.8rem;margin-top:10px;">Use the code to get your fixed BPC ID.</p>
     </div>
 
-    <!-- Feed -->
-    <div id="feed" style="display:none; margin-top:10px;">
-      <div class="user-info">Sen: <span id="currentUserId"></span></div>
+    <div id="feed" style="display:none;margin-top:10px;">
+      <div class="user-info">You: <span id="currentUserId"></span></div>
       <div class="post-form">
-        <textarea id="postContent" placeholder="Mars'ta ne düşünüyorsun?"></textarea>
+        <textarea id="postContent" placeholder="What are you thinking on Mars?"></textarea>
         <div class="post-actions-row">
           <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
@@ -134,191 +95,135 @@
             <button onclick="addEmoji('⭐')">⭐ Star</button>
             <button onclick="addEmoji('😂')">😂 Laugh</button>
           </div>
-          <button class="send-btn" onclick="createPost()">Gönder</button>
+          <button class="send-btn" onclick="createPost()">Post</button>
         </div>
       </div>
       <div id="posts"></div>
     </div>
   </div>
 
-  <!-- Firebase RTDB (modüler v10) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
     import { getDatabase, ref, push, set, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-    // ---- KENDİ PROJE AYARLARIN ----
     const firebaseConfig = {
-      apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5z5v5z5v5",
+      apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5v5v5v5",
       authDomain: "bpc-social.firebaseapp.com",
-      // Bölge: Belgium (europe-west1)
       databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "bpc-social",
       storageBucket: "bpc-social.appspot.com",
       messagingSenderId: "123456789",
       appId: "1:123456789:web:abcdef123456"
     };
-    // -------------------------------
 
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
-    const postsRef = ref(db, "posts");
+    const postsRef = ref(db,"posts");
+    let currentUser=null;
+    const MODS=["BPC545776"];
 
-    let currentUser = null;
-    const MODERATORS = ["BPC545776"];
+    function generateBPCID(){return `BPC${Math.floor(100000+Math.random()*900000)}`;}
 
-    // ----- Auth -----
-    function generateBPCID(){ return `BPC${Math.floor(100000 + Math.random()*900000)}`; }
-
-    window.loginWithCode = function(){
-      const code = (document.getElementById('accessCode').value || '').trim();
-      if(code === "BPC545776"){
-        const userId = "BPC545776";
-        localStorage.setItem("bpc_user_id", userId);
-        initUser(userId);
-      }else{
-        alert("Geçersiz kod!");
-      }
+    window.loginWithCode=function(){
+      const code=document.getElementById('accessCode').value.trim();
+      if(code==="BPC545776"){const id="BPC545776";localStorage.setItem("bpc_user_id",id);initUser(id);}
+      else alert("Invalid code!");
     };
-    function initUser(userId){
-      currentUser = { id:userId, avatar:"bpc-bird.png" };
-      document.getElementById('currentUserId').textContent = userId;
-      document.getElementById('auth').style.display = 'none';
-      document.getElementById('feed').style.display = 'block';
-      document.getElementById('logoutBtn').style.display = 'inline-block';
+    function initUser(id){
+      currentUser={id,avatar:"bpc-bird.png"};
+      document.getElementById('currentUserId').textContent=id;
+      document.getElementById('auth').style.display='none';
+      document.getElementById('feed').style.display='block';
+      document.getElementById('logoutBtn').style.display='inline-block';
       listenToPosts();
     }
-    window.logout = function(){
-      localStorage.removeItem("bpc_user_id");
-      location.reload();
+    window.logout=function(){localStorage.removeItem("bpc_user_id");location.reload();}
+    window.onload=()=>{const s=localStorage.getItem("bpc_user_id");if(s)initUser(s);};
+
+    window.toggleEmojiPanel=function(){const p=document.getElementById('emojiPanel');p.style.display=p.style.display==='block'?'none':'block';};
+    window.addEmoji=function(e){const t=document.getElementById('postContent');t.value+=(t.value?' ':'')+e;toggleEmojiPanel();};
+
+    window.createPost=function(){
+      if(!currentUser){alert("Login first.");return;}
+      const content=document.getElementById('postContent').value.trim();
+      if(!content)return;
+      const newRef=push(postsRef);
+      set(newRef,{userId:currentUser.id,content,timestamp:Date.now(),comments:{},reactions:{}})
+        .then(()=>{document.getElementById('postContent').value='';})
+        .catch(err=>{console.error("Post error:",err);alert("Post failed.");});
     };
 
-    // İlk açılışta kaydedilmiş ID varsa otomatik giriş
-    window.onload = () => {
-      const saved = localStorage.getItem("bpc_user_id");
-      if(saved){ initUser(saved); }
-    };
-
-    // ----- Emoji Panel -----
-    window.toggleEmojiPanel = function(){
-      const p = document.getElementById('emojiPanel');
-      p.style.display = (p.style.display === 'block' ? 'none' : 'block');
-    };
-    window.addEmoji = function(emojiChar){
-      const ta = document.getElementById('postContent');
-      ta.value += (ta.value ? ' ' : '') + emojiChar;
-      toggleEmojiPanel();
-    };
-
-    // ----- Post Oluştur -----
-    window.createPost = function(){
-      if(!currentUser){ alert("Önce giriş yap."); return; }
-      const content = (document.getElementById('postContent').value || '').trim();
-      if(!content){ return; }
-
-      const newRef = push(postsRef);
-      const post = {
-        userId: currentUser.id,
-        content,
-        timestamp: Date.now(),
-        comments: {},
-        reactions: {}
-      };
-
-      set(newRef, post).then(()=>{
-        document.getElementById('postContent').value = '';
-      }).catch(err=>{
-        console.error("Gönderi hatası:", err);
-        alert("Gönderi eklenemedi.");
-      });
-    };
-
-    // ----- Postları Dinle & Render Et -----
     function listenToPosts(){
-      onValue(postsRef, (snap)=>{
-        const data = snap.val();
-        const posts = data ? Object.entries(data).map(([id,p])=>({id, ...p})) : [];
-        posts.sort((a,b)=> b.timestamp - a.timestamp);
-        renderPosts(posts);
+      onValue(postsRef,snap=>{
+        const data=snap.val();
+        const arr=data?Object.entries(data).map(([id,p])=>({id,...p})):[];
+        arr.sort((a,b)=>b.timestamp-a.timestamp);
+        renderPosts(arr);
       });
     }
 
     function renderPosts(posts){
-      const container = document.getElementById('posts');
-      container.innerHTML = posts.map(post=>{
-        const time = new Date(post.timestamp).toLocaleString('tr-TR');
-        const reactions = post.reactions || {};
-        const isMod = MODERATORS.includes(currentUser?.id);
+      const c=document.getElementById('posts');
+      c.innerHTML=posts.map(p=>{
+        const t=new Date(p.timestamp).toLocaleString('en-GB');
+        const r=p.reactions||{};
+        const mod=MODS.includes(currentUser?.id);
         return `
-          <div class="post">
-            <div class="post-header">
-              <img src="bpc-bird.png" alt="avatar">
-              <div>
-                <div class="post-user">
-                  ${escapeHtml(post.userId)}
-                  ${MODERATORS.includes(post.userId) ? '<span class="mod-badge">MOD</span>' : ''}
-                  <span class="user-badge">${escapeHtml(post.userId)}</span>
-                </div>
-                <div class="post-time">${time}</div>
+        <div class="post">
+          <div class="post-header">
+            <img src="bpc-bird.png"><div>
+              <div class="post-user">
+                ${escapeHtml(p.userId)}
+                ${MODS.includes(p.userId)?'<span class="mod-badge">MOD</span>':''}
+                <span class="user-badge">${escapeHtml(p.userId)}</span>
               </div>
-            </div>
-            <div class="post-content">${escapeHtml(post.content)}</div>
-            <div class="post-actions">
-              <button class="comment-btn" onclick="toggleComments('${post.id}')">Yorum Yap</button>
-              <button class="emoji-btn" onclick="addReaction('${post.id}','Like')">👍 ${reactions['Like']||0}</button>
-              <button class="emoji-btn" onclick="addReaction('${post.id}','Heart')">❤️ ${reactions['Heart']||0}</button>
-              <button class="emoji-btn" onclick="addReaction('${post.id}','Rocket')">🚀 ${reactions['Rocket']||0}</button>
-              <button class="report-btn" onclick="reportPost('${post.id}')">Rapor</button>
-              ${isMod ? `<button class="delete-btn" onclick="deletePost('${post.id}')">Sil</button>` : ''}
-            </div>
-            <div id="comments-${post.id}" class="comment-section">
-              ${(Object.entries(post.comments||{}).map(([cid,c])=>`
-                <div class="comment"><strong>${escapeHtml(c.userId)}:</strong> ${escapeHtml(c.text)} <small>(${c.time})</small></div>
-              `).join(''))}
-              <div class="comment-input">
-                <input id="comment-input-${post.id}" type="text" placeholder="Yorum yaz...">
-                <button onclick="addComment('${post.id}')">Gönder</button>
-              </div>
+              <div class="post-time">${t}</div>
             </div>
           </div>
-        `;
+          <div class="post-content">${escapeHtml(p.content)}</div>
+          <div class="post-actions">
+            <button class="comment-btn" onclick="toggleComments('${p.id}')">Comment</button>
+            <button class="emoji-btn" onclick="addReaction('${p.id}','Like')">👍 ${r['Like']||0}</button>
+            <button class="emoji-btn" onclick="addReaction('${p.id}','Heart')">❤️ ${r['Heart']||0}</button>
+            <button class="emoji-btn" onclick="addReaction('${p.id}','Rocket')">🚀 ${r['Rocket']||0}</button>
+            <button class="report-btn" onclick="reportPost('${p.id}')">Report</button>
+            ${mod?`<button class="delete-btn" onclick="deletePost('${p.id}')">Delete</button>`:''}
+          </div>
+          <div id="comments-${p.id}" class="comment-section">
+            ${(Object.entries(p.comments||{}).map(([cid,c])=>`
+              <div class="comment"><strong>${escapeHtml(c.userId)}:</strong> ${escapeHtml(c.text)} <small>(${c.time})</small></div>`).join(''))}
+            <div class="comment-input">
+              <input id="comment-input-${p.id}" type="text" placeholder="Write a comment...">
+              <button onclick="addComment('${p.id}')">Send</button>
+            </div>
+          </div>
+        </div>`;
       }).join('');
     }
 
-    // ----- Yorum / Reaksiyon / Rapor / Sil -----
-    window.toggleComments = function(id){
-      const el = document.getElementById(`comments-${id}`);
-      el.style.display = (el.style.display === 'block' ? 'none' : 'block');
+    window.toggleComments=function(id){
+      const el=document.getElementById(`comments-${id}`);
+      el.style.display=el.style.display==='block'?'none':'block';
     };
-    window.addComment = function(postId){
-      const input = document.getElementById(`comment-input-${postId}`);
-      const text = (input.value || '').trim();
-      if(!text || !currentUser) return;
-      const commentRef = ref(db, `posts/${postId}/comments`);
-      push(commentRef, { userId: currentUser.id, text, time: new Date().toLocaleString('tr-TR', {hour:'2-digit', minute:'2-digit'}) });
-      input.value = '';
+    window.addComment=function(id){
+      const input=document.getElementById(`comment-input-${id}`);
+      const txt=input.value.trim();
+      if(!txt||!currentUser)return;
+      push(ref(db,`posts/${id}/comments`),{userId:currentUser.id,text:txt,time:new Date().toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit'})});
+      input.value='';
     };
-    window.addReaction = function(postId, type){
-      const rxRef = ref(db, `posts/${postId}/reactions/${type}`);
-      runTransaction(rxRef, curr => (curr || 0) + 1);
-    };
-    window.reportPost = function(postId){
-      if(confirm("Rapor etmek istediğine emin misin?")){
-        const repRef = ref(db, `reports/${postId}`);
-        set(repRef, { userId: currentUser.id, time: Date.now() });
-        alert("Raporlandı!");
+    window.addReaction=function(id,type){runTransaction(ref(db,`posts/${id}/reactions/${type}`),c=>(c||0)+1);};
+    window.reportPost=function(id){
+      if(confirm("Are you sure you want to report this post?")){
+        set(ref(db,`reports/${id}`),{userId:currentUser.id,time:Date.now()});
+        alert("Reported!");
       }
     };
-    window.deletePost = function(postId){
-      if(!MODERATORS.includes(currentUser?.id)) return;
-      if(confirm("Silmek istediğine emin misin?")){
-        remove(ref(db, `posts/${postId}`));
-      }
+    window.deletePost=function(id){
+      if(!MODS.includes(currentUser?.id))return;
+      if(confirm("Delete this post?")) remove(ref(db,`posts/${id}`));
     };
-
-    // ----- XSS koruması -----
-    function escapeHtml(text){
-      const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
-    }
+    function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
   </script>
 </body>
 </html>
