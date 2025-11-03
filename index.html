@@ -195,13 +195,13 @@
     </div>
   </div>
 
-  <!-- Drone -->
-  <img src="drone.png" alt="Drone" class="drone"/>
+  <!-- Drone yerine assets.png -->
+  <img src="assets.png" alt="Assets" class="drone"/>
 
   <!-- Firebase RTDB -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { getDatabase, ref, push, set, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5z5v5z5v5",
@@ -218,14 +218,12 @@
     const postsRef = ref(db, 'posts');
 
     let currentUser = null;
-    const MODERATORS = ["BPC545776"]; // Sabit ID'li kullanıcılar mod
+    const MODERATORS = ["BPC545776"];
 
-    // BPC ID üret
     function generateBPCID() {
       return `BPC${Math.floor(100000 + Math.random() * 900000)}`;
     }
 
-    // Kodla giriş
     window.loginWithCode = function() {
       const code = document.getElementById('accessCode').value.trim();
       if (code === "BPC545776") {
@@ -233,11 +231,10 @@
         localStorage.setItem('bpc_user_id', userId);
         initUser(userId);
       } else {
-        alert("Geçersiz kod! Sadece BPC545776 ile giriş yapabilirsin.");
+        alert("Geçersiz kod!");
       }
     };
 
-    // Normal giriş (rastgele ID)
     window.createUser = function() {
       let userId = localStorage.getItem('bpc_user_id');
       if (!userId) {
@@ -261,45 +258,50 @@
       location.reload();
     };
 
-    // Emoji panel
     window.toggleEmojiPanel = function() {
       const panel = document.getElementById('emojiPanel');
       panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     };
+
     window.addEmoji = function(emoji) {
       const textarea = document.getElementById('postContent');
       textarea.value += ` ${emoji}`;
       toggleEmojiPanel();
     };
 
-    // Gönderi oluştur
+    // GÖNDERİ OLUŞTUR – PUSH + ID EKLE
     window.createPost = function() {
       const content = document.getElementById('postContent').value.trim();
       if (!content) return alert("Boş gönderi olamaz!");
 
+      const newPostRef = push(postsRef);
       const post = {
         userId: currentUser.id,
         content,
         timestamp: Date.now(),
-        comments: [],
+        comments: {},
         reactions: {}
       };
 
-      push(postsRef, post);
-      document.getElementById('postContent').value = '';
+      set(newPostRef, post).then(() => {
+        document.getElementById('postContent').value = '';
+      }).catch(err => {
+        console.error("Gönderi hatası:", err);
+        alert("Gönderi eklenemedi. Konsolu kontrol et.");
+      });
     };
 
-    // Gerçek zamanlı dinle
     function listenToPosts() {
       onValue(postsRef, (snapshot) => {
         const data = snapshot.val();
         const posts = data ? Object.entries(data).map(([id, p]) => ({ id, ...p })) : [];
         posts.sort((a, b) => b.timestamp - a.timestamp);
         renderPosts(posts);
+      }, (error) => {
+        console.error("RTDB Hatası:", error);
       });
     }
 
-    // Render
     function renderPosts(posts) {
       const container = document.getElementById('posts');
       container.innerHTML = posts.map(post => {
@@ -310,7 +312,7 @@
         return `
           <div class="post">
             <div class="post-header">
-              <img src="${post.avatar || 'bpc-bird.png'}" />
+              <img src="bpc-bird.png" />
               <div>
                 <div class="post-user">
                   ${escapeHtml(post.userId)}
@@ -330,7 +332,7 @@
               ${isMod ? `<button class="delete-btn" onclick="deletePost('${post.id}')">Sil</button>` : ''}
             </div>
             <div id="comments-${post.id}" class="comment-section">
-              ${(post.comments || []).map(c => `
+              ${Object.entries(post.comments || {}).map(([cid, c]) => `
                 <div class="comment">
                   <strong>${escapeHtml(c.userId)}:</strong> ${escapeHtml(c.text)} <small>(${c.time})</small>
                 </div>
@@ -345,7 +347,6 @@
       }).join('');
     }
 
-    // Yorum ekle
     window.addComment = function(postId) {
       const input = document.getElementById(`comment-input-${postId}`);
       const text = input.value.trim();
@@ -360,24 +361,21 @@
       input.value = '';
     };
 
-    // Tepki ekle
     window.addReaction = function(postId, type) {
       const reactionRef = ref(db, `posts/${postId}/reactions/${type}`);
       runTransaction(reactionRef, (current) => (current || 0) + 1);
     };
 
-    // Rapor
     window.reportPost = function(postId) {
-      if (confirm("Bu gönderiyi rapor etmek istediğine emin misin?")) {
+      if (confirm("Rapor etmek istediğine emin misin?")) {
         const reportRef = ref(db, `reports/${postId}`);
         set(reportRef, { userId: currentUser.id, time: Date.now() });
         alert("Raporlandı!");
       }
     };
 
-    // Sil (sadece mod)
     window.deletePost = function(postId) {
-      if (confirm("Bu gönderiyi silmek istediğine emin misin?")) {
+      if (confirm("Silmek istediğine emin misin?")) {
         remove(ref(db, `posts/${postId}`));
       }
     };
@@ -393,7 +391,6 @@
       return div.innerHTML;
     }
 
-    // Otomatik giriş
     window.onload = () => {
       const savedId = localStorage.getItem('bpc_user_id');
       if (savedId) {
