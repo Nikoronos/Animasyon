@@ -210,6 +210,9 @@
       display:none;
       box-shadow:0 10px 25px rgba(15,23,42,.95);
       z-index:50;
+      max-height:230px;
+      overflow-y:auto;
+      width:160px;
     }
     .emoji-panel button{
       display:block;
@@ -423,13 +426,33 @@
         <div style="position:relative;">
           <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
-            <button onclick="addEmoji('🚀')">🚀 Launch</button>
-            <button onclick="addEmoji('🌍')">🌍 Earth</button>
-            <button onclick="addEmoji('🔴')">🔴 Mars</button>
-            <button onclick="addEmoji('🪐')">🪐 Kepler</button>
-            <button onclick="addEmoji('🦚')">🦚 Peacock</button>
-            <button onclick="addEmoji('🔥')">🔥 Hype</button>
-            <button onclick="addEmoji('😂')">😂 Fun</button>
+            <!-- GENİŞ EMOJİ SETİ -->
+            <button onclick="addEmoji('😀')">😀</button>
+            <button onclick="addEmoji('😁')">😁</button>
+            <button onclick="addEmoji('😂')">😂</button>
+            <button onclick="addEmoji('🤣')">🤣</button>
+            <button onclick="addEmoji('😊')">😊</button>
+            <button onclick="addEmoji('😍')">😍</button>
+            <button onclick="addEmoji('😎')">😎</button>
+            <button onclick="addEmoji('😢')">😢</button>
+            <button onclick="addEmoji('😡')">😡</button>
+            <button onclick="addEmoji('👍')">👍</button>
+            <button onclick="addEmoji('👎')">👎</button>
+            <button onclick="addEmoji('👏')">👏</button>
+            <button onclick="addEmoji('🙏')">🙏</button>
+            <button onclick="addEmoji('🔥')">🔥</button>
+            <button onclick="addEmoji('⭐')">⭐</button>
+            <button onclick="addEmoji('🌍')">🌍</button>
+            <button onclick="addEmoji('🔴')">🔴</button>
+            <button onclick="addEmoji('🪐')">🪐</button>
+            <button onclick="addEmoji('🌙')">🌙</button>
+            <button onclick="addEmoji('☀️')">☀️</button>
+            <button onclick="addEmoji('🚀')">🚀</button>
+            <button onclick="addEmoji('🛰️')">🛰️</button>
+            <button onclick="addEmoji('🦚')">🦚</button>
+            <button onclick="addEmoji('💎')">💎</button>
+            <button onclick="addEmoji('💬')">💬</button>
+            <button onclick="addEmoji('📢')">📢</button>
           </div>
         </div>
 
@@ -444,40 +467,41 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getDatabase, ref, push, set, onValue, runTransaction, remove
+    getDatabase, ref, push, set, onValue,
+    runTransaction, remove
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // --- FIREBASE CONFIG (KENDİ VERİLERİNLE DOLDUR) ---
+  // -------- FIREBASE CONFIG (BPC-SOCIAL) --------
+  // Firebase konsolunda: Project settings -> Your apps -> Web app (</>) kısmındaki
+  // JS config'i aç. Aşağıdaki alanlara birebir kopyala.
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
+    apiKey: "PASTE_YOUR_API_KEY_HERE",
+    authDomain: "bpc-social.firebaseapp.com",
+    databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "bpc-social",
+    storageBucket: "bpc-social.appspot.com",
+    messagingSenderId: "PASTE_SENDER_ID_HERE",
+    appId: "PASTE_APP_ID_HERE"
   };
 
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // SADECE 3 GEZEGEN:
+  // -------- TW0X SETTINGS --------
   const PLANETS = [
     {key:'earth',  name:'Earth',  emoji:'🌍'},
     {key:'mars',   name:'Mars',   emoji:'🔴'},
     {key:'kepler', name:'Kepler', emoji:'🪐'}
   ];
-
   const MAX_CHARS = 220;
-  const MOD_ID = "BPC545776"; // sende
-  const MIN_INTERVAL = 3000;  // spam fren (3sn)
+  const MOD_ID = "BPC545776";
+  const MIN_INTERVAL = 3000;
   let lastPostTime = 0;
 
   let currentUser = null;
   let currentPlanet = 'earth';
   let unsubscribe = null;
 
-  // DOM
   const authEl = document.getElementById('auth');
   const appEl = document.getElementById('app');
   const currentUserSpan = document.getElementById('currentUserId');
@@ -489,17 +513,16 @@
   const charCountEl = document.getElementById('charCount');
   const emojiPanel = document.getElementById('emojiPanel');
 
-  // HELPER
   function escapeHtml(t){
-    const d = document.createElement('div');
-    d.textContent = t || '';
+    const d=document.createElement('div');
+    d.textContent=t||'';
     return d.innerHTML;
   }
   function generateBPCID(){
     return `BPC${Math.floor(100000 + Math.random()*900000)}`;
   }
 
-  // LOGIN
+  // ---------- LOGIN ----------
   window.loginWithCode = function(){
     const input = document.getElementById('accessCode');
     const typedRaw = (input.value || '').trim();
@@ -510,7 +533,6 @@
       initUser(saved);
       return;
     }
-
     if(!typed && !saved){
       const id = generateBPCID();
       alert(`Your new Twox ID:\n${id}\n\nBunu kaybetme, aynı hesap için lazım.`);
@@ -555,7 +577,6 @@
     location.reload();
   };
 
-  // Auto login if saved
   window.addEventListener('load', () => {
     const saved = localStorage.getItem('twox_user_id');
     if(saved){
@@ -563,149 +584,141 @@
     }
   });
 
-  // PLANETS UI
+  // ---------- PLANETS ----------
   function renderPlanetsBar(){
     planetsBar.innerHTML = '';
-    PLANETS.forEach(p => {
-      const btn = document.createElement('button');
-      btn.className = 'planet-btn';
-      btn.dataset.planet = p.key;
-      btn.innerHTML = `<span class="emoji">${p.emoji}</span>${p.name}`;
-      btn.onclick = () => selectPlanet(p.key);
+    PLANETS.forEach(p=>{
+      const btn=document.createElement('button');
+      btn.className='planet-btn';
+      btn.dataset.planet=p.key;
+      btn.innerHTML=`<span class="emoji">${p.emoji}</span>${p.name}`;
+      btn.onclick=()=>selectPlanet(p.key);
       planetsBar.appendChild(btn);
     });
     updatePlanetButtons();
   }
-
   function updatePlanetButtons(){
-    const btns = planetsBar.querySelectorAll('.planet-btn');
-    btns.forEach(b => {
-      if(b.dataset.planet === currentPlanet) b.classList.add('active');
+    planetsBar.querySelectorAll('.planet-btn').forEach(b=>{
+      if(b.dataset.planet===currentPlanet) b.classList.add('active');
       else b.classList.remove('active');
     });
-    const p = PLANETS.find(pl => pl.key === currentPlanet);
-    currentPlanetLabel.textContent = `Planet: ${p ? p.name : currentPlanet}`;
+    const p=PLANETS.find(x=>x.key===currentPlanet);
+    currentPlanetLabel.textContent=`Planet: ${p?p.name:currentPlanet}`;
   }
-
-  function selectPlanet(planetKey){
-    currentPlanet = planetKey;
+  function selectPlanet(key){
+    currentPlanet=key;
     updatePlanetButtons();
-    listenPostsForPlanet(planetKey);
+    listenPostsForPlanet(key);
   }
 
-  // CHAR COUNTER
+  // ---------- CHAR COUNTER ----------
   function updateCharCount(){
-    if(!postContentEl || !charCountEl) return;
-    let val = postContentEl.value || '';
-    if(val.length > MAX_CHARS){
-      val = val.slice(0, MAX_CHARS);
-      postContentEl.value = val;
+    if(!postContentEl||!charCountEl) return;
+    let v=postContentEl.value||'';
+    if(v.length>MAX_CHARS){
+      v=v.slice(0,MAX_CHARS);
+      postContentEl.value=v;
     }
-    charCountEl.textContent = val.length;
+    charCountEl.textContent=v.length;
   }
   function setupCharCounter(){
     if(!postContentEl) return;
-    postContentEl.removeEventListener('input', updateCharCount);
-    postContentEl.addEventListener('input', updateCharCount);
+    postContentEl.removeEventListener('input',updateCharCount);
+    postContentEl.addEventListener('input',updateCharCount);
     updateCharCount();
   }
 
-  // EMOJI PANEL
+  // ---------- EMOJI ----------
   window.toggleEmojiPanel = function(){
     emojiPanel.style.display = (emojiPanel.style.display === 'block') ? 'none' : 'block';
   };
   window.addEmoji = function(emoji){
-    let val = postContentEl.value || '';
-    const add = (val && !val.endsWith(' ')) ? (' ' + emoji) : emoji;
-    val = (val + add).slice(0, MAX_CHARS);
-    postContentEl.value = val;
+    let v=postContentEl.value||'';
+    const add=(v && !v.endsWith(' ')) ? ' '+emoji : emoji;
+    v=(v+add).slice(0,MAX_CHARS);
+    postContentEl.value=v;
     updateCharCount();
-    emojiPanel.style.display = 'none';
+    emojiPanel.style.display='none';
   };
 
-  // CREATE POST
+  // ---------- CREATE POST ----------
   window.createPost = function(){
     if(!currentUser){
       alert("Login first.");
       return;
     }
-    const now = Date.now();
-    if(now - lastPostTime < MIN_INTERVAL){
-      alert("Slow down pioneer. Wait a bit.");
+    const now=Date.now();
+    if(now-lastPostTime<MIN_INTERVAL){
+      alert("Slow down pioneer. A few seconds between Twoxes.");
       return;
     }
-
-    let content = (postContentEl.value || '').trim();
+    let content=(postContentEl.value||'').trim();
     if(!content) return;
-    if(content.length > MAX_CHARS) content = content.slice(0, MAX_CHARS);
+    if(content.length>MAX_CHARS) content=content.slice(0,MAX_CHARS);
 
-    const postsRef = ref(db, `planets/${currentPlanet}/posts`);
-    const newRef = push(postsRef);
-    set(newRef, {
-      userId: currentUser.id,
-      planet: currentPlanet,
+    const postsRef=ref(db,`planets/${currentPlanet}/posts`);
+    const newRef=push(postsRef);
+    set(newRef,{
+      userId:currentUser.id,
+      planet:currentPlanet,
       content,
-      timestamp: now,
+      timestamp:now,
       reactions:{Rocket:0},
       comments:{}
     }).then(()=>{
-      lastPostTime = now;
-      postContentEl.value = '';
+      lastPostTime=now;
+      postContentEl.value='';
       updateCharCount();
-    }).catch(err=>{
-      console.error(err);
-      alert("Post failed.");
+    }).catch(e=>{
+      console.error(e);
+      alert("Post failed. (Config doğru mu kontrol et)");
     });
   };
 
-  // LISTEN POSTS PER PLANET
+  // ---------- LISTEN POSTS ----------
   function listenPostsForPlanet(planetKey){
-    if(unsubscribe){
-      unsubscribe();
-      unsubscribe = null;
-    }
-    const postsRef = ref(db, `planets/${planetKey}/posts`);
-    unsubscribe = onValue(postsRef, snap => {
-      const val = snap.val();
-      let arr = [];
+    if(unsubscribe){ unsubscribe(); unsubscribe=null; }
+    const postsRef=ref(db,`planets/${planetKey}/posts`);
+    unsubscribe = onValue(postsRef,snap=>{
+      const val=snap.val();
+      let arr=[];
       if(val){
-        arr = Object.entries(val).map(([id,post]) => ({id, ...post}));
-        arr.sort((a,b) => b.timestamp - a.timestamp);
+        arr=Object.entries(val).map(([id,post])=>({id,...post}));
+        arr.sort((a,b)=>b.timestamp-a.timestamp);
       }
-      renderPosts(arr);
+      renderPosts(planetKey,arr);
     });
   }
 
-  function renderPosts(posts){
+  function renderPosts(planetKey,posts){
     if(!posts.length){
-      const p = PLANETS.find(pl => pl.key === currentPlanet);
-      postsEl.innerHTML = `<div class="planet-empty">No Twox yet on ${p ? p.name : currentPlanet}. Be the first voice here.</div>`;
+      const p=PLANETS.find(pl=>pl.key===planetKey);
+      postsEl.innerHTML=`<div class="planet-empty">No Twox yet on ${p?p.name:planetKey}. Be the first voice here.</div>`;
       return;
     }
-    postsEl.innerHTML = posts.map(p => buildPostHtml(p)).join('');
+    postsEl.innerHTML=posts.map(p=>buildPostHtml(p)).join('');
   }
 
   function buildPostHtml(p){
-    const planet = PLANETS.find(pl => pl.key === p.planet) || PLANETS.find(pl => pl.key === currentPlanet);
-    const isModAuthor = (p.userId === MOD_ID);
-    const isModViewer = (currentUser && currentUser.id === MOD_ID);
-    const time = p.timestamp
-      ? new Date(p.timestamp).toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})
+    const planet=PLANETS.find(pl=>pl.key===p.planet)||PLANETS.find(pl=>pl.key===currentPlanet);
+    const isModAuthor=(p.userId===MOD_ID);
+    const isModViewer=(currentUser && currentUser.id===MOD_ID);
+    const time=p.timestamp
+      ? new Date(p.timestamp).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
       : '';
-    const reactions = p.reactions || {};
-    const comments = p.comments || {};
-
-    const planetKey = p.planet || currentPlanet;
+    const reactions=p.reactions||{};
+    const comments=p.comments||{};
+    const planetKey=p.planet||currentPlanet;
 
     return `
       <div class="post" id="post-${planetKey}-${p.id}">
         <div class="post-header">
-          <div class="post-avatar">${planet ? planet.emoji : '🪐'}</div>
+          <div class="post-avatar">${planet?planet.emoji:'🪐'}</div>
           <div>
             <div class="post-user-line">
               <div class="post-user-id">${escapeHtml(p.userId)}</div>
-              ${isModAuthor ? '<div class="badge-mod">MOD</div>' : ''}
-              <div class="badge-planet">${planet ? planet.name : ''}</div>
+              ${isModAuthor?'<div class="badge-mod">MOD</div>':''}
+              <div class="badge-planet">${planet?planet.name:''}</div>
             </div>
             <div class="post-time">${time}</div>
           </div>
@@ -724,7 +737,7 @@
             : ''}
         </div>
         <div class="comment-box" id="comments-${planetKey}-${p.id}">
-          ${Object.entries(comments).map(([cid,c]) => `
+          ${Object.entries(comments).map(([cid,c])=>`
             <div class="comment">
               <strong>${escapeHtml(c.userId||'')}</strong> ${escapeHtml(c.text||'')}
               <span style="color:#6b7280;font-size:.6rem;"> ${escapeHtml(c.time||'')}</span>
@@ -739,49 +752,43 @@
     `;
   }
 
-  // COMMENTS & REACTIONS & MOD
+  // ---------- COMMENTS & REACTIONS & MOD ----------
   window.toggleComments = function(planet,id){
-    const box = document.getElementById(`comments-${planet}-${id}`);
+    const box=document.getElementById(`comments-${planet}-${id}`);
     if(!box) return;
-    box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+    box.style.display = box.style.display === 'block' ? 'none' : 'block';
   };
 
   window.addComment = function(planet,id){
     if(!currentUser) return;
-    const input = document.getElementById(`comment-input-${planet}-${id}`);
+    const input=document.getElementById(`comment-input-${planet}-${id}`);
     if(!input) return;
-    const text = (input.value || '').trim();
+    const text=(input.value||'').trim();
     if(!text) return;
-    const path = ref(db, `planets/${planet}/posts/${id}/comments`);
-    const time = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    push(path,{
-      userId: currentUser.id,
-      text,
-      time
-    });
-    input.value = '';
+    const path=ref(db,`planets/${planet}/posts/${id}/comments`);
+    const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    push(path,{userId:currentUser.id,text,time});
+    input.value='';
   };
 
   window.addReaction = function(planet,id,type){
     if(!currentUser) return;
-    const countRef = ref(db, `planets/${planet}/posts/${id}/reactions/${type}`);
-    runTransaction(countRef, c => (c||0)+1);
+    const countRef=ref(db,`planets/${planet}/posts/${id}/reactions/${type}`);
+    runTransaction(countRef,c=>(c||0)+1);
   };
 
   window.reportPost = function(planet,id){
     if(!currentUser) return;
     if(!confirm("Report this Twox to Mod?")) return;
-    const repRef = ref(db, `reports/${planet}/${id}`);
-    set(repRef,{
-      by: currentUser.id,
-      time: Date.now()
-    }).then(()=>alert("Reported."));
+    const repRef=ref(db,`reports/${planet}/${id}`);
+    set(repRef,{by:currentUser.id,time:Date.now()})
+      .then(()=>alert("Reported."));
   };
 
   window.deletePost = function(planet,id){
-    if(!currentUser || currentUser.id !== MOD_ID) return;
+    if(!currentUser || currentUser.id!==MOD_ID) return;
     if(!confirm("Delete this Twox permanently?")) return;
-    const postRef = ref(db, `planets/${planet}/posts/${id}`);
+    const postRef=ref(db,`planets/${planet}/posts/${id}`);
     remove(postRef);
   };
 </script>
