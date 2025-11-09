@@ -164,309 +164,9 @@
   </div>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import {
-    getDatabase, ref, push, set, onValue,
-    runTransaction, remove
-  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // --- FIREBASE CONFIG: BURAYA KENDİ WEB CONFIG'İNİ BİREBİR YAPIŞTIR ---
-  const firebaseConfig = {
-    apiKey: "SENİN_API_KEY",
-    authDomain: "bpc-social.firebaseapp.com",
-    databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "bpc-social",
-    storageBucket: "bpc-social.appspot.com",
-    messagingSenderId: "SENİN_SENDER_ID",
-    appId: "SENİN_APP_ID"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
-
-  // --- SABİTLER ---
-  const PLANETS = [
-    {key:"earth",  name:"Earth",  emoji:"🌍"},
-    {key:"mars",   name:"Mars",   emoji:"🔴"},
-    {key:"kepler", name:"Kepler", emoji:"🪐"}
-  ];
-  const MAX_CHARS   = 220;
-  const MOD_ID      = "BPC545776";
-  const MIN_INTERVAL = 3000;
-
-  let lastPostTime = 0;
-  let currentUser  = null;
-  let currentPlanet = "earth";
-  let unsubscribe  = null;
-
-  // --- DOM ---
-  const authEl              = document.getElementById("auth");
-  const appEl               = document.getElementById("app");
-  const currentUserSpan     = document.getElementById("currentUserId");
-  const planetsBar          = document.getElementById("planetsBar");
-  const currentPlanetLabel  = document.getElementById("currentPlanetLabel");
-  const postsEl             = document.getElementById("posts");
-  const logoutBtn           = document.getElementById("logoutBtn");
-  const postContentEl       = document.getElementById("postContent");
-  const charCountEl         = document.getElementById("charCount");
-  const emojiPanel          = document.getElementById("emojiPanel");
-
-  // --- HELPER ---
-  function escapeHtml(t){
-    const d = document.createElement("div");
-    d.textContent = t || "";
-    return d.innerHTML;
-  }
-  function generateBPCID(){
-    return "BPC" + Math.floor(100000 + Math.random()*900000);
-  }
-
-  // --- LOGIN ---
-  window.loginWithCode = function(){
-    const input = document.getElementById("accessCode");
-    const typedRaw = (input.value || "").trim();
-    const typed = typedRaw.toUpperCase();
-    const saved = localStorage.getItem("twox_user_id");
-
-    if(!typed && saved){
-      initUser(saved);
-      return;
-    }
-
-    if(!typed && !saved){
-      const id = generateBPCID();
-      alert("Your new Twox ID:\\n" + id + "\\nBunu kaybetme.");
-      localStorage.setItem("twox_user_id", id);
-      initUser(id);
-      return;
-    }
-
-    const isMod   = (typed === MOD_ID);
-    const isValid = /^BPC\\d{6}$/.test(typed);
-
-    if(!isMod && !isValid){
-      alert("Invalid ID. Use BPC123456 format.");
-      return;
-    }
-
-    if(saved && saved !== typed){
-      const ok = confirm("This device already has ID: " + saved +
-                         "\\nReplace with: " + typed + " ?");
-      if(!ok){
-        initUser(saved);
-        return;
-      }
-    }
-
-    localStorage.setItem("twox_user_id", typed);
-    initUser(typed);
-  };
-
-  function initUser(id){
-    currentUser = { id };
-    authEl.style.display    = "none";
-    appEl.style.display     = "block";
-    logoutBtn.style.display = "inline-block";
-    currentUserSpan.textContent = id;
-
-    renderPlanetsBar();
-    selectPlanet("earth");
-    setupCharCounter();
-  }
-
-  window.logout = function(){
-    localStorage.removeItem("twox_user_id");
-    location.reload();
-  };
-
-  window.addEventListener("load", () => {
-    const saved = localStorage.getItem("twox_user_id");
-    if(saved){
-      initUser(saved);
-    }
-  });
-
-  // --- PLANET NAV ---
-  function renderPlanetsBar(){
-    planetsBar.innerHTML = "";
-    PLANETS.forEach(p => {
-      const btn = document.createElement("button");
-      btn.className = "planet-btn";
-      btn.dataset.planet = p.key;
-      btn.innerHTML = `<span class="emoji">${p.emoji}</span>${p.name}`;
-      btn.onclick = () => selectPlanet(p.key);
-      planetsBar.appendChild(btn);
-    });
-    updatePlanetButtons();
-  }
-
-  function updatePlanetButtons(){
-    const btns = planetsBar.querySelectorAll(".planet-btn");
-    btns.forEach(b => {
-      if(b.dataset.planet === currentPlanet) b.classList.add("active");
-      else b.classList.remove("active");
-    });
-    const p = PLANETS.find(pl => pl.key === currentPlanet);
-    currentPlanetLabel.textContent = "Planet: " + (p ? p.name : currentPlanet);
-  }
-
-  function selectPlanet(key){
-    currentPlanet = key;
-    updatePlanetButtons();
-    listenPostsForPlanet(key);
-  }
-
-  // --- CHAR COUNTER ---
-  function updateCharCount(){
-    let v = postContentEl.value || "";
-    if(v.length > MAX_CHARS){
-      v = v.slice(0, MAX_CHARS);
-      postContentEl.value = v;
-    }
-    charCountEl.textContent = v.length;
-  }
-
-  function setupCharCounter(){
-    postContentEl.addEventListener("input", updateCharCount);
-    updateCharCount();
-  }
-
-  // --- EMOJI ---
-  window.toggleEmojiPanel = function(){
-    emojiPanel.style.display =
-      (emojiPanel.style.display === "block") ? "none" : "block";
-  };
-
-  window.addEmoji = function(emoji){
-    let v = postContentEl.value || "";
-    const add = (v && !v.endsWith(" ")) ? (" " + emoji) : emoji;
-    v = (v + add).slice(0, MAX_CHARS);
-    postContentEl.value = v;
-    updateCharCount();
-    emojiPanel.style.display = "none";
-  };
-
-  // --- CREATE POST ---
-  window.createPost = function(){
-    if(!currentUser){
-      alert("Login first.");
-      return;
-    }
-
-    const now = Date.now();
-    if(now - lastPostTime < MIN_INTERVAL){
-      alert("Slow down pioneer.");
-      return;
-    }
-
-    let content = (postContentEl.value || "").trim();
-    if(!content) return;
-    if(content.length > MAX_CHARS) content = content.slice(0, MAX_CHARS);
-
-    const postsRef = ref(db, "planets/" + currentPlanet + "/posts");
-    const newRef   = push(postsRef);
-
-    set(newRef, {
-      userId: currentUser.id,
-      planet: currentPlanet,
-      content: content,
-      timestamp: now,
-      reactions: { Rocket: 0 },
-      comments: {}
-    }).then(() => {
-      lastPostTime = now;
-      postContentEl.value = "";
-      updateCharCount();
-    }).catch(e => {
-      alert("Post failed: " + (e.code || "") + " " + (e.message || ""));
-      console.error(e);
-    });
-  };
-
-  // --- LISTEN POSTS ---
-  function listenPostsForPlanet(planetKey){
-    if(typeof unsubscribe === "function"){
-      unsubscribe();
-      unsubscribe = null;
-    }
-
-    const postsRef = ref(db, "planets/" + planetKey + "/posts");
-    unsubscribe = onValue(postsRef, snap => {
-      const val = snap.val() || {};
-      const arr = Object.entries(val).map(([id, post]) => {
-        return { id, ...post };
-      }).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-      renderPosts(planetKey, arr);
-    }, err => {
-      console.error("onValue error:", err);
-    });
-  }
-
-  function renderPosts(planetKey, posts){
-    if(!posts.length){
-      const p = PLANETS.find(pl => pl.key === planetKey);
-      postsEl.innerHTML =
-        `<div class="planet-empty">No Twox yet on ${p ? p.name : planetKey}.</div>`;
-      return;
-    }
-
-    let html = "";
-    posts.forEach(p => {
-      html += buildPostHtml(p);
-    });
-    postsEl.innerHTML = html;
-  }
-
-  function buildPostHtml(p){
-    const planet = PLANETS.find(pl => pl.key === p.planet) ||
-                   PLANETS.find(pl => pl.key === currentPlanet);
-    const isModAuthor = (p.userId === MOD_ID);
-    const isModViewer = (currentUser && currentUser.id === MOD_ID);
-    const planetKey   = p.planet || currentPlanet;
-    const time = p.timestamp
-      ? new Date(p.timestamp)
-          .toLocaleString("en-GB", {
-            day: "2-digit", month: "2-digit",
-            hour: "2-digit", minute: "2-digit"
-          })
-      : "";
-
-    const reactions = p.reactions || {};
-    const comments  = p.comments  || {};
-    const rocket    = reactions.Rocket || 0;
-    const commentCount = Object.keys(comments).length;
-
-    // comments HTML
-    let commentsHtml = "";
-    Object.keys(comments).forEach(cid => {
-      const c = comments[cid];
-      const u = c.userId || "";
-      const t = c.time   || "";
-      const tx= c.text   || "";
-      commentsHtml +=
-        `<div class="comment">
-           <strong>${escapeHtml(u)}</strong> ${escapeHtml(tx)}
-           <span style="color:#6b7280;font-size:.6rem;"> ${escapeHtml(t)}</span>
-         </div>`;
-    });
-
-    // delete button (sadece mod)
-    let deleteBtn = "";
-    if(isModViewer){
-      deleteBtn =
-        `<button class="btn-mini btn-delete"
-           onclick="deletePost('${planetKey}','${p.id}')">🗑 Delete</button>`;
-    }
-
-    return (
-`<div class="post" id="post-${planetKey}-${p.id}">
-  <div class="post-header">
-    <div class="post-avatar">${planet ? planet.emoji : "🪐"}</div>
-    <div>
-      <div class="post-user-line">
-        <div class="post-user-id">${escapeHtml(p.userId)}</div>
+  
+            <div class="post-user-id">${escapeHtml(p.userId)}</div>
         ${isModAuthor ? '<div class="badge-mod">MOD</div>' : ""}
         <div class="badge-planet">${planet ? planet.name : ""}</div>
       </div>
@@ -493,57 +193,343 @@
 </div>`
     );
   }
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getDatabase, ref, push, set, onValue,
+    runTransaction, remove
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // --- COMMENTS & REACTIONS & MOD ---
-  window.toggleComments = function(planet,id){
-    const box = document.getElementById("comments-" + planet + "-" + id);
-    if(!box) return;
-    box.style.display = (box.style.display === "block") ? "none" : "block";
+  // === FIREBASE CONFIG (BPC-SOCIAL web config'ini BURAYA birebir yapıştır) ===
+  const firebaseConfig = {
+    apiKey: "SENIN_API_KEY",
+    authDomain: "bpc-social.firebaseapp.com",
+    databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "bpc-social",
+    storageBucket: "bpc-social.appspot.com",
+    messagingSenderId: "SENIN_SENDER_ID",
+    appId: "SENIN_APP_ID"
   };
 
-  window.addComment = function(planet,id){
-    if(!currentUser) return;
-    const input = document.getElementById("comment-input-" + planet + "-" + id);
-    if(!input) return;
-    const text = (input.value || "").trim();
-    if(!text) return;
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
 
-    const path = ref(db, "planets/" + planet + "/posts/" + id + "/comments");
-    const time = new Date().toLocaleTimeString("en-GB", {
-      hour:"2-digit", minute:"2-digit"
+  // === SABITLER ===
+  const PLANETS = [
+    { key: "earth",  name: "Earth",  emoji: "🌍" },
+    { key: "mars",   name: "Mars",   emoji: "🔴" },
+    { key: "kepler", name: "Kepler", emoji: "🪐" }
+  ];
+
+  const MAX_CHARS    = 220;
+  const MOD_ID       = "BPC545776";
+  const MIN_INTERVAL = 3000;
+
+  let lastPostTime   = 0;
+  let currentUser    = null;
+  let currentPlanet  = "earth";
+  let unsubscribe    = null;
+
+  // === DOM ===
+  const authEl             = document.getElementById("auth");
+  const appEl              = document.getElementById("app");
+  const currentUserSpan    = document.getElementById("currentUserId");
+  const planetsBar         = document.getElementById("planetsBar");
+  const currentPlanetLabel = document.getElementById("currentPlanetLabel");
+  const postsEl            = document.getElementById("posts");
+  const logoutBtn          = document.getElementById("logoutBtn");
+  const postContentEl      = document.getElementById("postContent");
+  const charCountEl        = document.getElementById("charCount");
+  const emojiPanel         = document.getElementById("emojiPanel");
+
+  // === HELPER ===
+  function escapeHtml(t) {
+    const d = document.createElement("div");
+    d.textContent = t || "";
+    return d.innerHTML;
+  }
+
+  function generateBPCID() {
+    return "BPC" + Math.floor(100000 + Math.random() * 900000);
+  }
+
+  // === LOGIN ===
+  window.loginWithCode = function () {
+    const input    = document.getElementById("accessCode");
+    const typedRaw = (input.value || "").trim();
+    const typed    = typedRaw.toUpperCase();
+    const saved    = localStorage.getItem("twox_user_id");
+
+    if (!typed && saved) {
+      initUser(saved);
+      return;
+    }
+
+    if (!typed && !saved) {
+      const id = generateBPCID();
+      alert("Your new Twox ID:\n" + id + "\nBunu kaybetme.");
+      localStorage.setItem("twox_user_id", id);
+      initUser(id);
+      return;
+    }
+
+    const isMod   = (typed === MOD_ID);
+    const isValid = /^BPC\d{6}$/.test(typed);
+
+    if (!isMod && !isValid) {
+      alert("Invalid ID. Use format BPC123456.");
+      return;
+    }
+
+    if (saved && saved !== typed) {
+      const ok = confirm(
+        "This device already has ID: " + saved +
+        "\nReplace with: " + typed + " ?"
+      );
+      if (!ok) {
+        initUser(saved);
+        return;
+      }
+    }
+
+    localStorage.setItem("twox_user_id", typed);
+    initUser(typed);
+  };
+
+  function initUser(id) {
+    currentUser = { id };
+    authEl.style.display    = "none";
+    appEl.style.display     = "block";
+    logoutBtn.style.display = "inline-block";
+    currentUserSpan.textContent = id;
+
+    renderPlanetsBar();
+    selectPlanet("earth");
+    setupCharCounter();
+  }
+
+  window.logout = function () {
+    localStorage.removeItem("twox_user_id");
+    location.reload();
+  };
+
+  window.addEventListener("load", () => {
+    const saved = localStorage.getItem("twox_user_id");
+    if (saved) initUser(saved);
+  });
+
+  // === PLANETS NAV ===
+  function renderPlanetsBar() {
+    planetsBar.innerHTML = "";
+    PLANETS.forEach(p => {
+      const btn = document.createElement("button");
+      btn.className = "planet-btn";
+      btn.dataset.planet = p.key;
+      btn.innerHTML = `<span class="emoji">${p.emoji}</span>${p.name}`;
+      btn.onclick = () => selectPlanet(p.key);
+      planetsBar.appendChild(btn);
     });
+    updatePlanetButtons();
+  }
 
-    push(path, {
-      userId: currentUser.id,
-      text: text,
-      time: time
+  function updatePlanetButtons() {
+    const btns = planetsBar.querySelectorAll(".planet-btn");
+    btns.forEach(b => {
+      if (b.dataset.planet === currentPlanet) b.classList.add("active");
+      else b.classList.remove("active");
     });
-    input.value = "";
+    const p = PLANETS.find(pl => pl.key === currentPlanet);
+    currentPlanetLabel.textContent = "Planet: " + (p ? p.name : currentPlanet);
+  }
+
+  function selectPlanet(key) {
+    currentPlanet = key;
+    updatePlanetButtons();
+    listenPostsForPlanet(key);
+  }
+
+  // === CHAR COUNTER ===
+  function updateCharCount() {
+    let v = postContentEl.value || "";
+    if (v.length > MAX_CHARS) {
+      v = v.slice(0, MAX_CHARS);
+      postContentEl.value = v;
+    }
+    charCountEl.textContent = v.length;
+  }
+
+  function setupCharCounter() {
+    postContentEl.addEventListener("input", updateCharCount);
+    updateCharCount();
+  }
+
+  // === EMOJI ===
+  window.toggleEmojiPanel = function () {
+    emojiPanel.style.display =
+      (emojiPanel.style.display === "block") ? "none" : "block";
   };
 
-  window.addReaction = function(planet,id,type){
-    if(!currentUser) return;
-    const countRef = ref(db,
-      "planets/" + planet + "/posts/" + id + "/reactions/" + type);
-    runTransaction(countRef, c => (c || 0) + 1);
+  window.addEmoji = function (emoji) {
+    let v = postContentEl.value || "";
+    const add = (v && !v.endsWith(" ")) ? (" " + emoji) : emoji;
+    v = (v + add).slice(0, MAX_CHARS);
+    postContentEl.value = v;
+    updateCharCount();
+    emojiPanel.style.display = "none";
   };
 
-  window.reportPost = function(planet,id){
-    if(!currentUser) return;
-    if(!confirm("Report this Twox to Mod?")) return;
-    const repRef = ref(db, "reports/" + planet + "/" + id);
-    set(repRef, {
-      by: currentUser.id,
-      time: Date.now()
+  // === CREATE POST ===
+  window.createPost = function () {
+    if (!currentUser) {
+      alert("Login first.");
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastPostTime < MIN_INTERVAL) {
+      alert("Slow down pioneer.");
+      return;
+    }
+
+    let content = (postContentEl.value || "").trim();
+    if (!content) return;
+    if (content.length > MAX_CHARS) content = content.slice(0, MAX_CHARS);
+
+    const postsRef = ref(db, "planets/" + currentPlanet + "/posts");
+    const newRef   = push(postsRef);
+
+    set(newRef, {
+      userId:   currentUser.id,
+      planet:   currentPlanet,
+      content:  content,
+      timestamp: now
+    }).then(() => {
+      lastPostTime = now;
+      postContentEl.value = "";
+      updateCharCount();
+    }).catch(e => {
+      alert("Post failed: " + (e.code || "") + " " + (e.message || ""));
+      console.error(e);
     });
   };
 
-  window.deletePost = function(planet,id){
-    if(!currentUser || currentUser.id !== MOD_ID) return;
-    if(!confirm("Delete this Twox permanently?")) return;
-    const postRef = ref(db, "planets/" + planet + "/posts/" + id);
-    remove(postRef);
-  };
+  // === LISTEN & RENDER POSTS ===
+  function listenPostsForPlanet(planetKey) {
+    if (typeof unsubscribe === "function") {
+      unsubscribe();
+      unsubscribe = null;
+    }
+
+    const postsRef = ref(db, "planets/" + planetKey + "/posts");
+
+    unsubscribe = onValue(postsRef, snapshot => {
+      const posts = [];
+
+      snapshot.forEach(child => {
+        const val = child.val() || {};
+        posts.push({
+          id: child.key,
+          userId:   val.userId   || "",
+          planet:   val.planet   || planetKey,
+          content:  val.content  || "",
+          timestamp: val.timestamp || 0
+        });
+      });
+
+      posts.sort((a, b) => b.timestamp - a.timestamp);
+      renderPosts(planetKey, posts);
+    }, error => {
+      console.error("onValue error:", error);
+    });
+  }
+
+  function renderPosts(planetKey, posts) {
+    postsEl.innerHTML = "";
+
+    if (!posts.length) {
+      const p = PLANETS.find(pl => pl.key === planetKey);
+      const empty = document.createElement("div");
+      empty.className = "planet-empty";
+      empty.textContent = "No Twox yet on " + (p ? p.name : planetKey) + ".";
+      postsEl.appendChild(empty);
+      return;
+    }
+
+    posts.forEach(p => {
+      const el = buildPostElement(p);
+      postsEl.appendChild(el);
+    });
+  }
+
+  function buildPostElement(p) {
+    const planet = PLANETS.find(pl => pl.key === p.planet) ||
+                   PLANETS.find(pl => pl.key === currentPlanet) ||
+                   { name: p.planet || "Unknown", emoji: "🪐" };
+
+    const card   = document.createElement("div");
+    card.className = "post";
+
+    // header
+    const header = document.createElement("div");
+    header.className = "post-header";
+
+    const avatar = document.createElement("div");
+    avatar.className = "post-avatar";
+    avatar.textContent = planet.emoji;
+
+    const infoBox = document.createElement("div");
+
+    const userLine = document.createElement("div");
+    userLine.className = "post-user-line";
+
+    const userIdSpan = document.createElement("div");
+    userIdSpan.className = "post-user-id";
+    userIdSpan.textContent = p.userId;
+
+    const planetBadge = document.createElement("div");
+    planetBadge.className = "badge-planet";
+    planetBadge.textContent = planet.name;
+
+    userLine.appendChild(userIdSpan);
+    if (p.userId === MOD_ID) {
+      const modBadge = document.createElement("div");
+      modBadge.className = "badge-mod";
+      modBadge.textContent = "MOD";
+      userLine.appendChild(modBadge);
+    }
+    userLine.appendChild(planetBadge);
+
+    const timeDiv = document.createElement("div");
+    timeDiv.className = "post-time";
+    if (p.timestamp) {
+      timeDiv.textContent = new Date(p.timestamp).toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    infoBox.appendChild(userLine);
+    infoBox.appendChild(timeDiv);
+
+    header.appendChild(avatar);
+    header.appendChild(infoBox);
+
+    // content
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "post-content";
+    contentDiv.innerHTML = escapeHtml(p.content);
+
+    card.appendChild(header);
+    card.appendChild(contentDiv);
+
+    return card;
+  }
+
+  // (Beğeni, yorum vs. sonra ekleriz; önce sağlam feed gözüksün.)
+</script>
+  
 </script>
 </body>
 </html>
