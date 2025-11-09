@@ -116,7 +116,7 @@
       font-weight:600;
     }
 
-    /* PLANETS NAV (3 ADET) */
+    /* PLANETS NAV */
     .planets-bar{
       display:flex;
       gap:6px;
@@ -212,7 +212,7 @@
       z-index:50;
       max-height:230px;
       overflow-y:auto;
-      width:160px;
+      width:170px;
     }
     .emoji-panel button{
       display:block;
@@ -392,14 +392,14 @@
     <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
 
-  <!-- AUTH PANEL -->
+  <!-- AUTH -->
   <div id="auth" class="auth">
     <h2>Welcome Pioneer</h2>
     <p>Twox Galaxy'de herkes bir BPC kod kimliktir. Örnek: <code>BPC123456</code><br>
        Boş bırakırsan senin için otomatik bir ID üretiriz.</p>
     <input id="accessCode" type="text" placeholder="Enter your BPC ID or leave empty">
     <button onclick="loginWithCode()">Enter Twox Galaxy</button>
-    <small>Moderator özel ID ile giriş yapar (BPC545776). Kullanıcılar anonim ama eşit.</small>
+    <small>Moderator: BPC545776. Kullanıcılar anonim ama eşit.</small>
   </div>
 
   <!-- APP -->
@@ -471,23 +471,21 @@
     runTransaction, remove
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // -------- FIREBASE CONFIG (BPC-SOCIAL) --------
-  // Firebase konsolunda: Project settings -> Your apps -> Web app (</>) kısmındaki
-  // JS config'i aç. Aşağıdaki alanlara birebir kopyala.
+  // ---- FIREBASE CONFIG: BPC-SOCIAL PROJENDEN AL ----
   const firebaseConfig = {
-    apiKey: "PASTE_YOUR_API_KEY_HERE",
+    apiKey: "BURAYA_WEB_APP_API_KEY",
     authDomain: "bpc-social.firebaseapp.com",
     databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "bpc-social",
     storageBucket: "bpc-social.appspot.com",
-    messagingSenderId: "PASTE_SENDER_ID_HERE",
-    appId: "PASTE_APP_ID_HERE"
+    messagingSenderId: "BURAYA_SENDER_ID",
+    appId: "BURAYA_APP_ID"
   };
 
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // -------- TW0X SETTINGS --------
+  // ---- TW0X AYARLAR ----
   const PLANETS = [
     {key:'earth',  name:'Earth',  emoji:'🌍'},
     {key:'mars',   name:'Mars',   emoji:'🔴'},
@@ -522,7 +520,7 @@
     return `BPC${Math.floor(100000 + Math.random()*900000)}`;
   }
 
-  // ---------- LOGIN ----------
+  // ---- LOGIN ----
   window.loginWithCode = function(){
     const input = document.getElementById('accessCode');
     const typedRaw = (input.value || '').trim();
@@ -584,7 +582,7 @@
     }
   });
 
-  // ---------- PLANETS ----------
+  // ---- PLANETS ----
   function renderPlanetsBar(){
     planetsBar.innerHTML = '';
     PLANETS.forEach(p=>{
@@ -597,6 +595,7 @@
     });
     updatePlanetButtons();
   }
+
   function updatePlanetButtons(){
     planetsBar.querySelectorAll('.planet-btn').forEach(b=>{
       if(b.dataset.planet===currentPlanet) b.classList.add('active');
@@ -605,13 +604,14 @@
     const p=PLANETS.find(x=>x.key===currentPlanet);
     currentPlanetLabel.textContent=`Planet: ${p?p.name:currentPlanet}`;
   }
+
   function selectPlanet(key){
     currentPlanet=key;
     updatePlanetButtons();
     listenPostsForPlanet(key);
   }
 
-  // ---------- CHAR COUNTER ----------
+  // ---- CHAR COUNTER ----
   function updateCharCount(){
     if(!postContentEl||!charCountEl) return;
     let v=postContentEl.value||'';
@@ -628,9 +628,10 @@
     updateCharCount();
   }
 
-  // ---------- EMOJI ----------
+  // ---- EMOJI ----
   window.toggleEmojiPanel = function(){
-    emojiPanel.style.display = (emojiPanel.style.display === 'block') ? 'none' : 'block';
+    emojiPanel.style.display =
+      (emojiPanel.style.display === 'block') ? 'none' : 'block';
   };
   window.addEmoji = function(emoji){
     let v=postContentEl.value||'';
@@ -641,7 +642,7 @@
     emojiPanel.style.display='none';
   };
 
-  // ---------- CREATE POST ----------
+  // ---- CREATE POST ----
   window.createPost = function(){
     if(!currentUser){
       alert("Login first.");
@@ -649,15 +650,17 @@
     }
     const now=Date.now();
     if(now-lastPostTime<MIN_INTERVAL){
-      alert("Slow down pioneer. A few seconds between Twoxes.");
+      alert("Slow down pioneer.");
       return;
     }
+
     let content=(postContentEl.value||'').trim();
     if(!content) return;
     if(content.length>MAX_CHARS) content=content.slice(0,MAX_CHARS);
 
     const postsRef=ref(db,`planets/${currentPlanet}/posts`);
     const newRef=push(postsRef);
+
     set(newRef,{
       userId:currentUser.id,
       planet:currentPlanet,
@@ -670,22 +673,22 @@
       postContentEl.value='';
       updateCharCount();
     }).catch(e=>{
-      console.error(e);
-      alert("Post failed. (Config doğru mu kontrol et)");
+      console.error("Firebase error:", e);
+      alert("Post failed: " + (e.code || "") + " " + (e.message || ""));
     });
   };
 
-  // ---------- LISTEN POSTS ----------
+  // ---- LISTEN POSTS ----
   function listenPostsForPlanet(planetKey){
-    if(unsubscribe){ unsubscribe(); unsubscribe=null; }
+    if(typeof unsubscribe === 'function'){
+      unsubscribe();
+      unsubscribe=null;
+    }
     const postsRef=ref(db,`planets/${planetKey}/posts`);
     unsubscribe = onValue(postsRef,snap=>{
-      const val=snap.val();
-      let arr=[];
-      if(val){
-        arr=Object.entries(val).map(([id,post])=>({id,...post}));
-        arr.sort((a,b)=>b.timestamp-a.timestamp);
-      }
+      const val=snap.val() || {};
+      const arr=Object.entries(val).map(([id,post])=>({id,...post}))
+        .sort((a,b)=> (b.timestamp||0)-(a.timestamp||0));
       renderPosts(planetKey,arr);
     });
   }
@@ -693,18 +696,21 @@
   function renderPosts(planetKey,posts){
     if(!posts.length){
       const p=PLANETS.find(pl=>pl.key===planetKey);
-      postsEl.innerHTML=`<div class="planet-empty">No Twox yet on ${p?p.name:planetKey}. Be the first voice here.</div>`;
+      postsEl.innerHTML=
+        `<div class="planet-empty">No Twox yet on ${p?p.name:planetKey}. Be the first.</div>`;
       return;
     }
     postsEl.innerHTML=posts.map(p=>buildPostHtml(p)).join('');
   }
 
   function buildPostHtml(p){
-    const planet=PLANETS.find(pl=>pl.key===p.planet)||PLANETS.find(pl=>pl.key===currentPlanet);
+    const planet=PLANETS.find(pl=>pl.key===p.planet)
+      || PLANETS.find(pl=>pl.key===currentPlanet);
     const isModAuthor=(p.userId===MOD_ID);
     const isModViewer=(currentUser && currentUser.id===MOD_ID);
     const time=p.timestamp
-      ? new Date(p.timestamp).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+      ? new Date(p.timestamp)
+          .toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
       : '';
     const reactions=p.reactions||{};
     const comments=p.comments||{};
@@ -752,7 +758,7 @@
     `;
   }
 
-  // ---------- COMMENTS & REACTIONS & MOD ----------
+  // ---- COMMENTS & REACTIONS & MOD ----
   window.toggleComments = function(planet,id){
     const box=document.getElementById(`comments-${planet}-${id}`);
     if(!box) return;
@@ -766,7 +772,8 @@
     const text=(input.value||'').trim();
     if(!text) return;
     const path=ref(db,`planets/${planet}/posts/${id}/comments`);
-    const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const time=new Date()
+      .toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     push(path,{userId:currentUser.id,text,time});
     input.value='';
   };
