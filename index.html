@@ -6,376 +6,97 @@
   <title>Twox Galaxy</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{
-      font-family:'Segoe UI',Tahoma,sans-serif;
-      background:#02030a;
-      color:#fff;
-      min-height:100vh;
-    }
-    .bg-stars{
-      position:fixed;inset:0;
-      background:
-        radial-gradient(circle at 10% 20%,rgba(255,255,255,.12) 0,transparent 40%),
-        radial-gradient(circle at 90% 10%,rgba(0,150,255,.08) 0,transparent 45%),
-        radial-gradient(circle at 80% 80%,rgba(255,255,255,.06) 0,transparent 55%);
-      opacity:0.22;
-      z-index:-1;
-    }
-    .overlay{
-      min-height:100vh;
-      padding:14px;
-      background:radial-gradient(circle at top,#111827dd,#02030add);
-    }
-
-    .header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:8px;
-      margin-bottom:10px;
-    }
-    .logo{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .logo-icon{
-      width:40px;height:40px;
-      border-radius:50%;
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:#02030a;color:#fff;min-height:100vh;}
+    .bg-stars{position:fixed;inset:0;background:
+      radial-gradient(circle at 10% 20%,rgba(255,255,255,.12) 0,transparent 40%),
+      radial-gradient(circle at 90% 10%,rgba(0,150,255,.08) 0,transparent 45%),
+      radial-gradient(circle at 80% 80%,rgba(255,255,255,.06) 0,transparent 55%);
+      opacity:0.22;z-index:-1;}
+    .overlay{min-height:100vh;padding:14px;background:radial-gradient(circle at top,#111827dd,#02030add);}
+    .header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+    .logo{display:flex;align-items:center;gap:8px;}
+    .logo-icon{width:40px;height:40px;border-radius:50%;
       background:radial-gradient(circle,#00e5ff,#2563eb);
       display:flex;align-items:center;justify-content:center;
       font-weight:900;font-size:18px;color:#020817;
-      box-shadow:0 0 16px rgba(56,189,248,.9);
-    }
-    .logo h1{
-      font-size:1.4rem;
-      letter-spacing:1px;
-      margin:0;
-    }
-    .logo span{
-      font-size:.7rem;
-      color:#9ca3af;
-    }
-
-    #logoutBtn{
-      display:none;
-      padding:8px 14px;
-      border:none;
-      border-radius:999px;
-      background:#ef4444;
-      color:#fff;
-      font-weight:600;
-      cursor:pointer;
-      font-size:.8rem;
-    }
-
-    /* AUTH */
-    .auth{
-      margin:50px auto 0;
-      max-width:340px;
-      padding:16px 14px 18px;
-      background:rgba(15,23,42,.96);
-      border-radius:18px;
-      box-shadow:0 10px 30px rgba(15,23,42,.9);
-      text-align:center;
-    }
+      box-shadow:0 0 16px rgba(56,189,248,.9);}
+    .logo h1{font-size:1.4rem;letter-spacing:1px;margin:0;}
+    .logo span{font-size:.7rem;color:#9ca3af;}
+    #logoutBtn{display:none;padding:8px 14px;border:none;border-radius:999px;
+      background:#ef4444;color:#fff;font-weight:600;cursor:pointer;font-size:.8rem;}
+    .auth{margin:50px auto 0;max-width:340px;padding:16px 14px 18px;
+      background:rgba(15,23,42,.96);border-radius:18px;
+      box-shadow:0 10px 30px rgba(15,23,42,.9);text-align:center;}
     .auth h2{font-size:1.3rem;margin-bottom:4px;}
     .auth p{font-size:.8rem;color:#9ca3af;margin-bottom:6px;}
-    .auth input{
-      width:100%;padding:10px 12px;
-      border-radius:12px;border:none;
-      margin:8px 0;
-      font-size:.9rem;
-    }
-    .auth button{
-      padding:9px 14px;
-      border:none;border-radius:12px;
-      background:#22c55e;
-      color:#fff;font-weight:700;
-      cursor:pointer;
-      width:100%;
-      margin-top:4px;
-      font-size:.9rem;
-    }
+    .auth input{width:100%;padding:10px 12px;border-radius:12px;border:none;margin:8px 0;font-size:.9rem;}
+    .auth button{padding:9px 14px;border:none;border-radius:12px;background:#22c55e;
+      color:#fff;font-weight:700;cursor:pointer;width:100%;margin-top:4px;font-size:.9rem;}
     .auth small{display:block;margin-top:6px;color:#6b7280;font-size:.7rem;}
-
-    /* MAIN LAYOUT */
     #app{display:none;}
-    .top-row{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      margin-bottom:8px;
-    }
-    .user-label{
-      font-size:.8rem;
-      color:#9ca3af;
-    }
-    .user-label span{
-      color:#38bdf8;
-      font-weight:600;
-    }
-
-    /* PLANETS NAV */
-    .planets-bar{
-      display:flex;
-      gap:6px;
-      overflow-x:auto;
-      padding:6px 2px 4px;
-      scrollbar-width:none;
-    }
+    .top-row{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+    .user-label{font-size:.8rem;color:#9ca3af;}
+    .user-label span{color:#38bdf8;font-weight:600;}
+    .planets-bar{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 4px;scrollbar-width:none;}
     .planets-bar::-webkit-scrollbar{display:none;}
-    .planet-btn{
-      flex:0 0 auto;
-      padding:6px 9px;
-      border-radius:999px;
-      border:1px solid transparent;
-      font-size:.7rem;
-      display:flex;
-      align-items:center;
-      gap:4px;
-      cursor:pointer;
-      background:rgba(15,23,42,.9);
-      color:#9ca3af;
-      transition:.18s;
-      white-space:nowrap;
-    }
+    .planet-btn{flex:0 0 auto;padding:6px 9px;border-radius:999px;border:1px solid transparent;
+      font-size:.7rem;display:flex;align-items:center;gap:4px;cursor:pointer;
+      background:rgba(15,23,42,.9);color:#9ca3af;transition:.18s;white-space:nowrap;}
     .planet-btn span.emoji{font-size:.9rem;}
-    .planet-btn.active{
-      color:#fff;
-      border-color:#38bdf8;
+    .planet-btn.active{color:#fff;border-color:#38bdf8;
       box-shadow:0 0 10px rgba(56,189,248,.6);
-      background:linear-gradient(to right,#111827,#0f172add);
-    }
-    .planet-label{
-      font-size:.7rem;
-      color:#6b7280;
-      margin-left:3px;
-    }
-
-    /* POST FORM */
-    .post-form{
-      margin-top:6px;
-      padding:10px;
-      background:rgba(15,23,42,.98);
-      border-radius:16px;
-      box-shadow:0 6px 18px rgba(15,23,42,.9);
-    }
-    .post-form-title{
-      font-size:.8rem;
-      color:#9ca3af;
-      margin-bottom:4px;
-    }
-    #postContent{
-      width:100%;
-      min-height:72px;
-      resize:vertical;
-      padding:9px 10px;
-      border-radius:12px;
-      border:none;
-      font-size:.9rem;
-      color:#111827;
-      background:#f9fafb;
-      outline:none;
-    }
-    .form-row{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      margin-top:6px;
-      flex-wrap:wrap;
-    }
-    .char-counter{
-      font-size:.7rem;
-      color:#9ca3af;
-      margin-right:auto;
-    }
-    .emoji-toggle{
-      padding:6px 10px;
-      border-radius:18px;
-      border:none;
-      background:#111827;
-      color:#e5e7eb;
-      cursor:pointer;
-      font-size:.75rem;
-    }
-    .emoji-panel{
-      position:absolute;
-      top:100%;
-      right:0;
-      margin-top:4px;
-      background:#020817;
-      border-radius:12px;
-      padding:6px;
-      display:none;
-      box-shadow:0 10px 25px rgba(15,23,42,.95);
-      z-index:50;
-      max-height:230px;
-      overflow-y:auto;
-      width:170px;
-    }
-    .emoji-panel button{
-      display:block;
-      width:100%;
-      text-align:left;
-      padding:4px 6px;
-      border:none;
-      background:transparent;
-      color:#e5e7eb;
-      font-size:1rem;
-      cursor:pointer;
-    }
-    .send-btn{
-      padding:7px 12px;
-      border-radius:14px;
-      border:none;
-      background:#38bdf8;
-      color:#020817;
-      font-weight:800;
-      cursor:pointer;
-      font-size:.8rem;
-    }
-
-    /* FEED */
-    #posts{
-      margin-top:10px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-    .planet-empty{
-      font-size:.75rem;
-      color:#6b7280;
-      padding:6px 2px;
-    }
-    .post{
-      padding:9px;
-      background:rgba(9,9,20,.98);
-      border-radius:14px;
-      border:1px solid rgba(75,85,99,.7);
-      box-shadow:0 4px 14px rgba(15,23,42,.9);
-      font-size:.8rem;
-    }
-    .post-header{
-      display:flex;
-      align-items:center;
-      gap:7px;
-      margin-bottom:4px;
-    }
-    .post-avatar{
-      width:26px;height:26px;
-      border-radius:50%;
+      background:linear-gradient(to right,#111827,#0f172add);}
+    .planet-label{font-size:.7rem;color:#6b7280;margin-left:3px;}
+    .post-form{margin-top:6px;padding:10px;background:rgba(15,23,42,.98);
+      border-radius:16px;box-shadow:0 6px 18px rgba(15,23,42,.9);}
+    .post-form-title{font-size:.8rem;color:#9ca3af;margin-bottom:4px;}
+    #postContent{width:100%;min-height:72px;resize:vertical;padding:9px 10px;border-radius:12px;
+      border:none;font-size:.9rem;color:#111827;background:#f9fafb;outline:none;}
+    .form-row{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;}
+    .char-counter{font-size:.7rem;color:#9ca3af;margin-right:auto;}
+    .emoji-toggle{padding:6px 10px;border-radius:18px;border:none;background:#111827;
+      color:#e5e7eb;cursor:pointer;font-size:.75rem;}
+    .emoji-panel{position:absolute;top:100%;right:0;margin-top:4px;background:#020817;
+      border-radius:12px;padding:6px;display:none;box-shadow:0 10px 25px rgba(15,23,42,.95);
+      z-index:50;max-height:230px;overflow-y:auto;width:170px;}
+    .emoji-panel button{display:block;width:100%;text-align:left;padding:4px 6px;border:none;
+      background:transparent;color:#e5e7eb;font-size:1rem;cursor:pointer;}
+    .send-btn{padding:7px 12px;border-radius:14px;border:none;background:#38bdf8;
+      color:#020817;font-weight:800;cursor:pointer;font-size:.8rem;}
+    #posts{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+    .planet-empty{font-size:.75rem;color:#6b7280;padding:6px 2px;}
+    .post{padding:9px;background:rgba(9,9,20,.98);border-radius:14px;
+      border:1px solid rgba(75,85,99,.7);box-shadow:0 4px 14px rgba(15,23,42,.9);font-size:.8rem;}
+    .post-header{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+    .post-avatar{width:26px;height:26px;border-radius:50%;
       background:radial-gradient(circle,#38bdf8,#0f172a);
       display:flex;align-items:center;justify-content:center;
-      font-size:.6rem;
-      font-weight:800;
-      color:#020817;
-    }
-    .post-user-line{
-      display:flex;
-      align-items:center;
-      gap:4px;
-      flex-wrap:wrap;
-    }
-    .post-user-id{
-      font-weight:700;
-      color:#e5e7eb;
-      font-size:.78rem;
-    }
-    .badge-mod{
-      padding:1px 6px;
-      border-radius:7px;
-      background:#f97316;
-      font-size:.6rem;
-      color:#111827;
-      font-weight:700;
-    }
-    .badge-planet{
-      padding:1px 6px;
-      border-radius:7px;
-      background:#111827;
-      font-size:.55rem;
-      color:#38bdf8;
-    }
-    .post-time{
-      font-size:.6rem;
-      color:#6b7280;
-    }
-    .post-content{
-      margin-top:4px;
-      padding:7px 8px;
-      border-radius:10px;
-      background:#f9fafb;
-      color:#111827;
-      font-size:.8rem;
-      word-wrap:break-word;
-      white-space:pre-wrap;
-    }
-    .post-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:5px;
-      margin-top:5px;
-    }
-    .btn-mini{
-      padding:4px 8px;
-      border-radius:9px;
-      border:none;
-      font-size:.65rem;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      gap:3px;
-      background:#111827;
-      color:#e5e7eb;
-    }
+      font-size:.6rem;font-weight:800;color:#020817;}
+    .post-user-line{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+    .post-user-id{font-weight:700;color:#e5e7eb;font-size:.78rem;}
+    .badge-mod{padding:1px 6px;border-radius:7px;background:#f97316;
+      font-size:.6rem;color:#111827;font-weight:700;}
+    .badge-planet{padding:1px 6px;border-radius:7px;background:#111827;
+      font-size:.55rem;color:#38bdf8;}
+    .post-time{font-size:.6rem;color:#6b7280;}
+    .post-content{margin-top:4px;padding:7px 8px;border-radius:10px;
+      background:#f9fafb;color:#111827;font-size:.8rem;word-wrap:break-word;white-space:pre-wrap;}
+    .post-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+    .btn-mini{padding:4px 8px;border-radius:9px;border:none;font-size:.65rem;cursor:pointer;
+      display:flex;align-items:center;gap:3px;background:#111827;color:#e5e7eb;}
     .btn-like{background:#0f172a;}
     .btn-report{background:#7f1d1d;color:#fecaca;}
     .btn-delete{background:#7c2d12;color:#fed7aa;}
-
-    .comment-box{
-      display:none;
-      margin-top:4px;
-      padding:5px 4px 4px;
-      border-radius:9px;
-      background:#020817;
-      border:1px solid #111827;
-    }
-    .comment{
-      font-size:.68rem;
-      padding:3px 4px;
-      margin-bottom:2px;
-      border-radius:6px;
-      background:#020817;
-      color:#e5e7eb;
-    }
+    .comment-box{display:none;margin-top:4px;padding:5px 4px 4px;border-radius:9px;
+      background:#020817;border:1px solid #111827;}
+    .comment{font-size:.68rem;padding:3px 4px;margin-bottom:2px;border-radius:6px;
+      background:#020817;color:#e5e7eb;}
     .comment strong{color:#38bdf8;}
-    .comment-input-row{
-      display:flex;
-      gap:4px;
-      margin-top:3px;
-    }
-    .comment-input-row input{
-      flex:1;
-      padding:4px 6px;
-      border-radius:8px;
-      border:none;
-      font-size:.7rem;
-    }
-    .comment-input-row button{
-      padding:4px 7px;
-      border-radius:8px;
-      border:none;
-      font-size:.65rem;
-      background:#22c55e;
-      color:#020817;
-      cursor:pointer;
-      font-weight:700;
-    }
-
-    @media(min-width:768px){
-      .overlay{max-width:540px;margin:0 auto;}
-    }
+    .comment-input-row{display:flex;gap:4px;margin-top:3px;}
+    .comment-input-row input{flex:1;padding:4px 6px;border-radius:8px;border:none;font-size:.7rem;}
+    .comment-input-row button{padding:4px 7px;border-radius:8px;border:none;font-size:.65rem;
+      background:#22c55e;color:#020817;cursor:pointer;font-weight:700;}
+    @media(min-width:768px){.overlay{max-width:540px;margin:0 auto;}}
   </style>
 </head>
 <body>
@@ -392,22 +113,17 @@
     <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
 
-  <!-- AUTH -->
   <div id="auth" class="auth">
     <h2>Welcome Pioneer</h2>
-    <p>Twox Galaxy'de herkes bir BPC kod kimliktir. Örnek: <code>BPC123456</code><br>
-       Boş bırakırsan senin için otomatik bir ID üretiriz.</p>
+    <p>BPC ID ile giriş yap. Örnek: <code>BPC123456</code><br>Boş bırakırsan senin için ID üretiriz.</p>
     <input id="accessCode" type="text" placeholder="Enter your BPC ID or leave empty">
     <button onclick="loginWithCode()">Enter Twox Galaxy</button>
-    <small>Moderator: BPC545776. Kullanıcılar anonim ama eşit.</small>
+    <small>Moderator ID: BPC545776</small>
   </div>
 
-  <!-- APP -->
   <div id="app">
     <div class="top-row">
-      <div class="user-label">
-        You are logged in as <span id="currentUserId"></span>
-      </div>
+      <div class="user-label">You are logged in as <span id="currentUserId"></span></div>
       <div>
         <div class="planet-label">Choose your planet (you can post in all three):</div>
         <div id="planetsBar" class="planets-bar"></div>
@@ -418,44 +134,28 @@
       <div class="post-form-title">
         <span id="currentPlanetLabel"></span> — Share your Twox (max 220 chars)
       </div>
-      <textarea id="postContent"
-        placeholder="Type a short Twox that fits this planet's vibe..."></textarea>
+      <textarea id="postContent" placeholder="Type a short Twox..."></textarea>
       <div class="form-row">
         <div class="char-counter"><span id="charCount">0</span>/220</div>
-
         <div style="position:relative;">
           <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
-            <!-- GENİŞ EMOJİ SETİ -->
-            <button onclick="addEmoji('😀')">😀</button>
-            <button onclick="addEmoji('😁')">😁</button>
-            <button onclick="addEmoji('😂')">😂</button>
-            <button onclick="addEmoji('🤣')">🤣</button>
-            <button onclick="addEmoji('😊')">😊</button>
-            <button onclick="addEmoji('😍')">😍</button>
-            <button onclick="addEmoji('😎')">😎</button>
-            <button onclick="addEmoji('😢')">😢</button>
-            <button onclick="addEmoji('😡')">😡</button>
-            <button onclick="addEmoji('👍')">👍</button>
-            <button onclick="addEmoji('👎')">👎</button>
-            <button onclick="addEmoji('👏')">👏</button>
-            <button onclick="addEmoji('🙏')">🙏</button>
-            <button onclick="addEmoji('🔥')">🔥</button>
-            <button onclick="addEmoji('⭐')">⭐</button>
-            <button onclick="addEmoji('🌍')">🌍</button>
-            <button onclick="addEmoji('🔴')">🔴</button>
-            <button onclick="addEmoji('🪐')">🪐</button>
-            <button onclick="addEmoji('🌙')">🌙</button>
-            <button onclick="addEmoji('☀️')">☀️</button>
-            <button onclick="addEmoji('🚀')">🚀</button>
-            <button onclick="addEmoji('🛰️')">🛰️</button>
-            <button onclick="addEmoji('🦚')">🦚</button>
-            <button onclick="addEmoji('💎')">💎</button>
-            <button onclick="addEmoji('💬')">💬</button>
-            <button onclick="addEmoji('📢')">📢</button>
+            <!-- emoji list -->
+            <button onclick="addEmoji('😀')">😀</button><button onclick="addEmoji('😁')">😁</button>
+            <button onclick="addEmoji('😂')">😂</button><button onclick="addEmoji('🤣')">🤣</button>
+            <button onclick="addEmoji('😊')">😊</button><button onclick="addEmoji('😍')">😍</button>
+            <button onclick="addEmoji('😎')">😎</button><button onclick="addEmoji('😢')">😢</button>
+            <button onclick="addEmoji('😡')">😡</button><button onclick="addEmoji('👍')">👍</button>
+            <button onclick="addEmoji('👎')">👎</button><button onclick="addEmoji('👏')">👏</button>
+            <button onclick="addEmoji('🙏')">🙏</button><button onclick="addEmoji('🔥')">🔥</button>
+            <button onclick="addEmoji('⭐')">⭐</button><button onclick="addEmoji('🌍')">🌍</button>
+            <button onclick="addEmoji('🔴')">🔴</button><button onclick="addEmoji('🪐')">🪐</button>
+            <button onclick="addEmoji('🌙')">🌙</button><button onclick="addEmoji('☀️')">☀️</button>
+            <button onclick="addEmoji('🚀')">🚀</button><button onclick="addEmoji('🛰️')">🛰️</button>
+            <button onclick="addEmoji('🦚')">🦚</button><button onclick="addEmoji('💎')">💎</button>
+            <button onclick="addEmoji('💬')">💬</button><button onclick="addEmoji('📢')">📢</button>
           </div>
         </div>
-
         <button class="send-btn" onclick="createPost()">Post</button>
       </div>
     </div>
@@ -471,7 +171,7 @@
     runTransaction, remove
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // ---- FIREBASE CONFIG: BPC-SOCIAL PROJENDEN AL ----
+  // 1) BURAYI KENDİ WEB CONFIG'İNLE DOLDUR
   const firebaseConfig = {
     apiKey: "BURAYA_WEB_APP_API_KEY",
     authDomain: "bpc-social.firebaseapp.com",
@@ -485,7 +185,18 @@
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // ---- TW0X AYARLAR ----
+  // 2) BAĞLANTI TESTİ (SAYFAYI AÇINCA 1 KERE ÇALIŞIR)
+  const testRef = ref(db, "planets/__test__/posts/test");
+  set(testRef, {
+    msg: "twox-connection-ok",
+    t: Date.now()
+  }).then(()=>{
+    console.log("Firebase test OK");
+  }).catch(e=>{
+    alert("Firebase error (config veya rules): " + (e.code || "") + " " + (e.message || ""));
+    console.error(e);
+  });
+
   const PLANETS = [
     {key:'earth',  name:'Earth',  emoji:'🌍'},
     {key:'mars',   name:'Mars',   emoji:'🔴'},
@@ -495,7 +206,6 @@
   const MOD_ID = "BPC545776";
   const MIN_INTERVAL = 3000;
   let lastPostTime = 0;
-
   let currentUser = null;
   let currentPlanet = 'earth';
   let unsubscribe = null;
@@ -511,60 +221,42 @@
   const charCountEl = document.getElementById('charCount');
   const emojiPanel = document.getElementById('emojiPanel');
 
-  function escapeHtml(t){
-    const d=document.createElement('div');
-    d.textContent=t||'';
-    return d.innerHTML;
-  }
-  function generateBPCID(){
-    return `BPC${Math.floor(100000 + Math.random()*900000)}`;
-  }
+  function escapeHtml(t){const d=document.createElement('div');d.textContent=t||'';return d.innerHTML;}
+  function generateBPCID(){return `BPC${Math.floor(100000 + Math.random()*900000)}`;}
 
-  // ---- LOGIN ----
+  // LOGIN
   window.loginWithCode = function(){
-    const input = document.getElementById('accessCode');
-    const typedRaw = (input.value || '').trim();
-    const typed = typedRaw.toUpperCase();
-    const saved = localStorage.getItem('twox_user_id');
+    const input=document.getElementById('accessCode');
+    const typed=(input.value||'').trim().toUpperCase();
+    const saved=localStorage.getItem('twox_user_id');
 
-    if(!typed && saved){
-      initUser(saved);
-      return;
-    }
+    if(!typed && saved){initUser(saved);return;}
     if(!typed && !saved){
-      const id = generateBPCID();
-      alert(`Your new Twox ID:\n${id}\n\nBunu kaybetme, aynı hesap için lazım.`);
-      localStorage.setItem('twox_user_id', id);
-      initUser(id);
-      return;
+      const id=generateBPCID();
+      alert(`Your new Twox ID:\n${id}`);
+      localStorage.setItem('twox_user_id',id);
+      initUser(id);return;
     }
 
-    const isMod = (typed === MOD_ID);
-    const isValid = /^BPC\d{6}$/.test(typed);
+    const isMod=(typed===MOD_ID);
+    const isValid=/^BPC\d{6}$/.test(typed);
+    if(!isMod && !isValid){alert("Invalid ID. Use BPC123456 format.");return;}
 
-    if(!isMod && !isValid){
-      alert("Invalid ID. Use BPC format (e.g., BPC123456).");
-      return;
-    }
-
-    if(saved && saved !== typed){
-      const ok = confirm(`This device already has ID: ${saved}\nReplace with: ${typed}?`);
-      if(!ok){
-        initUser(saved);
-        return;
+    if(saved && saved!==typed){
+      if(!confirm(`This device already has ID: ${saved}\nReplace with: ${typed}?`)){
+        initUser(saved);return;
       }
     }
-
-    localStorage.setItem('twox_user_id', typed);
+    localStorage.setItem('twox_user_id',typed);
     initUser(typed);
   };
 
   function initUser(id){
-    currentUser = { id };
-    authEl.style.display = 'none';
-    appEl.style.display = 'block';
-    logoutBtn.style.display = 'inline-block';
-    currentUserSpan.textContent = id;
+    currentUser={id};
+    authEl.style.display='none';
+    appEl.style.display='block';
+    logoutBtn.style.display='inline-block';
+    currentUserSpan.textContent=id;
     renderPlanetsBar();
     selectPlanet('earth');
     setupCharCounter();
@@ -575,16 +267,14 @@
     location.reload();
   };
 
-  window.addEventListener('load', () => {
-    const saved = localStorage.getItem('twox_user_id');
-    if(saved){
-      initUser(saved);
-    }
+  window.addEventListener('load',()=>{
+    const saved=localStorage.getItem('twox_user_id');
+    if(saved) initUser(saved);
   });
 
-  // ---- PLANETS ----
+  // PLANETS
   function renderPlanetsBar(){
-    planetsBar.innerHTML = '';
+    planetsBar.innerHTML='';
     PLANETS.forEach(p=>{
       const btn=document.createElement('button');
       btn.className='planet-btn';
@@ -611,9 +301,8 @@
     listenPostsForPlanet(key);
   }
 
-  // ---- CHAR COUNTER ----
+  // CHAR COUNTER
   function updateCharCount(){
-    if(!postContentEl||!charCountEl) return;
     let v=postContentEl.value||'';
     if(v.length>MAX_CHARS){
       v=v.slice(0,MAX_CHARS);
@@ -622,45 +311,34 @@
     charCountEl.textContent=v.length;
   }
   function setupCharCounter(){
-    if(!postContentEl) return;
-    postContentEl.removeEventListener('input',updateCharCount);
     postContentEl.addEventListener('input',updateCharCount);
     updateCharCount();
   }
 
-  // ---- EMOJI ----
+  // EMOJI
   window.toggleEmojiPanel = function(){
-    emojiPanel.style.display =
-      (emojiPanel.style.display === 'block') ? 'none' : 'block';
+    emojiPanel.style.display = (emojiPanel.style.display==='block') ? 'none' : 'block';
   };
-  window.addEmoji = function(emoji){
+  window.addEmoji = function(e){
     let v=postContentEl.value||'';
-    const add=(v && !v.endsWith(' ')) ? ' '+emoji : emoji;
+    const add=(v && !v.endsWith(' ')) ? ' '+e : e;
     v=(v+add).slice(0,MAX_CHARS);
     postContentEl.value=v;
     updateCharCount();
     emojiPanel.style.display='none';
   };
 
-  // ---- CREATE POST ----
+  // CREATE POST
   window.createPost = function(){
-    if(!currentUser){
-      alert("Login first.");
-      return;
-    }
+    if(!currentUser){alert("Login first.");return;}
     const now=Date.now();
-    if(now-lastPostTime<MIN_INTERVAL){
-      alert("Slow down pioneer.");
-      return;
-    }
-
+    if(now-lastPostTime<MIN_INTERVAL){alert("Slow down pioneer.");return;}
     let content=(postContentEl.value||'').trim();
     if(!content) return;
     if(content.length>MAX_CHARS) content=content.slice(0,MAX_CHARS);
 
     const postsRef=ref(db,`planets/${currentPlanet}/posts`);
     const newRef=push(postsRef);
-
     set(newRef,{
       userId:currentUser.id,
       planet:currentPlanet,
@@ -673,22 +351,19 @@
       postContentEl.value='';
       updateCharCount();
     }).catch(e=>{
-      console.error("Firebase error:", e);
-      alert("Post failed: " + (e.code || "") + " " + (e.message || ""));
+      alert("Post failed: "+(e.code||"")+" "+(e.message||""));
+      console.error(e);
     });
   };
 
-  // ---- LISTEN POSTS ----
+  // LISTEN POSTS
   function listenPostsForPlanet(planetKey){
-    if(typeof unsubscribe === 'function'){
-      unsubscribe();
-      unsubscribe=null;
-    }
+    if(typeof unsubscribe==='function'){unsubscribe();unsubscribe=null;}
     const postsRef=ref(db,`planets/${planetKey}/posts`);
     unsubscribe = onValue(postsRef,snap=>{
-      const val=snap.val() || {};
+      const val=snap.val()||{};
       const arr=Object.entries(val).map(([id,post])=>({id,...post}))
-        .sort((a,b)=> (b.timestamp||0)-(a.timestamp||0));
+        .sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
       renderPosts(planetKey,arr);
     });
   }
@@ -696,21 +371,18 @@
   function renderPosts(planetKey,posts){
     if(!posts.length){
       const p=PLANETS.find(pl=>pl.key===planetKey);
-      postsEl.innerHTML=
-        `<div class="planet-empty">No Twox yet on ${p?p.name:planetKey}. Be the first.</div>`;
+      postsEl.innerHTML=`<div class="planet-empty">No Twox yet on ${p?p.name:planetKey}.</div>`;
       return;
     }
     postsEl.innerHTML=posts.map(p=>buildPostHtml(p)).join('');
   }
 
   function buildPostHtml(p){
-    const planet=PLANETS.find(pl=>pl.key===p.planet)
-      || PLANETS.find(pl=>pl.key===currentPlanet);
+    const planet=PLANETS.find(pl=>pl.key===p.planet) || PLANETS.find(pl=>pl.key===currentPlanet);
     const isModAuthor=(p.userId===MOD_ID);
     const isModViewer=(currentUser && currentUser.id===MOD_ID);
     const time=p.timestamp
-      ? new Date(p.timestamp)
-          .toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+      ? new Date(p.timestamp).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
       : '';
     const reactions=p.reactions||{};
     const comments=p.comments||{};
@@ -737,32 +409,31 @@
             onclick="toggleComments('${planetKey}','${p.id}')">💬 Comments (${Object.keys(comments).length})</button>
           <button class="btn-mini btn-report"
             onclick="reportPost('${planetKey}','${p.id}')">⚠ Report</button>
-          ${isModViewer
-            ? `<button class="btn-mini btn-delete"
-                 onclick="deletePost('${planetKey}','${p.id}')">🗑 Delete</button>`
-            : ''}
+          ${isModViewer?`<button class="btn-mini btn-delete"
+            onclick="deletePost('${planetKey}','${p.id}')">🗑 Delete</button>`:''}
         </div>
         <div class="comment-box" id="comments-${planetKey}-${p.id}">
-          ${Object.entries(comments).map(([cid,c])=>`
-            <div class="comment">
-              <strong>${escapeHtml(c.userId||'')}</strong> ${escapeHtml(c.text||'')}
-              <span style="color:#6b7280;font-size:.6rem;"> ${escapeHtml(c.time||'')}</span>
-            </div>
-          `).join('')}
+          ${
+            Object.entries(comments).map(([cid,c])=>`
+              <div class="comment">
+                <strong>${escapeHtml(c.userId||'')}</strong> ${escapeHtml(c.text||'')}
+                <span style="color:#6b7280;font-size:.6rem;"> ${escapeHtml(c.time||'')}</span>
+              </div>
+            `).join('')
+          }
           <div class="comment-input-row">
             <input id="comment-input-${planetKey}-${p.id}" type="text" placeholder="Write a comment...">
             <button onclick="addComment('${planetKey}','${p.id}')">Send</button>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  // ---- COMMENTS & REACTIONS & MOD ----
+  // COMMENTS & REACTIONS & MOD
   window.toggleComments = function(planet,id){
     const box=document.getElementById(`comments-${planet}-${id}`);
     if(!box) return;
-    box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    box.style.display = box.style.display==='block' ? 'none' : 'block';
   };
 
   window.addComment = function(planet,id){
@@ -772,8 +443,7 @@
     const text=(input.value||'').trim();
     if(!text) return;
     const path=ref(db,`planets/${planet}/posts/${id}/comments`);
-    const time=new Date()
-      .toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     push(path,{userId:currentUser.id,text,time});
     input.value='';
   };
@@ -788,8 +458,7 @@
     if(!currentUser) return;
     if(!confirm("Report this Twox to Mod?")) return;
     const repRef=ref(db,`reports/${planet}/${id}`);
-    set(repRef,{by:currentUser.id,time:Date.now()})
-      .then(()=>alert("Reported."));
+    set(repRef,{by:currentUser.id,time:Date.now()});
   };
 
   window.deletePost = function(planet,id){
