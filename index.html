@@ -279,6 +279,61 @@
 
     @media(min-width:768px){
       .overlay{max-width:540px;margin:0 auto;}
+      .post-actions{
+      display:flex;
+      gap:6px;
+      margin-top:5px;
+      flex-wrap:wrap;
+    }
+    .btn-mini{
+      padding:4px 8px;
+      border-radius:9px;
+      border:none;
+      font-size:.65rem;
+      cursor:pointer;
+      background:#111827;
+      color:#e5e7eb;
+    }
+    .btn-mini:hover{background:#020817;}
+    .comment-box{
+      display:none;
+      margin-top:5px;
+      padding:5px;
+      border-radius:10px;
+      background:#020817;
+      border:1px solid #111827;
+    }
+    .comment{
+      font-size:.7rem;
+      padding:3px 4px;
+      margin-bottom:3px;
+      border-radius:6px;
+      background:#020111;
+      color:#e5e7eb;
+    }
+    .comment strong{color:#38bdf8;}
+    .comment-input-row{
+      display:flex;
+      gap:4px;
+      margin-top:3px;
+    }
+    .comment-input-row input{
+      flex:1;
+      padding:4px 6px;
+      border-radius:8px;
+      border:none;
+      font-size:.7rem;
+    }
+    .comment-input-row button{
+      padding:4px 7px;
+      border-radius:8px;
+      border:none;
+      font-size:.65rem;
+      background:#22c55e;
+      color:#020817;
+      cursor:pointer;
+      font-weight:700;
+    }
     }
   </style>
 </head>
@@ -356,21 +411,12 @@
 </div>
 
 <script type="module">
-  // Basit cache kırıcı: URL'de ?v yoksa otomatik ekler
-  if (!location.search.includes("v=")) {
-    const url = new URL(location.href);
-    url.searchParams.set("v", Date.now());
-    location.replace(url.toString());
-  }
-</script>
-
-<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getDatabase, ref, push, set, onValue
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // >>> BURAYI: Firebase Web config'ten kopyala <<<
+  // >>> BURAYA Firebase Web config'ini birebir yapıştır <<<
   const firebaseConfig = {
     apiKey: "BURAYA_API_KEY",
     authDomain: "bpc-social.firebaseapp.com",
@@ -414,7 +460,6 @@
     d.textContent=t||"";
     return d.innerHTML;
   }
-
   function generateBPCID(){
     return "BPC" + Math.floor(100000 + Math.random()*900000);
   }
@@ -426,10 +471,8 @@
     const typed = typedRaw.toUpperCase();
     const saved = localStorage.getItem("twox_user_id");
 
-    if(!typed && saved){
-      initUser(saved);
-      return;
-    }
+    if(!typed && saved){ initUser(saved); return; }
+
     if(!typed && !saved){
       const id = generateBPCID();
       alert("Your new Twox ID:\n" + id + "\nBunu kaybetme.");
@@ -440,7 +483,6 @@
 
     const isMod   = (typed === MOD_ID);
     const isValid = /^BPC\d{6}$/.test(typed);
-
     if(!isMod && !isValid){
       alert("Invalid ID. Use BPC123456 format.");
       return;
@@ -449,10 +491,7 @@
     if(saved && saved !== typed){
       const ok = confirm("This device already has ID: " + saved +
                          "\nReplace with: " + typed + " ?");
-      if(!ok){
-        initUser(saved);
-        return;
-      }
+      if(!ok){ initUser(saved); return; }
     }
 
     localStorage.setItem("twox_user_id", typed);
@@ -477,9 +516,7 @@
 
   window.addEventListener("load", () => {
     const saved = localStorage.getItem("twox_user_id");
-    if(saved){
-      initUser(saved);
-    }
+    if(saved) initUser(saved);
   });
 
   // PLANETS
@@ -541,10 +578,7 @@
 
   // CREATE POST
   window.createPost = function(){
-    if(!currentUser){
-      alert("Login first.");
-      return;
-    }
+    if(!currentUser){ alert("Login first."); return; }
 
     const now = Date.now();
     if(now - lastPostTime < MIN_INTERVAL){
@@ -557,12 +591,12 @@
     if(content.length > MAX_CHARS) content = content.slice(0, MAX_CHARS);
 
     const postsRef = ref(db, "planets/" + currentPlanet + "/posts");
-    const newRef = push(postsRef);
+    const newRef   = push(postsRef);
 
     set(newRef, {
       userId: currentUser.id,
       planet: currentPlanet,
-      content: content,
+      content,
       timestamp: now
     }).then(()=>{
       lastPostTime = now;
@@ -576,10 +610,7 @@
 
   // LISTEN & RENDER
   function listenPostsForPlanet(planetKey){
-    if(typeof unsubscribe === "function"){
-      unsubscribe();
-      unsubscribe = null;
-    }
+    if(typeof unsubscribe === "function"){ unsubscribe(); unsubscribe = null; }
 
     const postsRef = ref(db, "planets/" + planetKey + "/posts");
 
@@ -592,7 +623,8 @@
           userId: v.userId || "",
           planet: v.planet || planetKey,
           content: v.content || "",
-          timestamp: v.timestamp || 0
+          timestamp: v.timestamp || 0,
+          comments: v.comments || {}
         });
       });
       posts.sort((a,b)=>b.timestamp - a.timestamp);
@@ -623,11 +655,13 @@
   function buildPostElement(p){
     const planet = PLANETS.find(pl => pl.key === p.planet) ||
                    PLANETS.find(pl => pl.key === currentPlanet) ||
-                   {name: p.planet || "Unknown", emoji:"🪐"};
+                   { name:p.planet || "Unknown", emoji:"🪐" };
+    const planetKey = p.planet || planet.key || currentPlanet;
 
     const card = document.createElement("div");
     card.className = "post";
 
+    // header
     const header = document.createElement("div");
     header.className = "post-header";
 
@@ -636,14 +670,12 @@
     avatar.textContent = planet.emoji;
 
     const infoBox = document.createElement("div");
-
     const userLine = document.createElement("div");
     userLine.className = "post-user-line";
 
     const userIdSpan = document.createElement("div");
     userIdSpan.className = "post-user-id";
     userIdSpan.textContent = p.userId;
-
     userLine.appendChild(userIdSpan);
 
     if(p.userId === MOD_ID){
@@ -668,19 +700,99 @@
 
     infoBox.appendChild(userLine);
     infoBox.appendChild(timeDiv);
-
     header.appendChild(avatar);
     header.appendChild(infoBox);
 
+    // content
     const contentDiv = document.createElement("div");
     contentDiv.className = "post-content";
     contentDiv.innerHTML = escapeHtml(p.content);
 
+    // actions
+    const actions = document.createElement("div");
+    actions.className = "post-actions";
+
+    const commentCount = Object.keys(p.comments || {}).length;
+    const commentBtn = document.createElement("button");
+    commentBtn.className = "btn-mini";
+    commentBtn.textContent = "💬 Comments (" + commentCount + ")";
+    commentBtn.onclick = () => toggleComments(planetKey, p.id);
+    actions.appendChild(commentBtn);
+
+    // comment box
+    const commentBox = document.createElement("div");
+    commentBox.className = "comment-box";
+    commentBox.id = "comments-" + planetKey + "-" + p.id;
+
+    // mevcut yorumları çiz
+    Object.values(p.comments || {}).forEach(c => {
+      const row = document.createElement("div");
+      row.className = "comment";
+      row.innerHTML =
+        "<strong>" + escapeHtml(c.userId || "") + ":</strong> " +
+        escapeHtml(c.text || "");
+      commentBox.appendChild(row);
+    });
+
+    // input
+    const inputRow = document.createElement("div");
+    inputRow.className = "comment-input-row";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Write a comment...";
+    input.id = "comment-input-" + planetKey + "-" + p.id;
+
+    const sendBtn = document.createElement("button");
+    sendBtn.textContent = "Send";
+    sendBtn.onclick = () => addComment(planetKey, p.id);
+
+    inputRow.appendChild(input);
+    inputRow.appendChild(sendBtn);
+    commentBox.appendChild(inputRow);
+
+    // build card
     card.appendChild(header);
     card.appendChild(contentDiv);
+    card.appendChild(actions);
+    card.appendChild(commentBox);
 
     return card;
   }
+
+  // COMMENT HANDLERS
+  window.toggleComments = function(planetKey, postId){
+    const box = document.getElementById("comments-" + planetKey + "-" + postId);
+    if(!box) return;
+    box.style.display = (box.style.display === "block") ? "none" : "block";
+  };
+
+  window.addComment = function(planetKey, postId){
+    if(!currentUser){
+      alert("Login first.");
+      return;
+    }
+    const input = document.getElementById("comment-input-" + planetKey + "-" + postId);
+    if(!input) return;
+    const text = (input.value || "").trim();
+    if(!text) return;
+
+    const commentsRef = ref(db,
+      "planets/" + planetKey + "/posts/" + postId + "/comments");
+    const comment = {
+      userId: currentUser.id,
+      text,
+      time: Date.now()
+    };
+    push(commentsRef, comment).then(()=>{
+      input.value = "";
+    }).catch(e=>{
+      alert("Comment failed: " + (e.code || ""));
+      console.error(e);
+    });
+  };
+</script>
+
 </script>
 </body>
 </html>
