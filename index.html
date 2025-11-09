@@ -3,404 +3,779 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Twox</title>
+  <title>Twox Galaxy</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{
-      font-family:'Segoe UI',sans-serif;
-      background:url('mars.png') no-repeat center center fixed;
-      background-size:cover;
-      color:#fff;min-height:100vh;
+      font-family:'Segoe UI',Tahoma,sans-serif;
+      background:#02030a;
+      color:#fff;
+      min-height:100vh;
     }
-    .overlay{background:rgba(139,69,19,.75);min-height:100vh;padding:16px;}
-    .header{display:flex;justify-content:space-between;align-items:center;}
-    .logo{display:flex;align-items:center;gap:10px;}
-    .logo img{width:48px;height:48px;border-radius:50%;box-shadow:0 0 12px rgba(255,255,0,.6);}
-    .logo h1{font-size:1.4rem;}
-    .logout{
-      display:none;background:#e74c3c;color:#fff;border:none;
-      border-radius:999px;padding:10px 18px;font-weight:600;cursor:pointer;
+    .bg-stars{
+      position:fixed;inset:0;
+      background:
+        radial-gradient(circle at 10% 20%,rgba(255,255,255,.12) 0,transparent 40%),
+        radial-gradient(circle at 90% 10%,rgba(0,150,255,.08) 0,transparent 45%),
+        radial-gradient(circle at 80% 80%,rgba(255,255,255,.06) 0,transparent 55%);
+      opacity:0.22;
+      z-index:-1;
     }
-
-    .user-info{margin:10px 0 6px;font-weight:700;}
-    .post-form{background:rgba(255,255,255,.12);border-radius:16px;padding:12px;}
-    textarea#postContent{
-      width:100%;min-height:84px;resize:vertical;border:none;border-radius:12px;
-      padding:12px;font-size:1rem;color:#222;background:#fff;
+    .overlay{
+      min-height:100vh;
+      padding:14px;
+      background:radial-gradient(circle at top,#111827dd,#02030add);
     }
 
-    .post-actions-row{
+    .header{
       display:flex;
-      gap:10px;
+      justify-content:space-between;
       align-items:center;
-      margin-top:10px;
-      position:relative;
+      gap:8px;
+      margin-bottom:10px;
+    }
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .logo-icon{
+      width:40px;height:40px;
+      border-radius:50%;
+      background:radial-gradient(circle,#00e5ff,#2563eb);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900;font-size:18px;color:#020817;
+      box-shadow:0 0 16px rgba(56,189,248,.9);
+    }
+    .logo h1{
+      font-size:1.4rem;
+      letter-spacing:1px;
+    }
+    .logo span{
+      font-size:.7rem;
+      color:#9ca3af;
+    }
+
+    #logoutBtn{
+      display:none;
+      padding:8px 14px;
+      border:none;
+      border-radius:999px;
+      background:#ef4444;
+      color:#fff;
+      font-weight:600;
+      cursor:pointer;
+      font-size:.8rem;
+    }
+
+    /* AUTH */
+    .auth{
+      margin:50px auto 0;
+      max-width:340px;
+      padding:16px 14px 18px;
+      background:rgba(15,23,42,.96);
+      border-radius:18px;
+      box-shadow:0 10px 30px rgba(15,23,42,.9);
+      text-align:center;
+    }
+    .auth h2{font-size:1.3rem;margin-bottom:4px;}
+    .auth p{font-size:.8rem;color:#9ca3af;margin-bottom:6px;}
+    .auth input{
+      width:100%;padding:10px 12px;
+      border-radius:12px;border:none;
+      margin:8px 0;
+      font-size:.9rem;
+    }
+    .auth button{
+      padding:9px 14px;
+      border:none;border-radius:12px;
+      background:#22c55e;
+      color:#fff;font-weight:700;
+      cursor:pointer;
+      width:100%;
+      margin-top:4px;
+      font-size:.9rem;
+    }
+    .auth small{display:block;margin-top:6px;color:#6b7280;font-size:.7rem;}
+
+    /* MAIN LAYOUT */
+    #app{display:none;}
+    .top-row{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:8px;
+    }
+    .user-label{
+      font-size:.8rem;
+      color:#9ca3af;
+    }
+    .user-label span{
+      color:#38bdf8;
+      font-weight:600;
+    }
+
+    /* PLANETS NAV */
+    .planets-bar{
+      display:flex;
+      gap:6px;
+      overflow-x:auto;
+      padding:6px 2px 4px;
+      scrollbar-width:none;
+    }
+    .planets-bar::-webkit-scrollbar{display:none;}
+    .planet-btn{
+      flex:0 0 auto;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid transparent;
+      font-size:.7rem;
+      display:flex;
+      align-items:center;
+      gap:4px;
+      cursor:pointer;
+      background:rgba(15,23,42,.9);
+      color:#9ca3af;
+      transition:.18s;
+      white-space:nowrap;
+    }
+    .planet-btn span.emoji{font-size:.9rem;}
+    .planet-btn.active{
+      color:#fff;
+      border-color:#38bdf8;
+      box-shadow:0 0 10px rgba(56,189,248,.6);
+      background:linear-gradient(to right,#111827,#0f172add);
+    }
+    .planet-label{
+      font-size:.7rem;
+      color:#6b7280;
+      margin-left:3px;
+    }
+
+    /* POST FORM */
+    .post-form{
+      margin-top:6px;
+      padding:10px;
+      background:rgba(15,23,42,.98);
+      border-radius:16px;
+      box-shadow:0 6px 18px rgba(15,23,42,.9);
+    }
+    .post-form-title{
+      font-size:.8rem;
+      color:#9ca3af;
+      margin-bottom:4px;
+    }
+    #postContent{
+      width:100%;
+      min-height:72px;
+      resize:vertical;
+      padding:9px 10px;
+      border-radius:12px;
+      border:none;
+      font-size:.9rem;
+      color:#111827;
+      background:#f9fafb;
+      outline:none;
+    }
+    .form-row{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-top:6px;
       flex-wrap:wrap;
     }
-
     .char-counter{
-      font-size:.8rem;
-      opacity:.9;
+      font-size:.7rem;
+      color:#9ca3af;
       margin-right:auto;
     }
-
     .emoji-toggle{
-      background:#222;color:#fff;border:none;border-radius:20px;
-      padding:8px 14px;cursor:pointer;font-size:.85rem;
+      padding:6px 10px;
+      border-radius:18px;
+      border:none;
+      background:#111827;
+      color:#e5e7eb;
+      cursor:pointer;
+      font-size:.75rem;
     }
-    .send-btn{
-      background:#2ecc71;color:#fff;border:none;border-radius:14px;
-      padding:10px 16px;font-weight:700;cursor:pointer;
-    }
-
     .emoji-panel{
-      position:absolute;left:0;top:60px;width:140px;z-index:100;
-      background:#222;border-radius:12px;padding:8px;display:none;
+      position:absolute;
+      top:100%;
+      right:0;
+      margin-top:4px;
+      background:#020817;
+      border-radius:12px;
+      padding:6px;
+      display:none;
+      box-shadow:0 10px 25px rgba(15,23,42,.95);
+      z-index:50;
     }
     .emoji-panel button{
-      width:100%;background:none;border:none;text-align:left;
-      cursor:pointer;font-size:1.2rem;padding:8px 10px;color:#fff;
+      display:block;
+      width:100%;
+      text-align:left;
+      padding:4px 6px;
+      border:none;
+      background:transparent;
+      color:#e5e7eb;
+      font-size:1rem;
+      cursor:pointer;
+    }
+    .send-btn{
+      padding:7px 12px;
+      border-radius:14px;
+      border:none;
+      background:#38bdf8;
+      color:#020817;
+      font-weight:800;
+      cursor:pointer;
+      font-size:.8rem;
     }
 
-    #posts{margin-top:14px;display:flex;flex-direction:column;gap:12px;}
-    .post{background:rgba(255,255,255,.1);border-radius:16px;padding:12px;}
-    .post-header{display:flex;gap:10px;align-items:center;margin-bottom:6px;}
-    .post-header img{width:36px;height:36px;border-radius:50%;}
-    .post-user{font-weight:800;display:flex;align-items:center;gap:6px;}
-    .user-badge{background:#000;color:#fff;font-size:.7rem;border-radius:10px;padding:2px 8px;}
-    .mod-badge{background:#ff6b6b;color:#fff;font-size:.65rem;padding:2px 6px;border-radius:8px;}
-    .post-time{font-size:.8rem;}
+    /* FEED */
+    #posts{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .planet-empty{
+      font-size:.75rem;
+      color:#6b7280;
+      padding:6px 2px;
+    }
+    .post{
+      padding:9px;
+      background:rgba(9,9,20,.98);
+      border-radius:14px;
+      border:1px solid rgba(75,85,99,.7);
+      box-shadow:0 4px 14px rgba(15,23,42,.9);
+      font-size:.8rem;
+    }
+    .post-header{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      margin-bottom:4px;
+    }
+    .post-avatar{
+      width:26px;height:26px;
+      border-radius:50%;
+      background:radial-gradient(circle,#38bdf8,#0f172a);
+      display:flex;align-items:center;justify-content:center;
+      font-size:.6rem;
+      font-weight:800;
+      color:#020817;
+    }
+    .post-user-line{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      flex-wrap:wrap;
+    }
+    .post-user-id{
+      font-weight:700;
+      color:#e5e7eb;
+      font-size:.78rem;
+    }
+    .badge-mod{
+      padding:1px 6px;
+      border-radius:7px;
+      background:#f97316;
+      font-size:.6rem;
+      color:#111827;
+      font-weight:700;
+    }
+    .badge-planet{
+      padding:1px 6px;
+      border-radius:7px;
+      background:#111827;
+      font-size:.55rem;
+      color:#38bdf8;
+    }
+    .post-time{
+      font-size:.6rem;
+      color:#6b7280;
+    }
     .post-content{
-      background:#fff;color:#222;border-radius:12px;
-      padding:10px;margin:8px 0;word-wrap:break-word;
+      margin-top:4px;
+      padding:7px 8px;
+      border-radius:10px;
+      background:#f9fafb;
+      color:#111827;
+      font-size:.8rem;
+      word-wrap:break-word;
+      white-space:pre-wrap;
     }
-
-    .post-actions{display:flex;flex-wrap:wrap;gap:8px;}
-    .comment-btn,.emoji-btn,.report-btn,.delete-btn{
-      background:#1f9cf0;color:#fff;border:none;border-radius:12px;
-      padding:8px 12px;cursor:pointer;font-weight:700;font-size:.8rem;
+    .post-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:5px;
+      margin-top:5px;
     }
-    .emoji-btn{background:#8e44ad;}
-    .report-btn{background:#dc3545;}
-    .delete-btn{background:#e67e22;}
+    .btn-mini{
+      padding:4px 8px;
+      border-radius:9px;
+      border:none;
+      font-size:.65rem;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:3px;
+      background:#111827;
+      color:#e5e7eb;
+    }
+    .btn-like{background:#0f172a;}
+    .btn-report{background:#7f1d1d;color:#fecaca;}
+    .btn-delete{background:#7c2d12;color:#fed7aa;}
 
-    .comment-section{display:none;padding:10px;}
+    .comment-box{
+      display:none;
+      margin-top:4px;
+      padding:5px 4px 4px;
+      border-radius:9px;
+      background:#020817;
+      border:1px solid #111827;
+    }
     .comment{
-      background:#fff;color:#222;border-radius:8px;
-      padding:8px 12px;margin:6px 0;font-size:.92rem;
+      font-size:.68rem;
+      padding:3px 4px;
+      margin-bottom:2px;
+      border-radius:6px;
+      background:#020817;
+      color:#e5e7eb;
     }
-    .comment-input{display:flex;gap:8px;margin-top:8px;}
-    .comment-input input{
-      flex:1;padding:10px;border:none;border-radius:12px;
-      background:#fff;color:#222;
+    .comment strong{color:#38bdf8;}
+    .comment-input-row{
+      display:flex;
+      gap:4px;
+      margin-top:3px;
     }
-    .comment-input button{
-      padding:10px 14px;border:none;border-radius:12px;
-      background:#2ecc71;color:#fff;cursor:pointer;
+    .comment-input-row input{
+      flex:1;
+      padding:4px 6px;
+      border-radius:8px;
+      border:none;
+      font-size:.7rem;
+    }
+    .comment-input-row button{
+      padding:4px 7px;
+      border-radius:8px;
+      border:none;
+      font-size:.65rem;
+      background:#22c55e;
+      color:#020817;
+      cursor:pointer;
+      font-weight:700;
     }
 
-    .auth{text-align:center;max-width:320px;margin:80px auto 0;}
-    .auth button{
-      margin-top:14px;padding:10px 14px;border:none;border-radius:12px;
-      background:#2ecc71;color:#fff;font-weight:700;cursor:pointer;
+    @media(min-width:768px){
+      .overlay{max-width:540px;margin:0 auto;}
     }
   </style>
 </head>
 <body>
-  <div class="overlay">
-    <div class="header">
-      <div class="logo">
-        <img src="bpc-bird.png" alt="Twox">
-        <h1>Twox</h1>
+<div class="bg-stars"></div>
+<div class="overlay">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">TX</div>
+      <div>
+        <h1>Twox Galaxy</h1>
+        <span>Nine planets. One voice.</span>
       </div>
-      <button class="logout" id="logoutBtn" onclick="logout()">Logout</button>
     </div>
-
-    <!-- Auth -->
-    <div id="auth" class="auth">
-      <h2>Welcome to Twox</h2>
-      <p style="font-size:.9rem;opacity:.95;">
-        Enter your <b>Twox ID</b> in BPC format (example: <code>BPC123456</code>).<br>
-        Your ID stays on this device so your name is always the same.
-      </p>
-      <input
-        type="text"
-        id="accessCode"
-        placeholder="Enter your Twox ID (e.g., BPC123456)"
-        style="padding:12px;border-radius:12px;border:none;width:100%;margin:10px 0;"
-      >
-      <button onclick="loginWithCode()">Enter</button>
-      <p style="font-size:.8rem;margin-top:10px;opacity:.9;">
-        Moderator ID is reserved. Keep your ID safe.
-      </p>
-    </div>
-
-    <!-- Feed -->
-    <div id="feed" style="display:none;margin-top:10px;">
-      <div class="user-info">You: <span id="currentUserId"></span></div>
-      <div class="post-form">
-        <textarea id="postContent" placeholder="Type your Twox (max 220 characters)..."></textarea>
-        <div class="post-actions-row">
-          <div class="char-counter"><span id="charCount">0</span>/220</div>
-          <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
-          <div id="emojiPanel" class="emoji-panel">
-            <button onclick="addEmoji('👍')">👍 Like</button>
-            <button onclick="addEmoji('❤️')">❤️ Heart</button>
-            <button onclick="addEmoji('🚀')">🚀 Rocket</button>
-            <button onclick="addEmoji('🔥')">🔥 Fire</button>
-            <button onclick="addEmoji('⭐')">⭐ Star</button>
-            <button onclick="addEmoji('😂')">😂 Laugh</button>
-          </div>
-          <button class="send-btn" onclick="createPost()">Post</button>
-        </div>
-      </div>
-      <div id="posts"></div>
-    </div>
+    <button id="logoutBtn" onclick="logout()">Logout</button>
   </div>
 
-  <!-- Firebase RTDB -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import {
-      getDatabase, ref, push, set, onValue,
-      remove, runTransaction
-    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+  <!-- AUTH PANEL -->
+  <div id="auth" class="auth">
+    <h2>Welcome Pioneer</h2>
+    <p>Twox Galaxy'de herkes bir kod kimliktir. BPC formatında ID kullanılır.<br>
+      Örnek: <code>BPC123456</code></p>
+    <input id="accessCode" type="text" placeholder="Enter your BPC ID or leave empty for auto ID">
+    <button onclick="loginWithCode()">Enter Twox Galaxy</button>
+    <small>Moderator için özel ID: sadece sende. Kullanıcılar anonim ama eşit.</small>
+  </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5z5v5z5",
-      authDomain: "bpc-social.firebaseapp.com",
-      databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "bpc-social",
-      storageBucket: "bpc-social.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef123456"
-    };
+  <!-- APP -->
+  <div id="app">
+    <div class="top-row">
+      <div class="user-label">
+        You are logged in as <span id="currentUserId"></span>
+      </div>
+      <div>
+        <div class="planet-label">Choose your planet (feeds are separate):</div>
+        <div id="planetsBar" class="planets-bar"></div>
+      </div>
+    </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db  = getDatabase(app);
-    const postsRef = ref(db,"posts");
-    let currentUser = null;
+    <div class="post-form">
+      <div class="post-form-title">
+        <span id="currentPlanetLabel"></span> — Share your Twox (max 220 chars)
+      </div>
+      <textarea id="postContent"
+        placeholder="Type a short Twox that fits this planet's vibe..."></textarea>
+      <div class="form-row">
+        <div class="char-counter"><span id="charCount">0</span>/220</div>
 
-    // Only YOU are moderator
-    const MOD_ID = "BPC545776";
-    const MAX_CHARS = 220;
+        <div style="position:relative;">
+          <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
+          <div id="emojiPanel" class="emoji-panel">
+            <button onclick="addEmoji('🚀')">🚀 Launch</button>
+            <button onclick="addEmoji('🪐')">🪐 Planet</button>
+            <button onclick="addEmoji('🦚')">🦚 Peacock</button>
+            <button onclick="addEmoji('🔥')">🔥 Hype</button>
+            <button onclick="addEmoji('😂')">😂 Fun</button>
+            <button onclick="addEmoji('⭐')">⭐ Star</button>
+          </div>
+        </div>
 
-    function generateBPCID(){
-      return `BPC${Math.floor(100000 + Math.random() * 900000)}`;
+        <button class="send-btn" onclick="createPost()">Post</button>
+      </div>
+    </div>
+
+    <div id="posts"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getDatabase, ref, push, set, onValue, runTransaction,
+    remove
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+
+  // TODO: BURAYI KENDİ FIREBASE PROJENE GÖRE DOLDUR:
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  const PLANETS = [
+    {key:'mercury', name:'Mercury', emoji:'⚡', color:'#9ca3af'},
+    {key:'venus',   name:'Venus',   emoji:'💞', color:'#f472b6'},
+    {key:'earth',   name:'Earth',   emoji:'🌍', color:'#22c55e'},
+    {key:'mars',    name:'Mars',    emoji:'🚀', color:'#f97316'},
+    {key:'jupiter', name:'Jupiter', emoji:'😂', color:'#facc15'},
+    {key:'saturn',  name:'Saturn',  emoji:'🪐', color:'#eab308'},
+    {key:'uranus',  name:'Uranus',  emoji:'🧠', color:'#38bdf8'},
+    {key:'neptune', name:'Neptune', emoji:'🎨', color:'#6366f1'},
+    {key:'pluto',   name:'Pluto',   emoji:'🕳️', color:'#9ca3af'}
+  ];
+
+  const MAX_CHARS = 220;
+  const MOD_ID = "BPC545776"; // sadece sende
+
+  let currentUser = null;
+  let currentPlanet = 'earth';
+  let unsubscribe = null;
+
+  const authEl = document.getElementById('auth');
+  const appEl = document.getElementById('app');
+  const currentUserSpan = document.getElementById('currentUserId');
+  const planetsBar = document.getElementById('planetsBar');
+  const currentPlanetLabel = document.getElementById('currentPlanetLabel');
+  const postsEl = document.getElementById('posts');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const postContentEl = document.getElementById('postContent');
+  const charCountEl = document.getElementById('charCount');
+  const emojiPanel = document.getElementById('emojiPanel');
+
+  // ------- HELPER -------
+  function escapeHtml(t){
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+  }
+
+  function generateBPCID(){
+    return `BPC${Math.floor(100000 + Math.random()*900000)}`;
+  }
+
+  // ------- LOGIN -------
+  window.loginWithCode = function(){
+    const input = document.getElementById('accessCode');
+    const typedRaw = (input.value || '').trim();
+    const typed = typedRaw.toUpperCase();
+    const saved = localStorage.getItem('twox_user_id');
+
+    // Önce: kayıtlı ID varsa ve alan boşsa direkt o
+    if(!typed && saved){
+      initUser(saved);
+      return;
     }
 
-    function updateCharCount(){
-      const textarea = document.getElementById('postContent');
-      const counter = document.getElementById('charCount');
-      if (!textarea || !counter) return;
-      let val = textarea.value || "";
-      if (val.length > MAX_CHARS){
-        val = val.slice(0, MAX_CHARS);
-        textarea.value = val;
-      }
-      counter.textContent = val.length;
+    // Hem boş hem kayıt yoksa → yeni ID üret
+    if(!typed && !saved){
+      const id = generateBPCID();
+      alert(`Your new Twox ID:\n${id}\n\nBunu kaybetme, aynı hesapla geri girmek için lazım.`);
+      localStorage.setItem('twox_user_id', id);
+      initUser(id);
+      return;
     }
 
-    function setupCharCounter(){
-      const textarea = document.getElementById('postContent');
-      if(!textarea) return;
-      textarea.addEventListener('input', updateCharCount);
-      updateCharCount();
+    const isMod = (typed === MOD_ID);
+    const isValid = /^BPC\d{6}$/.test(typed);
+
+    if(!isMod && !isValid){
+      alert("Invalid ID. Use BPC format (e.g., BPC123456).");
+      return;
     }
 
-    // Login with code (persist same code on this device)
-    window.loginWithCode = function(){
-      const inputEl = document.getElementById("accessCode");
-      const typed    = (inputEl.value || "").trim().toUpperCase();
-      const saved    = localStorage.getItem("bpc_user_id");
-
-      if(!typed && saved){
+    if(saved && saved !== typed){
+      const ok = confirm(`This device already has ID: ${saved}\nReplace with: ${typed}?`);
+      if(!ok){
         initUser(saved);
         return;
       }
-
-      if(!typed && !saved){
-        const newId = generateBPCID();
-        alert(`Your Twox ID:\n${newId}\n\nKeep it safe and use it next time.`);
-        localStorage.setItem("bpc_user_id", newId);
-        initUser(newId);
-        return;
-      }
-
-      const isMod = (typed === MOD_ID);
-      const isValidUserCode = /^BPC\d{6}$/.test(typed);
-
-      if(!isMod && !isValidUserCode){
-        alert("Invalid ID. Use the format: BPC123456");
-        return;
-      }
-
-      if(saved && saved !== typed){
-        const ok = confirm(`This device already has ID: ${saved}\nReplace with: ${typed}?`);
-        if(!ok){ initUser(saved); return; }
-      }
-
-      localStorage.setItem("bpc_user_id", typed);
-      initUser(typed);
-    };
-
-    function initUser(id){
-      currentUser = { id, avatar:"bpc-bird.png" };
-      document.getElementById('currentUserId').textContent = id;
-      document.getElementById('auth').style.display  = 'none';
-      document.getElementById('feed').style.display  = 'block';
-      document.getElementById('logoutBtn').style.display = 'inline-block';
-      listenToPosts();
-      setupCharCounter();
     }
 
-    window.logout = function(){
-      localStorage.removeItem("bpc_user_id");
-      location.reload();
-    };
+    localStorage.setItem('twox_user_id', typed);
+    initUser(typed);
+  };
 
-    // Auto-login if saved
-    window.onload = () => {
-      setupCharCounter();
-      const saved = localStorage.getItem("bpc_user_id");
-      if(saved) initUser(saved);
-    };
+  function initUser(id){
+    currentUser = { id };
+    authEl.style.display = 'none';
+    appEl.style.display = 'block';
+    logoutBtn.style.display = 'inline-block';
+    currentUserSpan.textContent = id;
+    renderPlanetsBar();
+    selectPlanet('earth');
+    setupCharCounter();
+  }
 
-    // Emoji panel
-    window.toggleEmojiPanel = function(){
-      const p = document.getElementById('emojiPanel');
-      p.style.display = (p.style.display === 'block' ? 'none' : 'block');
-    };
+  window.logout = function logout(){
+    localStorage.removeItem('twox_user_id');
+    location.reload();
+  };
 
-    window.addEmoji = function(e){
-      const t = document.getElementById('postContent');
-      if(!t) return;
-      const add = (t.value ? ' ' : '') + e;
-      t.value = (t.value + add).slice(0, MAX_CHARS);
+  // Auto login
+  window.addEventListener('load', () => {
+    const saved = localStorage.getItem('twox_user_id');
+    if(saved){
+      initUser(saved);
+    }
+  });
+
+  // ------- PLANETS -------
+  function renderPlanetsBar(){
+    planetsBar.innerHTML = '';
+    PLANETS.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'planet-btn';
+      btn.dataset.planet = p.key;
+      btn.innerHTML = `<span class="emoji">${p.emoji}</span>${p.name}`;
+      btn.onclick = () => selectPlanet(p.key);
+      planetsBar.appendChild(btn);
+    });
+    updatePlanetButtons();
+  }
+
+  function updatePlanetButtons(){
+    const btns = planetsBar.querySelectorAll('.planet-btn');
+    btns.forEach(b => {
+      if(b.dataset.planet === currentPlanet) b.classList.add('active');
+      else b.classList.remove('active');
+    });
+    const p = PLANETS.find(pl => pl.key === currentPlanet);
+    currentPlanetLabel.textContent = `Planet: ${p ? p.name : currentPlanet}`;
+  }
+
+  function selectPlanet(planetKey){
+    currentPlanet = planetKey;
+    updatePlanetButtons();
+    listenPostsForPlanet(planetKey);
+  }
+
+  // ------- CHAR COUNTER -------
+  function updateCharCount(){
+    if(!postContentEl || !charCountEl) return;
+    let val = postContentEl.value || '';
+    if(val.length > MAX_CHARS){
+      val = val.slice(0, MAX_CHARS);
+      postContentEl.value = val;
+    }
+    charCountEl.textContent = val.length;
+  }
+  function setupCharCounter(){
+    if(!postContentEl) return;
+    postContentEl.removeEventListener('input', updateCharCount);
+    postContentEl.addEventListener('input', updateCharCount);
+    updateCharCount();
+  }
+
+  // ------- EMOJI -------
+  window.toggleEmojiPanel = function(){
+    emojiPanel.style.display = (emojiPanel.style.display === 'block') ? 'none' : 'block';
+  };
+  window.addEmoji = function(emoji){
+    let val = postContentEl.value || '';
+    const add = (val && !val.endsWith(' ')) ? (' ' + emoji) : emoji;
+    val = (val + add).slice(0, MAX_CHARS);
+    postContentEl.value = val;
+    updateCharCount();
+    emojiPanel.style.display = 'none';
+  };
+
+  // ------- POSTS -------
+  window.createPost = function(){
+    if(!currentUser){
+      alert("Login first.");
+      return;
+    }
+    let content = (postContentEl.value || '').trim();
+    if(!content) return;
+    if(content.length > MAX_CHARS) content = content.slice(0, MAX_CHARS);
+
+    const p = PLANETS.find(pl => pl.key === currentPlanet);
+    const postsRef = ref(db, `planets/${currentPlanet}/posts`);
+
+    const newRef = push(postsRef);
+    set(newRef, {
+      userId: currentUser.id,
+      planet: currentPlanet,
+      content,
+      timestamp: Date.now(),
+      reactions: { Rocket:0 },
+      comments: {}
+    }).then(()=>{
+      postContentEl.value = '';
       updateCharCount();
-      toggleEmojiPanel();
-    };
+    }).catch(err=>{
+      console.error(err);
+      alert("Post failed.");
+    });
+  };
 
-    // Create post
-    window.createPost = function(){
-      if(!currentUser){ alert("Login first."); return; }
-      let content = (document.getElementById('postContent').value || '').trim();
-      if(!content) return;
-      if(content.length > MAX_CHARS){
-        content = content.slice(0, MAX_CHARS);
-      }
-
-      const newRef = push(postsRef);
-      set(newRef, {
-        userId: currentUser.id,
-        content,
-        timestamp: Date.now(),
-        comments:{},
-        reactions:{}
-      })
-      .then(() => {
-        document.getElementById('postContent').value = '';
-        updateCharCount();
-      })
-      .catch(err => {
-        console.error("Post error:", err);
-        alert("Post failed.");
-      });
-    };
-
-    function listenToPosts(){
-      onValue(postsRef, snap => {
-        const data = snap.val();
-        const arr = data
-          ? Object.entries(data).map(([id,p]) => ({ id, ...p }))
-          : [];
+  function listenPostsForPlanet(planetKey){
+    if(unsubscribe){
+      unsubscribe();
+      unsubscribe = null;
+    }
+    const postsRef = ref(db, `planets/${planetKey}/posts`);
+    unsubscribe = onValue(postsRef, snap => {
+      const val = snap.val();
+      let arr = [];
+      if(val){
+        arr = Object.entries(val).map(([id,post]) => ({id, ...post}));
         arr.sort((a,b) => b.timestamp - a.timestamp);
-        renderPosts(arr);
-      });
-    }
-
-    function renderPosts(posts){
-      const c = document.getElementById('posts');
-      c.innerHTML = posts.map(p => {
-        const t = new Date(p.timestamp).toLocaleString('en-GB');
-        const r = p.reactions || {};
-        const isMod = (currentUser?.id === MOD_ID);
-        return `
-        <div class="post">
-          <div class="post-header">
-            <img src="bpc-bird.png" alt="">
-            <div>
-              <div class="post-user">
-                ${escapeHtml(p.userId)}
-                ${p.userId === MOD_ID ? '<span class="mod-badge">MOD</span>' : ''}
-                <span class="user-badge">${escapeHtml(p.userId)}</span>
-              </div>
-              <div class="post-time">${t}</div>
-            </div>
-          </div>
-          <div class="post-content">${escapeHtml(p.content)}</div>
-          <div class="post-actions">
-            <button class="comment-btn" onclick="toggleComments('${p.id}')">Comment</button>
-            <button class="emoji-btn" onclick="addReaction('${p.id}','Like')">👍 ${r['Like']||0}</button>
-            <button class="emoji-btn" onclick="addReaction('${p.id}','Heart')">❤️ ${r['Heart']||0}</button>
-            <button class="emoji-btn" onclick="addReaction('${p.id}','Rocket')">🚀 ${r['Rocket']||0}</button>
-            <button class="report-btn" onclick="reportPost('${p.id}')">Report</button>
-            ${isMod?`<button class="delete-btn" onclick="deletePost('${p.id}')">Delete</button>`:''}
-          </div>
-          <div id="comments-${p.id}" class="comment-section">
-            ${(Object.entries(p.comments||{}).map(([cid,c])=>`
-              <div class="comment">
-                <strong>${escapeHtml(c.userId)}:</strong>
-                ${escapeHtml(c.text)}
-                <small>(${c.time})</small>
-              </div>`).join(''))}
-            <div class="comment-input">
-              <input id="comment-input-${p.id}" type="text" placeholder="Write a comment...">
-              <button onclick="addComment('${p.id}')">Send</button>
-            </div>
-          </div>
-        </div>`;
-      }).join('');
-    }
-
-    window.toggleComments = function(id){
-      const el = document.getElementById(`comments-${id}`);
-      el.style.display = el.style.display === 'block' ? 'none' : 'block';
-    };
-
-    window.addComment = function(id){
-      const input = document.getElementById(`comment-input-${id}`);
-      const txt = (input.value || '').trim();
-      if(!txt || !currentUser) return;
-      push(ref(db,`posts/${id}/comments`), {
-        userId: currentUser.id,
-        text: txt,
-        time: new Date().toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit'})
-      });
-      input.value='';
-    };
-
-    window.addReaction = function(id,type){
-      runTransaction(ref(db,`posts/${id}/reactions/${type}`), c => (c || 0) + 1);
-    };
-
-    window.reportPost = function(id){
-      if(confirm("Are you sure you want to report this post?")){
-        set(ref(db,`reports/${id}`), { userId: currentUser.id, time: Date.now() });
-        alert("Reported!");
       }
-    };
+      renderPosts(arr);
+    });
+  }
 
-    window.deletePost = function(id){
-      if(currentUser?.id !== MOD_ID) return;
-      if(confirm("Delete this post?")) remove(ref(db,`posts/${id}`));
-    };
-
-    function escapeHtml(t){
-      const d=document.createElement('div');
-      d.textContent=t;
-      return d.innerHTML;
+  function renderPosts(posts){
+    if(!posts.length){
+      const p = PLANETS.find(pl => pl.key === currentPlanet);
+      postsEl.innerHTML = `<div class="planet-empty">No Twox yet on ${p ? p.name : currentPlanet}. Be the first voice here.</div>`;
+      return;
     }
-  </script>
+    postsEl.innerHTML = posts.map(p => buildPostHtml(p)).join('');
+  }
+
+  function buildPostHtml(p){
+    const planet = PLANETS.find(pl => pl.key === p.planet) || PLANETS.find(pl=>pl.key===currentPlanet);
+    const isMod = (p.userId === MOD_ID);
+    const myIsMod = (currentUser && currentUser.id === MOD_ID);
+    const time = p.timestamp
+      ? new Date(p.timestamp).toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})
+      : '';
+    const reactions = p.reactions || {};
+    const comments = p.comments || {};
+
+    return `
+      <div class="post" id="post-${p.id}">
+        <div class="post-header">
+          <div class="post-avatar">${planet ? planet.emoji : '🪐'}</div>
+          <div>
+            <div class="post-user-line">
+              <div class="post-user-id">${escapeHtml(p.userId)}</div>
+              ${isMod ? '<div class="badge-mod">MOD</div>' : ''}
+              <div class="badge-planet">${planet ? planet.name : 'Planet'}</div>
+            </div>
+            <div class="post-time">${time}</div>
+          </div>
+        </div>
+        <div class="post-content">${escapeHtml(p.content || '')}</div>
+        <div class="post-actions">
+          <button class="btn-mini btn-like" onclick="addReaction('${p.id}','Rocket')">🚀 ${reactions.Rocket||0}</button>
+          <button class="btn-mini" onclick="toggleComments('${p.id}')">💬 Comments (${Object.keys(comments).length})</button>
+          <button class="btn-mini btn-report" onclick="reportPost('${p.id}')">⚠ Report</button>
+          ${myIsMod ? `<button class="btn-mini btn-delete" onclick="deletePost('${p.id}')">🗑 Delete</button>` : ''}
+        </div>
+        <div class="comment-box" id="comments-${p.id}">
+          ${Object.entries(comments).map(([cid,c]) => `
+            <div class="comment">
+              <strong>${escapeHtml(c.userId||'')}</strong> ${escapeHtml(c.text||'')}
+              <span style="color:#6b7280;font-size:.6rem;"> ${escapeHtml(c.time||'')}</span>
+            </div>
+          `).join('')}
+          <div class="comment-input-row">
+            <input id="comment-input-${p.id}" type="text" placeholder="Write a comment...">
+            <button onclick="addComment('${p.id}')">Send</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ------- COMMENTS & REACTIONS & MOD -------
+  window.toggleComments = function(id){
+    const box = document.getElementById(`comments-${id}`);
+    if(!box) return;
+    box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+  };
+
+  window.addComment = function(id){
+    if(!currentUser) return;
+    const input = document.getElementById(`comment-input-${id}`);
+    if(!input) return;
+    const text = (input.value || '').trim();
+    if(!text) return;
+
+    const path = ref(db, `planets/${currentPlanet}/posts/${id}/comments`);
+    const time = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    push(path,{
+      userId: currentUser.id,
+      text,
+      time
+    });
+    input.value = '';
+  };
+
+  window.addReaction = function(id,type){
+    if(!currentUser) return;
+    const countRef = ref(db, `planets/${currentPlanet}/posts/${id}/reactions/${type}`);
+    runTransaction(countRef, c => (c||0)+1);
+  };
+
+  window.reportPost = function(id){
+    if(!currentUser) return;
+    if(!confirm("Report this Twox to Mod?")) return;
+    const repRef = ref(db, `reports/${currentPlanet}/${id}`);
+    set(repRef,{
+      by: currentUser.id,
+      time: Date.now()
+    }).then(()=>alert("Reported."));
+  };
+
+  window.deletePost = function(id){
+    if(!currentUser || currentUser.id !== MOD_ID) return;
+    if(!confirm("Delete this Twox permanently?")) return;
+    const postRef = ref(db, `planets/${currentPlanet}/posts/${id}`);
+    remove(postRef);
+  };
+
+</script>
 </body>
 </html>
