@@ -59,6 +59,7 @@
       cursor:pointer;
       font-size:.8rem;
     }
+
     .auth{
       margin:50px auto 0;
       max-width:340px;
@@ -93,6 +94,7 @@
     .auth small{display:block;margin-top:6px;color:#6b7280;font-size:.7rem;}
 
     #app{display:none;}
+
     .top-row{
       display:flex;
       flex-direction:column;
@@ -101,6 +103,7 @@
     }
     .user-label{font-size:.8rem;color:#9ca3af;}
     .user-label span{color:#38bdf8;font-weight:600;}
+
     .planets-bar{
       display:flex;
       gap:6px;
@@ -218,6 +221,7 @@
       color:#6b7280;
       padding:6px 2px;
     }
+
     .post{
       padding:9px;
       background:rgba(9,9,20,.98);
@@ -277,16 +281,15 @@
       white-space:pre-wrap;
     }
 
-    @media(min-width:768px){
-      .overlay{max-width:540px;margin:0 auto;}
-      .post-actions{
+    .post-actions{
       display:flex;
       gap:6px;
       margin-top:5px;
       flex-wrap:wrap;
+      align-items:center;
     }
     .btn-mini{
-      padding:4px 8px;
+      padding:3px 7px;
       border-radius:9px;
       border:none;
       font-size:.65rem;
@@ -294,7 +297,9 @@
       background:#111827;
       color:#e5e7eb;
     }
+    .btn-mini span.count{margin-left:3px;color:#38bdf8;}
     .btn-mini:hover{background:#020817;}
+
     .comment-box{
       display:none;
       margin-top:5px;
@@ -312,19 +317,46 @@
       color:#e5e7eb;
     }
     .comment strong{color:#38bdf8;}
-    .comment-input-row{
+    .reply{
+      font-size:.65rem;
+      margin-left:14px;
+      padding:2px 4px;
+      border-radius:5px;
+      background:#050816;
+      color:#cbd5f5;
+      margin-top:2px;
+    }
+    .comment-actions{
+      margin-top:1px;
+      display:flex;
+      gap:8px;
+      font-size:.6rem;
+      color:#6b7280;
+    }
+    .comment-actions button{
+      border:none;
+      background:none;
+      padding:0;
+      font-size:.6rem;
+      color:#38bdf8;
+      cursor:pointer;
+    }
+    .comment-input-row,
+    .reply-input-row{
       display:flex;
       gap:4px;
       margin-top:3px;
     }
-    .comment-input-row input{
+    .comment-input-row input,
+    .reply-input-row input{
       flex:1;
       padding:4px 6px;
       border-radius:8px;
       border:none;
       font-size:.7rem;
     }
-    .comment-input-row button{
+    .comment-input-row button,
+    .reply-input-row button{
       padding:4px 7px;
       border-radius:8px;
       border:none;
@@ -334,6 +366,9 @@
       cursor:pointer;
       font-weight:700;
     }
+
+    @media(min-width:768px){
+      .overlay{max-width:540px;margin:0 auto;}
     }
   </style>
 </head>
@@ -375,7 +410,6 @@
       <textarea id="postContent" placeholder="Type a short Twox..."></textarea>
       <div class="form-row">
         <div class="char-counter"><span id="charCount">0</span>/220</div>
-
         <div style="position:relative;">
           <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
@@ -401,7 +435,6 @@
             <button onclick="addEmoji('💬')">💬</button>
           </div>
         </div>
-
         <button class="send-btn" onclick="createPost()">Post</button>
       </div>
     </div>
@@ -410,13 +443,22 @@
   </div>
 </div>
 
+<!-- Cache kırıcı: ?v yoksa otomatik ekler -->
+<script type="module">
+  if (!location.search.includes("v=")) {
+    const url = new URL(location.href);
+    url.searchParams.set("v", Date.now());
+    location.replace(url.toString());
+  }
+</script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getDatabase, ref, push, set, onValue
+    getDatabase, ref, push, set, onValue, get, remove
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // >>> BURAYA Firebase Web config'ini birebir yapıştır <<<
+  // >>> BURAYA KENDİ FIREBASE WEB CONFIG'İNİ YAPIŞTIR <<<
   const firebaseConfig = {
     apiKey: "BURAYA_API_KEY",
     authDomain: "bpc-social.firebaseapp.com",
@@ -472,7 +514,6 @@
     const saved = localStorage.getItem("twox_user_id");
 
     if(!typed && saved){ initUser(saved); return; }
-
     if(!typed && !saved){
       const id = generateBPCID();
       alert("Your new Twox ID:\n" + id + "\nBunu kaybetme.");
@@ -489,8 +530,9 @@
     }
 
     if(saved && saved !== typed){
-      const ok = confirm("This device already has ID: " + saved +
-                         "\nReplace with: " + typed + " ?");
+      const ok = confirm(
+        "This device already has ID: " + saved + "\nReplace with: " + typed + " ?"
+      );
       if(!ok){ initUser(saved); return; }
     }
 
@@ -500,8 +542,8 @@
 
   function initUser(id){
     currentUser = { id };
-    authEl.style.display = "none";
-    appEl.style.display = "block";
+    authEl.style.display    = "none";
+    appEl.style.display     = "block";
     logoutBtn.style.display = "inline-block";
     currentUserSpan.textContent = id;
     renderPlanetsBar();
@@ -516,7 +558,7 @@
 
   window.addEventListener("load", () => {
     const saved = localStorage.getItem("twox_user_id");
-    if(saved) initUser(saved);
+    if(saved){ initUser(saved); }
   });
 
   // PLANETS
@@ -610,10 +652,9 @@
 
   // LISTEN & RENDER
   function listenPostsForPlanet(planetKey){
-    if(typeof unsubscribe === "function"){ unsubscribe(); unsubscribe = null; }
+    if(typeof unsubscribe === "function"){ unsubscribe(); unsubscribe=null; }
 
     const postsRef = ref(db, "planets/" + planetKey + "/posts");
-
     unsubscribe = onValue(postsRef, snapshot => {
       const posts = [];
       snapshot.forEach(child => {
@@ -624,7 +665,8 @@
           planet: v.planet || planetKey,
           content: v.content || "",
           timestamp: v.timestamp || 0,
-          comments: v.comments || {}
+          comments: v.comments || {},
+          reactions: v.reactions || {}
         });
       });
       posts.sort((a,b)=>b.timestamp - a.timestamp);
@@ -637,7 +679,6 @@
 
   function renderPosts(planetKey, posts){
     postsEl.innerHTML = "";
-
     if(!posts.length){
       const p = PLANETS.find(pl => pl.key === planetKey);
       const empty = document.createElement("div");
@@ -646,22 +687,19 @@
       postsEl.appendChild(empty);
       return;
     }
-
-    posts.forEach(p=>{
-      postsEl.appendChild(buildPostElement(p));
-    });
+    posts.forEach(p => postsEl.appendChild(buildPostElement(p)));
   }
 
   function buildPostElement(p){
     const planet = PLANETS.find(pl => pl.key === p.planet) ||
                    PLANETS.find(pl => pl.key === currentPlanet) ||
-                   { name:p.planet || "Unknown", emoji:"🪐" };
+                   {name:p.planet || "Unknown", emoji:"🪐"};
     const planetKey = p.planet || planet.key || currentPlanet;
 
     const card = document.createElement("div");
     card.className = "post";
 
-    // header
+    // Header
     const header = document.createElement("div");
     header.className = "post-header";
 
@@ -676,15 +714,14 @@
     const userIdSpan = document.createElement("div");
     userIdSpan.className = "post-user-id";
     userIdSpan.textContent = p.userId;
-    userLine.appendChild(userIdSpan);
 
+    userLine.appendChild(userIdSpan);
     if(p.userId === MOD_ID){
       const mod = document.createElement("div");
       mod.className = "badge-mod";
       mod.textContent = "MOD";
       userLine.appendChild(mod);
     }
-
     const planetBadge = document.createElement("div");
     planetBadge.className = "badge-planet";
     planetBadge.textContent = planet.name;
@@ -700,58 +737,91 @@
 
     infoBox.appendChild(userLine);
     infoBox.appendChild(timeDiv);
+
     header.appendChild(avatar);
     header.appendChild(infoBox);
 
-    // content
+    // Content
     const contentDiv = document.createElement("div");
     contentDiv.className = "post-content";
     contentDiv.innerHTML = escapeHtml(p.content);
 
-    // actions
+    // Actions
     const actions = document.createElement("div");
     actions.className = "post-actions";
 
-    const commentCount = Object.keys(p.comments || {}).length;
-    const commentBtn = document.createElement("button");
-    commentBtn.className = "btn-mini";
-    commentBtn.textContent = "💬 Comments (" + commentCount + ")";
-    commentBtn.onclick = () => toggleComments(planetKey, p.id);
-    actions.appendChild(commentBtn);
+    // Like / Rocket
+    const likeCount = countReactions(p.reactions, "like");
+    const likeBtn = document.createElement("button");
+    likeBtn.className = "btn-mini";
+    likeBtn.textContent = "🚀";
+    const likeSpan = document.createElement("span");
+    likeSpan.className = "count";
+    likeSpan.textContent = likeCount;
+    likeBtn.appendChild(likeSpan);
+    likeBtn.onclick = () => toggleLike(planetKey, p.id);
+    actions.appendChild(likeBtn);
 
-    // comment box
+    // Comments toggle
+    const commentsTotal = countComments(p.comments || {});
+    const cBtn = document.createElement("button");
+    cBtn.className = "btn-mini";
+    cBtn.textContent = "💬 Comments (" + commentsTotal + ")";
+    cBtn.onclick = () => toggleComments(planetKey, p.id);
+    actions.appendChild(cBtn);
+
+    // Comment box
     const commentBox = document.createElement("div");
     commentBox.className = "comment-box";
     commentBox.id = "comments-" + planetKey + "-" + p.id;
 
-    // mevcut yorumları çiz
-    Object.values(p.comments || {}).forEach(c => {
-      const row = document.createElement("div");
-      row.className = "comment";
-      row.innerHTML =
+    // Yorumları çiz
+    Object.entries(p.comments || {}).forEach(([cid, c]) => {
+      const com = document.createElement("div");
+      com.className = "comment";
+      com.innerHTML =
         "<strong>" + escapeHtml(c.userId || "") + ":</strong> " +
         escapeHtml(c.text || "");
-      commentBox.appendChild(row);
+
+      const ca = document.createElement("div");
+      ca.className = "comment-actions";
+
+      const replyBtn = document.createElement("button");
+      replyBtn.textContent = "Reply";
+      replyBtn.onclick = () => showReplyInput(planetKey, p.id, cid);
+      ca.appendChild(replyBtn);
+
+      com.appendChild(ca);
+
+      // Replies
+      if(c.replies){
+        Object.values(c.replies).forEach(r => {
+          const rEl = document.createElement("div");
+          rEl.className = "reply";
+          rEl.innerHTML =
+            "<strong>" + escapeHtml(r.userId || "") + ":</strong> " +
+            escapeHtml(r.text || "");
+          com.appendChild(rEl);
+        });
+      }
+
+      commentBox.appendChild(com);
     });
 
-    // input
-    const inputRow = document.createElement("div");
-    inputRow.className = "comment-input-row";
+    // Comment input
+    const ciRow = document.createElement("div");
+    ciRow.className = "comment-input-row";
+    const ciInput = document.createElement("input");
+    ciInput.type = "text";
+    ciInput.placeholder = "Write a comment...";
+    ciInput.id = "comment-input-" + planetKey + "-" + p.id;
+    const ciBtn = document.createElement("button");
+    ciBtn.textContent = "Send";
+    ciBtn.onclick = () => addComment(planetKey, p.id);
+    ciRow.appendChild(ciInput);
+    ciRow.appendChild(ciBtn);
+    commentBox.appendChild(ciRow);
 
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "Write a comment...";
-    input.id = "comment-input-" + planetKey + "-" + p.id;
-
-    const sendBtn = document.createElement("button");
-    sendBtn.textContent = "Send";
-    sendBtn.onclick = () => addComment(planetKey, p.id);
-
-    inputRow.appendChild(input);
-    inputRow.appendChild(sendBtn);
-    commentBox.appendChild(inputRow);
-
-    // build card
     card.appendChild(header);
     card.appendChild(contentDiv);
     card.appendChild(actions);
@@ -760,18 +830,29 @@
     return card;
   }
 
-  // COMMENT HANDLERS
+  function countReactions(reactions, type){
+    if(!reactions || !reactions[type]) return 0;
+    return Object.keys(reactions[type]).length;
+  }
+  function countComments(comments){
+    let total = 0;
+    Object.values(comments).forEach(c => {
+      total++;
+      if(c.replies) total += Object.keys(c.replies).length;
+    });
+    return total;
+  }
+
+  // TOGGLES
   window.toggleComments = function(planetKey, postId){
     const box = document.getElementById("comments-" + planetKey + "-" + postId);
     if(!box) return;
     box.style.display = (box.style.display === "block") ? "none" : "block";
   };
 
+  // COMMENT ADD
   window.addComment = function(planetKey, postId){
-    if(!currentUser){
-      alert("Login first.");
-      return;
-    }
+    if(!currentUser){ alert("Login first."); return; }
     const input = document.getElementById("comment-input-" + planetKey + "-" + postId);
     if(!input) return;
     const text = (input.value || "").trim();
@@ -779,20 +860,93 @@
 
     const commentsRef = ref(db,
       "planets/" + planetKey + "/posts/" + postId + "/comments");
-    const comment = {
+    push(commentsRef, {
       userId: currentUser.id,
       text,
       time: Date.now()
-    };
-    push(commentsRef, comment).then(()=>{
-      input.value = "";
+    }).then(()=>{ input.value = ""; })
+     .catch(e=>{
+       alert("Comment failed: " + (e.code || ""));
+       console.error(e);
+     });
+  };
+
+  // SHOW REPLY INPUT
+  window.showReplyInput = function(planetKey, postId, commentId){
+    if(!currentUser){ alert("Login first."); return; }
+    const box = document.getElementById("comments-" + planetKey + "-" + postId);
+    if(!box) return;
+    const rowId = "reply-input-" + planetKey + "-" + postId + "-" + commentId;
+    if(document.getElementById(rowId)) return;
+
+    const row = document.createElement("div");
+    row.className = "reply-input-row";
+    row.id = rowId;
+
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.placeholder = "Reply to this comment...";
+
+    const btn = document.createElement("button");
+    btn.textContent = "Send";
+    btn.onclick = () => addReply(planetKey, postId, commentId, rowId, inp);
+
+    row.appendChild(inp);
+    row.appendChild(btn);
+
+    // ilgili comment elementine ekle
+    const comments = box.getElementsByClassName("comment");
+    for(const c of comments){
+      if(c.innerHTML.includes(commentId)) { // eski data yoksa fallback
+        c.appendChild(row);
+        return;
+      }
+    }
+    box.appendChild(row);
+  };
+
+  // ADD REPLY
+  window.addReply = function(planetKey, postId, commentId, rowId, inputEl){
+    if(!currentUser) return;
+    const text = (inputEl.value || "").trim();
+    if(!text) return;
+
+    const repliesRef = ref(db,
+      "planets/" + planetKey + "/posts/" + postId +
+      "/comments/" + commentId + "/replies");
+
+    push(repliesRef, {
+      userId: currentUser.id,
+      text,
+      time: Date.now()
+    }).then(()=>{
+      inputEl.value = "";
+      const row = document.getElementById(rowId);
+      if(row) row.remove();
     }).catch(e=>{
-      alert("Comment failed: " + (e.code || ""));
+      alert("Reply failed: " + (e.code || ""));
       console.error(e);
     });
   };
-</script>
 
+  // LIKE TOGGLE
+  window.toggleLike = function(planetKey, postId){
+    if(!currentUser){ alert("Login first."); return; }
+    const likeRef = ref(db,
+      "planets/" + planetKey + "/posts/" + postId +
+      "/reactions/like/" + currentUser.id);
+
+    get(likeRef).then(snap=>{
+      if(snap.exists()){
+        // unlike
+        remove(likeRef);
+      }else{
+        set(likeRef, true);
+      }
+    }).catch(e=>{
+      console.error(e);
+    });
+  };
 </script>
 </body>
 </html>
