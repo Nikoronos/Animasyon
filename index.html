@@ -2,101 +2,284 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Twox Galaxy</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'Segoe UI',Tahoma,sans-serif;background:#02030a;color:#fff;min-height:100vh;}
-    .bg-stars{position:fixed;inset:0;background:
-      radial-gradient(circle at 10% 20%,rgba(255,255,255,.12) 0,transparent 40%),
-      radial-gradient(circle at 90% 10%,rgba(0,150,255,.08) 0,transparent 45%),
-      radial-gradient(circle at 80% 80%,rgba(255,255,255,.06) 0,transparent 55%);
-      opacity:0.22;z-index:-1;}
-    .overlay{min-height:100vh;padding:14px;background:radial-gradient(circle at top,#111827dd,#02030add);}
-    .header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
-    .logo{display:flex;align-items:center;gap:8px;}
-    .logo-icon{width:40px;height:40px;border-radius:50%;
+    body{
+      font-family:'Segoe UI',Tahoma,sans-serif;
+      background:#02030a;
+      color:#fff;
+      min-height:100vh;
+    }
+    .bg-stars{
+      position:fixed;inset:0;
+      background:
+        radial-gradient(circle at 10% 20%,rgba(255,255,255,.12) 0,transparent 40%),
+        radial-gradient(circle at 90% 10%,rgba(0,150,255,.08) 0,transparent 45%),
+        radial-gradient(circle at 80% 80%,rgba(255,255,255,.06) 0,transparent 55%);
+      opacity:.22;
+      z-index:-1;
+    }
+    .overlay{
+      min-height:100vh;
+      padding:14px;
+      background:radial-gradient(circle at top,#111827dd,#02030add);
+    }
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      margin-bottom:10px;
+    }
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .logo-icon{
+      width:40px;height:40px;
+      border-radius:50%;
       background:radial-gradient(circle,#00e5ff,#2563eb);
       display:flex;align-items:center;justify-content:center;
       font-weight:900;font-size:18px;color:#020817;
-      box-shadow:0 0 16px rgba(56,189,248,.9);}
+      box-shadow:0 0 16px rgba(56,189,248,.9);
+    }
     .logo h1{font-size:1.4rem;letter-spacing:1px;margin:0;}
     .logo span{font-size:.7rem;color:#9ca3af;}
-    #logoutBtn{display:none;padding:8px 14px;border:none;border-radius:999px;
-      background:#ef4444;color:#fff;font-weight:600;cursor:pointer;font-size:.8rem;}
-    .auth{margin:50px auto 0;max-width:340px;padding:16px 14px 18px;
-      background:rgba(15,23,42,.96);border-radius:18px;
-      box-shadow:0 10px 30px rgba(15,23,42,.9);text-align:center;}
+    #logoutBtn{
+      display:none;
+      padding:8px 14px;
+      border:none;
+      border-radius:999px;
+      background:#ef4444;
+      color:#fff;
+      font-weight:600;
+      cursor:pointer;
+      font-size:.8rem;
+    }
+    .auth{
+      margin:50px auto 0;
+      max-width:340px;
+      padding:16px 14px 18px;
+      background:rgba(15,23,42,.96);
+      border-radius:18px;
+      box-shadow:0 10px 30px rgba(15,23,42,.9);
+      text-align:center;
+    }
     .auth h2{font-size:1.3rem;margin-bottom:4px;}
     .auth p{font-size:.8rem;color:#9ca3af;margin-bottom:6px;}
-    .auth input{width:100%;padding:10px 12px;border-radius:12px;border:none;margin:8px 0;font-size:.9rem;}
-    .auth button{padding:9px 14px;border:none;border-radius:12px;background:#22c55e;
-      color:#fff;font-weight:700;cursor:pointer;width:100%;margin-top:4px;font-size:.9rem;}
+    .auth input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:none;
+      margin:8px 0;
+      font-size:.9rem;
+    }
+    .auth button{
+      padding:9px 14px;
+      border:none;
+      border-radius:12px;
+      background:#22c55e;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+      width:100%;
+      margin-top:4px;
+      font-size:.9rem;
+    }
     .auth small{display:block;margin-top:6px;color:#6b7280;font-size:.7rem;}
+
     #app{display:none;}
-    .top-row{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+    .top-row{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:8px;
+    }
     .user-label{font-size:.8rem;color:#9ca3af;}
     .user-label span{color:#38bdf8;font-weight:600;}
-    .planets-bar{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 4px;scrollbar-width:none;}
+    .planets-bar{
+      display:flex;
+      gap:6px;
+      overflow-x:auto;
+      padding:6px 2px 4px;
+      scrollbar-width:none;
+    }
     .planets-bar::-webkit-scrollbar{display:none;}
-    .planet-btn{flex:0 0 auto;padding:6px 9px;border-radius:999px;border:1px solid transparent;
-      font-size:.7rem;display:flex;align-items:center;gap:4px;cursor:pointer;
-      background:rgba(15,23,42,.9);color:#9ca3af;transition:.18s;white-space:nowrap;}
+    .planet-btn{
+      flex:0 0 auto;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid transparent;
+      font-size:.7rem;
+      display:flex;
+      align-items:center;
+      gap:4px;
+      cursor:pointer;
+      background:rgba(15,23,42,.9);
+      color:#9ca3af;
+      transition:.18s;
+      white-space:nowrap;
+    }
     .planet-btn span.emoji{font-size:.9rem;}
-    .planet-btn.active{color:#fff;border-color:#38bdf8;
+    .planet-btn.active{
+      color:#fff;
+      border-color:#38bdf8;
       box-shadow:0 0 10px rgba(56,189,248,.6);
-      background:linear-gradient(to right,#111827,#0f172add);}
+      background:linear-gradient(to right,#111827,#0f172add);
+    }
     .planet-label{font-size:.7rem;color:#6b7280;margin-left:3px;}
-    .post-form{margin-top:6px;padding:10px;background:rgba(15,23,42,.98);
-      border-radius:16px;box-shadow:0 6px 18px rgba(15,23,42,.9);}
+
+    .post-form{
+      margin-top:6px;
+      padding:10px;
+      background:rgba(15,23,42,.98);
+      border-radius:16px;
+      box-shadow:0 6px 18px rgba(15,23,42,.9);
+    }
     .post-form-title{font-size:.8rem;color:#9ca3af;margin-bottom:4px;}
-    #postContent{width:100%;min-height:72px;resize:vertical;padding:9px 10px;border-radius:12px;
-      border:none;font-size:.9rem;color:#111827;background:#f9fafb;outline:none;}
-    .form-row{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;}
+    #postContent{
+      width:100%;
+      min-height:72px;
+      resize:vertical;
+      padding:9px 10px;
+      border-radius:12px;
+      border:none;
+      font-size:.9rem;
+      color:#111827;
+      background:#f9fafb;
+      outline:none;
+    }
+    .form-row{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-top:6px;
+      flex-wrap:wrap;
+    }
     .char-counter{font-size:.7rem;color:#9ca3af;margin-right:auto;}
-    .emoji-toggle{padding:6px 10px;border-radius:18px;border:none;background:#111827;
-      color:#e5e7eb;cursor:pointer;font-size:.75rem;}
-    .emoji-panel{position:absolute;top:100%;right:0;margin-top:4px;background:#020817;
-      border-radius:12px;padding:6px;display:none;box-shadow:0 10px 25px rgba(15,23,42,.95);
-      z-index:50;max-height:230px;overflow-y:auto;width:170px;}
-    .emoji-panel button{display:block;width:100%;text-align:left;padding:4px 6px;border:none;
-      background:transparent;color:#e5e7eb;font-size:1rem;cursor:pointer;}
-    .send-btn{padding:7px 12px;border-radius:14px;border:none;background:#38bdf8;
-      color:#020817;font-weight:800;cursor:pointer;font-size:.8rem;}
-    #posts{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
-    .planet-empty{font-size:.75rem;color:#6b7280;padding:6px 2px;}
-    .post{padding:9px;background:rgba(9,9,20,.98);border-radius:14px;
-      border:1px solid rgba(75,85,99,.7);box-shadow:0 4px 14px rgba(15,23,42,.9);font-size:.8rem;}
-    .post-header{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
-    .post-avatar{width:26px;height:26px;border-radius:50%;
+    .emoji-toggle{
+      padding:6px 10px;
+      border-radius:18px;
+      border:none;
+      background:#111827;
+      color:#e5e7eb;
+      cursor:pointer;
+      font-size:.75rem;
+    }
+    .emoji-panel{
+      position:absolute;
+      top:100%;
+      right:0;
+      margin-top:4px;
+      background:#020817;
+      border-radius:12px;
+      padding:6px;
+      display:none;
+      box-shadow:0 10px 25px rgba(15,23,42,.95);
+      z-index:50;
+      max-height:230px;
+      overflow-y:auto;
+      width:170px;
+    }
+    .emoji-panel button{
+      display:block;
+      width:100%;
+      text-align:left;
+      padding:4px 6px;
+      border:none;
+      background:transparent;
+      color:#e5e7eb;
+      font-size:1rem;
+      cursor:pointer;
+    }
+    .send-btn{
+      padding:7px 12px;
+      border-radius:14px;
+      border:none;
+      background:#38bdf8;
+      color:#020817;
+      font-weight:800;
+      cursor:pointer;
+      font-size:.8rem;
+    }
+
+    #posts{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .planet-empty{
+      font-size:.75rem;
+      color:#6b7280;
+      padding:6px 2px;
+    }
+    .post{
+      padding:9px;
+      background:rgba(9,9,20,.98);
+      border-radius:14px;
+      border:1px solid rgba(75,85,99,.7);
+      box-shadow:0 4px 14px rgba(15,23,42,.9);
+      font-size:.8rem;
+    }
+    .post-header{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      margin-bottom:4px;
+    }
+    .post-avatar{
+      width:26px;height:26px;
+      border-radius:50%;
       background:radial-gradient(circle,#38bdf8,#0f172a);
       display:flex;align-items:center;justify-content:center;
-      font-size:.6rem;font-weight:800;color:#020817;}
-    .post-user-line{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
-    .post-user-id{font-weight:700;color:#e5e7eb;font-size:.78rem;}
-    .badge-mod{padding:1px 6px;border-radius:7px;background:#f97316;
-      font-size:.6rem;color:#111827;font-weight:700;}
-    .badge-planet{padding:1px 6px;border-radius:7px;background:#111827;
-      font-size:.55rem;color:#38bdf8;}
+      font-size:.6rem;font-weight:800;color:#020817;
+    }
+    .post-user-line{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      flex-wrap:wrap;
+    }
+    .post-user-id{
+      font-weight:700;
+      color:#e5e7eb;
+      font-size:.78rem;
+    }
+    .badge-mod{
+      padding:1px 6px;
+      border-radius:7px;
+      background:#f97316;
+      font-size:.6rem;
+      color:#111827;
+      font-weight:700;
+    }
+    .badge-planet{
+      padding:1px 6px;
+      border-radius:7px;
+      background:#111827;
+      font-size:.55rem;
+      color:#38bdf8;
+    }
     .post-time{font-size:.6rem;color:#6b7280;}
-    .post-content{margin-top:4px;padding:7px 8px;border-radius:10px;
-      background:#f9fafb;color:#111827;font-size:.8rem;word-wrap:break-word;white-space:pre-wrap;}
-    .post-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
-    .btn-mini{padding:4px 8px;border-radius:9px;border:none;font-size:.65rem;cursor:pointer;
-      display:flex;align-items:center;gap:3px;background:#111827;color:#e5e7eb;}
-    .btn-like{background:#0f172a;}
-    .btn-report{background:#7f1d1d;color:#fecaca;}
-    .btn-delete{background:#7c2d12;color:#fed7aa;}
-    .comment-box{display:none;margin-top:4px;padding:5px 4px 4px;border-radius:9px;
-      background:#020817;border:1px solid #111827;}
-    .comment{font-size:.68rem;padding:3px 4px;margin-bottom:2px;border-radius:6px;
-      background:#020817;color:#e5e7eb;}
-    .comment strong{color:#38bdf8;}
-    .comment-input-row{display:flex;gap:4px;margin-top:3px;}
-    .comment-input-row input{flex:1;padding:4px 6px;border-radius:8px;border:none;font-size:.7rem;}
-    .comment-input-row button{padding:4px 7px;border-radius:8px;border:none;font-size:.65rem;
-      background:#22c55e;color:#020817;cursor:pointer;font-weight:700;}
-    @media(min-width:768px){.overlay{max-width:540px;margin:0 auto;}}
+    .post-content{
+      margin-top:4px;
+      padding:7px 8px;
+      border-radius:10px;
+      background:#f9fafb;
+      color:#111827;
+      font-size:.8rem;
+      word-wrap:break-word;
+      white-space:pre-wrap;
+    }
+
+    @media(min-width:768px){
+      .overlay{max-width:540px;margin:0 auto;}
+    }
   </style>
 </head>
 <body>
@@ -115,7 +298,7 @@
 
   <div id="auth" class="auth">
     <h2>Welcome Pioneer</h2>
-    <p>BPC ID ile giriş yap. Örnek: <code>BPC123456</code><br>Boş bırakırsan senin için ID üretiriz.</p>
+    <p>BPC ID ile giriş yap. Örnek: <code>BPC123456</code>.<br>Boş bırakırsan senin için ID üretiriz.</p>
     <input id="accessCode" type="text" placeholder="Enter your BPC ID or leave empty">
     <button onclick="loginWithCode()">Enter Twox Galaxy</button>
     <small>Moderator ID: BPC545776</small>
@@ -137,25 +320,33 @@
       <textarea id="postContent" placeholder="Type a short Twox..."></textarea>
       <div class="form-row">
         <div class="char-counter"><span id="charCount">0</span>/220</div>
+
         <div style="position:relative;">
           <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
-            <!-- emoji list -->
-            <button onclick="addEmoji('😀')">😀</button><button onclick="addEmoji('😁')">😁</button>
-            <button onclick="addEmoji('😂')">😂</button><button onclick="addEmoji('🤣')">🤣</button>
-            <button onclick="addEmoji('😊')">😊</button><button onclick="addEmoji('😍')">😍</button>
-            <button onclick="addEmoji('😎')">😎</button><button onclick="addEmoji('😢')">😢</button>
-            <button onclick="addEmoji('😡')">😡</button><button onclick="addEmoji('👍')">👍</button>
-            <button onclick="addEmoji('👎')">👎</button><button onclick="addEmoji('👏')">👏</button>
-            <button onclick="addEmoji('🙏')">🙏</button><button onclick="addEmoji('🔥')">🔥</button>
-            <button onclick="addEmoji('⭐')">⭐</button><button onclick="addEmoji('🌍')">🌍</button>
-            <button onclick="addEmoji('🔴')">🔴</button><button onclick="addEmoji('🪐')">🪐</button>
-            <button onclick="addEmoji('🌙')">🌙</button><button onclick="addEmoji('☀️')">☀️</button>
-            <button onclick="addEmoji('🚀')">🚀</button><button onclick="addEmoji('🛰️')">🛰️</button>
-            <button onclick="addEmoji('🦚')">🦚</button><button onclick="addEmoji('💎')">💎</button>
-            <button onclick="addEmoji('💬')">💬</button><button onclick="addEmoji('📢')">📢</button>
+            <button onclick="addEmoji('😀')">😀</button>
+            <button onclick="addEmoji('😁')">😁</button>
+            <button onclick="addEmoji('😂')">😂</button>
+            <button onclick="addEmoji('🤣')">🤣</button>
+            <button onclick="addEmoji('😊')">😊</button>
+            <button onclick="addEmoji('😍')">😍</button>
+            <button onclick="addEmoji('😎')">😎</button>
+            <button onclick="addEmoji('😢')">😢</button>
+            <button onclick="addEmoji('😡')">😡</button>
+            <button onclick="addEmoji('👍')">👍</button>
+            <button onclick="addEmoji('👎')">👎</button>
+            <button onclick="addEmoji('👏')">👏</button>
+            <button onclick="addEmoji('🙏')">🙏</button>
+            <button onclick="addEmoji('🔥')">🔥</button>
+            <button onclick="addEmoji('⭐')">⭐</button>
+            <button onclick="addEmoji('🌍')">🌍</button>
+            <button onclick="addEmoji('🔴')">🔴</button>
+            <button onclick="addEmoji('🪐')">🪐</button>
+            <button onclick="addEmoji('🚀')">🚀</button>
+            <button onclick="addEmoji('💬')">💬</button>
           </div>
         </div>
+
         <button class="send-btn" onclick="createPost()">Post</button>
       </div>
     </div>
@@ -164,73 +355,49 @@
   </div>
 </div>
 
-
-  
-            <div class="post-user-id">${escapeHtml(p.userId)}</div>
-        ${isModAuthor ? '<div class="badge-mod">MOD</div>' : ""}
-        <div class="badge-planet">${planet ? planet.name : ""}</div>
-      </div>
-      <div class="post-time">${time}</div>
-    </div>
-  </div>
-  <div class="post-content">${escapeHtml(p.content)}</div>
-  <div class="post-actions">
-    <button class="btn-mini btn-like"
-      onclick="addReaction('${planetKey}','${p.id}','Rocket')">🚀 ${rocket}</button>
-    <button class="btn-mini"
-      onclick="toggleComments('${planetKey}','${p.id}')">💬 Comments (${commentCount})</button>
-    <button class="btn-mini btn-report"
-      onclick="reportPost('${planetKey}','${p.id}')">⚠ Report</button>
-    ${deleteBtn}
-  </div>
-  <div class="comment-box" id="comments-${planetKey}-${p.id}">
-    ${commentsHtml}
-    <div class="comment-input-row">
-      <input id="comment-input-${planetKey}-${p.id}" type="text" placeholder="Write a comment...">
-      <button onclick="addComment('${planetKey}','${p.id}')">Send</button>
-    </div>
-  </div>
-</div>`
-    );
+<script type="module">
+  // Basit cache kırıcı: URL'de ?v yoksa otomatik ekler
+  if (!location.search.includes("v=")) {
+    const url = new URL(location.href);
+    url.searchParams.set("v", Date.now());
+    location.replace(url.toString());
   }
+</script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getDatabase, ref, push, set, onValue,
-    runTransaction, remove
+    getDatabase, ref, push, set, onValue
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-  // === FIREBASE CONFIG (BPC-SOCIAL web config'ini BURAYA birebir yapıştır) ===
+  // >>> BURAYI: Firebase Web config'ten kopyala <<<
   const firebaseConfig = {
-    apiKey: "SENIN_API_KEY",
+    apiKey: "BURAYA_API_KEY",
     authDomain: "bpc-social.firebaseapp.com",
     databaseURL: "https://bpc-social-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "bpc-social",
     storageBucket: "bpc-social.appspot.com",
-    messagingSenderId: "SENIN_SENDER_ID",
-    appId: "SENIN_APP_ID"
+    messagingSenderId: "BURAYA_SENDER_ID",
+    appId: "BURAYA_APP_ID"
   };
 
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // === SABITLER ===
   const PLANETS = [
-    { key: "earth",  name: "Earth",  emoji: "🌍" },
-    { key: "mars",   name: "Mars",   emoji: "🔴" },
-    { key: "kepler", name: "Kepler", emoji: "🪐" }
+    { key:"earth",  name:"Earth",  emoji:"🌍" },
+    { key:"mars",   name:"Mars",   emoji:"🔴" },
+    { key:"kepler", name:"Kepler", emoji:"🪐" }
   ];
-
-  const MAX_CHARS    = 220;
-  const MOD_ID       = "BPC545776";
+  const MAX_CHARS = 220;
+  const MOD_ID = "BPC545776";
   const MIN_INTERVAL = 3000;
 
-  let lastPostTime   = 0;
-  let currentUser    = null;
-  let currentPlanet  = "earth";
-  let unsubscribe    = null;
+  let lastPostTime = 0;
+  let currentUser = null;
+  let currentPlanet = "earth";
+  let unsubscribe = null;
 
-  // === DOM ===
   const authEl             = document.getElementById("auth");
   const appEl              = document.getElementById("app");
   const currentUserSpan    = document.getElementById("currentUserId");
@@ -242,30 +409,28 @@
   const charCountEl        = document.getElementById("charCount");
   const emojiPanel         = document.getElementById("emojiPanel");
 
-  // === HELPER ===
-  function escapeHtml(t) {
-    const d = document.createElement("div");
-    d.textContent = t || "";
+  function escapeHtml(t){
+    const d=document.createElement("div");
+    d.textContent=t||"";
     return d.innerHTML;
   }
 
-  function generateBPCID() {
-    return "BPC" + Math.floor(100000 + Math.random() * 900000);
+  function generateBPCID(){
+    return "BPC" + Math.floor(100000 + Math.random()*900000);
   }
 
-  // === LOGIN ===
-  window.loginWithCode = function () {
-    const input    = document.getElementById("accessCode");
+  // LOGIN
+  window.loginWithCode = function(){
+    const input = document.getElementById("accessCode");
     const typedRaw = (input.value || "").trim();
-    const typed    = typedRaw.toUpperCase();
-    const saved    = localStorage.getItem("twox_user_id");
+    const typed = typedRaw.toUpperCase();
+    const saved = localStorage.getItem("twox_user_id");
 
-    if (!typed && saved) {
+    if(!typed && saved){
       initUser(saved);
       return;
     }
-
-    if (!typed && !saved) {
+    if(!typed && !saved){
       const id = generateBPCID();
       alert("Your new Twox ID:\n" + id + "\nBunu kaybetme.");
       localStorage.setItem("twox_user_id", id);
@@ -276,17 +441,15 @@
     const isMod   = (typed === MOD_ID);
     const isValid = /^BPC\d{6}$/.test(typed);
 
-    if (!isMod && !isValid) {
-      alert("Invalid ID. Use format BPC123456.");
+    if(!isMod && !isValid){
+      alert("Invalid ID. Use BPC123456 format.");
       return;
     }
 
-    if (saved && saved !== typed) {
-      const ok = confirm(
-        "This device already has ID: " + saved +
-        "\nReplace with: " + typed + " ?"
-      );
-      if (!ok) {
+    if(saved && saved !== typed){
+      const ok = confirm("This device already has ID: " + saved +
+                         "\nReplace with: " + typed + " ?");
+      if(!ok){
         initUser(saved);
         return;
       }
@@ -296,32 +459,33 @@
     initUser(typed);
   };
 
-  function initUser(id) {
+  function initUser(id){
     currentUser = { id };
-    authEl.style.display    = "none";
-    appEl.style.display     = "block";
+    authEl.style.display = "none";
+    appEl.style.display = "block";
     logoutBtn.style.display = "inline-block";
     currentUserSpan.textContent = id;
-
     renderPlanetsBar();
     selectPlanet("earth");
     setupCharCounter();
   }
 
-  window.logout = function () {
+  window.logout = function(){
     localStorage.removeItem("twox_user_id");
     location.reload();
   };
 
   window.addEventListener("load", () => {
     const saved = localStorage.getItem("twox_user_id");
-    if (saved) initUser(saved);
+    if(saved){
+      initUser(saved);
+    }
   });
 
-  // === PLANETS NAV ===
-  function renderPlanetsBar() {
+  // PLANETS
+  function renderPlanetsBar(){
     planetsBar.innerHTML = "";
-    PLANETS.forEach(p => {
+    PLANETS.forEach(p=>{
       const btn = document.createElement("button");
       btn.className = "planet-btn";
       btn.dataset.planet = p.key;
@@ -332,44 +496,41 @@
     updatePlanetButtons();
   }
 
-  function updatePlanetButtons() {
-    const btns = planetsBar.querySelectorAll(".planet-btn");
-    btns.forEach(b => {
-      if (b.dataset.planet === currentPlanet) b.classList.add("active");
+  function updatePlanetButtons(){
+    planetsBar.querySelectorAll(".planet-btn").forEach(b=>{
+      if(b.dataset.planet === currentPlanet) b.classList.add("active");
       else b.classList.remove("active");
     });
     const p = PLANETS.find(pl => pl.key === currentPlanet);
     currentPlanetLabel.textContent = "Planet: " + (p ? p.name : currentPlanet);
   }
 
-  function selectPlanet(key) {
+  function selectPlanet(key){
     currentPlanet = key;
     updatePlanetButtons();
     listenPostsForPlanet(key);
   }
 
-  // === CHAR COUNTER ===
-  function updateCharCount() {
+  // CHAR COUNTER
+  function updateCharCount(){
     let v = postContentEl.value || "";
-    if (v.length > MAX_CHARS) {
+    if(v.length > MAX_CHARS){
       v = v.slice(0, MAX_CHARS);
       postContentEl.value = v;
     }
     charCountEl.textContent = v.length;
   }
-
-  function setupCharCounter() {
+  function setupCharCounter(){
     postContentEl.addEventListener("input", updateCharCount);
     updateCharCount();
   }
 
-  // === EMOJI ===
-  window.toggleEmojiPanel = function () {
+  // EMOJI
+  window.toggleEmojiPanel = function(){
     emojiPanel.style.display =
       (emojiPanel.style.display === "block") ? "none" : "block";
   };
-
-  window.addEmoji = function (emoji) {
+  window.addEmoji = function(emoji){
     let v = postContentEl.value || "";
     const add = (v && !v.endsWith(" ")) ? (" " + emoji) : emoji;
     v = (v + add).slice(0, MAX_CHARS);
@@ -378,44 +539,44 @@
     emojiPanel.style.display = "none";
   };
 
-  // === CREATE POST ===
-  window.createPost = function () {
-    if (!currentUser) {
+  // CREATE POST
+  window.createPost = function(){
+    if(!currentUser){
       alert("Login first.");
       return;
     }
 
     const now = Date.now();
-    if (now - lastPostTime < MIN_INTERVAL) {
+    if(now - lastPostTime < MIN_INTERVAL){
       alert("Slow down pioneer.");
       return;
     }
 
     let content = (postContentEl.value || "").trim();
-    if (!content) return;
-    if (content.length > MAX_CHARS) content = content.slice(0, MAX_CHARS);
+    if(!content) return;
+    if(content.length > MAX_CHARS) content = content.slice(0, MAX_CHARS);
 
     const postsRef = ref(db, "planets/" + currentPlanet + "/posts");
-    const newRef   = push(postsRef);
+    const newRef = push(postsRef);
 
     set(newRef, {
-      userId:   currentUser.id,
-      planet:   currentPlanet,
-      content:  content,
+      userId: currentUser.id,
+      planet: currentPlanet,
+      content: content,
       timestamp: now
-    }).then(() => {
+    }).then(()=>{
       lastPostTime = now;
       postContentEl.value = "";
       updateCharCount();
-    }).catch(e => {
+    }).catch(e=>{
       alert("Post failed: " + (e.code || "") + " " + (e.message || ""));
       console.error(e);
     });
   };
 
-  // === LISTEN & RENDER POSTS ===
-  function listenPostsForPlanet(planetKey) {
-    if (typeof unsubscribe === "function") {
+  // LISTEN & RENDER
+  function listenPostsForPlanet(planetKey){
+    if(typeof unsubscribe === "function"){
       unsubscribe();
       unsubscribe = null;
     }
@@ -424,29 +585,28 @@
 
     unsubscribe = onValue(postsRef, snapshot => {
       const posts = [];
-
       snapshot.forEach(child => {
-        const val = child.val() || {};
+        const v = child.val() || {};
         posts.push({
           id: child.key,
-          userId:   val.userId   || "",
-          planet:   val.planet   || planetKey,
-          content:  val.content  || "",
-          timestamp: val.timestamp || 0
+          userId: v.userId || "",
+          planet: v.planet || planetKey,
+          content: v.content || "",
+          timestamp: v.timestamp || 0
         });
       });
-
-      posts.sort((a, b) => b.timestamp - a.timestamp);
+      posts.sort((a,b)=>b.timestamp - a.timestamp);
       renderPosts(planetKey, posts);
     }, error => {
       console.error("onValue error:", error);
+      alert("Read error: " + (error.code || ""));
     });
   }
 
-  function renderPosts(planetKey, posts) {
+  function renderPosts(planetKey, posts){
     postsEl.innerHTML = "";
 
-    if (!posts.length) {
+    if(!posts.length){
       const p = PLANETS.find(pl => pl.key === planetKey);
       const empty = document.createElement("div");
       empty.className = "planet-empty";
@@ -455,21 +615,19 @@
       return;
     }
 
-    posts.forEach(p => {
-      const el = buildPostElement(p);
-      postsEl.appendChild(el);
+    posts.forEach(p=>{
+      postsEl.appendChild(buildPostElement(p));
     });
   }
 
-  function buildPostElement(p) {
+  function buildPostElement(p){
     const planet = PLANETS.find(pl => pl.key === p.planet) ||
                    PLANETS.find(pl => pl.key === currentPlanet) ||
-                   { name: p.planet || "Unknown", emoji: "🪐" };
+                   {name: p.planet || "Unknown", emoji:"🪐"};
 
-    const card   = document.createElement("div");
+    const card = document.createElement("div");
     card.className = "post";
 
-    // header
     const header = document.createElement("div");
     header.className = "post-header";
 
@@ -486,27 +644,25 @@
     userIdSpan.className = "post-user-id";
     userIdSpan.textContent = p.userId;
 
+    userLine.appendChild(userIdSpan);
+
+    if(p.userId === MOD_ID){
+      const mod = document.createElement("div");
+      mod.className = "badge-mod";
+      mod.textContent = "MOD";
+      userLine.appendChild(mod);
+    }
+
     const planetBadge = document.createElement("div");
     planetBadge.className = "badge-planet";
     planetBadge.textContent = planet.name;
-
-    userLine.appendChild(userIdSpan);
-    if (p.userId === MOD_ID) {
-      const modBadge = document.createElement("div");
-      modBadge.className = "badge-mod";
-      modBadge.textContent = "MOD";
-      userLine.appendChild(modBadge);
-    }
     userLine.appendChild(planetBadge);
 
     const timeDiv = document.createElement("div");
     timeDiv.className = "post-time";
-    if (p.timestamp) {
-      timeDiv.textContent = new Date(p.timestamp).toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
+    if(p.timestamp){
+      timeDiv.textContent = new Date(p.timestamp).toLocaleString("en-GB",{
+        day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"
       });
     }
 
@@ -516,7 +672,6 @@
     header.appendChild(avatar);
     header.appendChild(infoBox);
 
-    // content
     const contentDiv = document.createElement("div");
     contentDiv.className = "post-content";
     contentDiv.innerHTML = escapeHtml(p.content);
@@ -526,10 +681,6 @@
 
     return card;
   }
-
-  // (Beğeni, yorum vs. sonra ekleriz; önce sağlam feed gözüksün.)
-</script>
-  
 </script>
 </body>
 </html>
