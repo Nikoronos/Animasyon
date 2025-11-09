@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BPC-SOCIAL</title>
+  <title>Twox</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{
@@ -28,11 +28,39 @@
       width:100%;min-height:84px;resize:vertical;border:none;border-radius:12px;
       padding:12px;font-size:1rem;color:#222;background:#fff;
     }
-    .post-actions-row{display:flex;gap:10px;align-items:center;margin-top:10px;position:relative;}
-    .emoji-toggle{background:#222;color:#fff;border:none;border-radius:20px;padding:10px 16px;cursor:pointer;}
-    .send-btn{flex:1;background:#2ecc71;color:#fff;border:none;border-radius:14px;padding:12px 18px;font-weight:700;cursor:pointer;}
-    .emoji-panel{position:absolute;left:0;top:50px;width:140px;z-index:100;background:#222;border-radius:12px;padding:8px;display:none;}
-    .emoji-panel button{width:100%;background:none;border:none;text-align:left;cursor:pointer;font-size:1.2rem;padding:8px 10px;color:#fff;}
+
+    .post-actions-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+      position:relative;
+      flex-wrap:wrap;
+    }
+
+    .char-counter{
+      font-size:.8rem;
+      opacity:.9;
+      margin-right:auto;
+    }
+
+    .emoji-toggle{
+      background:#222;color:#fff;border:none;border-radius:20px;
+      padding:8px 14px;cursor:pointer;font-size:.85rem;
+    }
+    .send-btn{
+      background:#2ecc71;color:#fff;border:none;border-radius:14px;
+      padding:10px 16px;font-weight:700;cursor:pointer;
+    }
+
+    .emoji-panel{
+      position:absolute;left:0;top:60px;width:140px;z-index:100;
+      background:#222;border-radius:12px;padding:8px;display:none;
+    }
+    .emoji-panel button{
+      width:100%;background:none;border:none;text-align:left;
+      cursor:pointer;font-size:1.2rem;padding:8px 10px;color:#fff;
+    }
 
     #posts{margin-top:14px;display:flex;flex-direction:column;gap:12px;}
     .post{background:rgba(255,255,255,.1);border-radius:16px;padding:12px;}
@@ -42,48 +70,68 @@
     .user-badge{background:#000;color:#fff;font-size:.7rem;border-radius:10px;padding:2px 8px;}
     .mod-badge{background:#ff6b6b;color:#fff;font-size:.65rem;padding:2px 6px;border-radius:8px;}
     .post-time{font-size:.8rem;}
-    .post-content{background:#fff;color:#222;border-radius:12px;padding:10px;margin:8px 0;}
+    .post-content{
+      background:#fff;color:#222;border-radius:12px;
+      padding:10px;margin:8px 0;word-wrap:break-word;
+    }
 
     .post-actions{display:flex;flex-wrap:wrap;gap:8px;}
     .comment-btn,.emoji-btn,.report-btn,.delete-btn{
       background:#1f9cf0;color:#fff;border:none;border-radius:12px;
-      padding:8px 12px;cursor:pointer;font-weight:700;
+      padding:8px 12px;cursor:pointer;font-weight:700;font-size:.8rem;
     }
     .emoji-btn{background:#8e44ad;}
     .report-btn{background:#dc3545;}
     .delete-btn{background:#e67e22;}
 
     .comment-section{display:none;padding:10px;}
-    .comment{background:#fff;color:#222;border-radius:8px;padding:8px 12px;margin:6px 0;font-size:.92rem;}
+    .comment{
+      background:#fff;color:#222;border-radius:8px;
+      padding:8px 12px;margin:6px 0;font-size:.92rem;
+    }
     .comment-input{display:flex;gap:8px;margin-top:8px;}
-    .comment-input input{flex:1;padding:10px;border:none;border-radius:12px;background:#fff;color:#222;}
-    .comment-input button{padding:10px 14px;border:none;border-radius:12px;background:#2ecc71;color:#fff;cursor:pointer;}
+    .comment-input input{
+      flex:1;padding:10px;border:none;border-radius:12px;
+      background:#fff;color:#222;
+    }
+    .comment-input button{
+      padding:10px 14px;border:none;border-radius:12px;
+      background:#2ecc71;color:#fff;cursor:pointer;
+    }
 
     .auth{text-align:center;max-width:320px;margin:80px auto 0;}
-    .auth button{margin-top:14px;padding:10px 14px;border:none;border-radius:12px;background:#2ecc71;color:#fff;font-weight:700;cursor:pointer;}
+    .auth button{
+      margin-top:14px;padding:10px 14px;border:none;border-radius:12px;
+      background:#2ecc71;color:#fff;font-weight:700;cursor:pointer;
+    }
   </style>
 </head>
 <body>
   <div class="overlay">
     <div class="header">
       <div class="logo">
-        <img src="bpc-bird.png" alt="BPC Bird">
-        <h1>BPC-SOCIAL</h1>
+        <img src="bpc-bird.png" alt="Twox">
+        <h1>Twox</h1>
       </div>
       <button class="logout" id="logoutBtn" onclick="logout()">Logout</button>
     </div>
 
     <!-- Auth -->
     <div id="auth" class="auth">
-      <h2>Join the Community</h2>
+      <h2>Welcome to Twox</h2>
       <p style="font-size:.9rem;opacity:.95;">
-        Enter your <b>BPC ID</b> (example: <code>BPC123456</code>).<br>
-        Your ID is saved on this device for next visits.
+        Enter your <b>Twox ID</b> in BPC format (example: <code>BPC123456</code>).<br>
+        Your ID stays on this device so your name is always the same.
       </p>
-      <input type="text" id="accessCode" placeholder="Enter your BPC ID (e.g., BPC123456)" style="padding:12px;border-radius:12px;border:none;width:100%;margin:10px 0;">
+      <input
+        type="text"
+        id="accessCode"
+        placeholder="Enter your Twox ID (e.g., BPC123456)"
+        style="padding:12px;border-radius:12px;border:none;width:100%;margin:10px 0;"
+      >
       <button onclick="loginWithCode()">Enter</button>
       <p style="font-size:.8rem;margin-top:10px;opacity:.9;">
-        Tip: Keep your BPC ID safe. (Moderator reserved)
+        Moderator ID is reserved. Keep your ID safe.
       </p>
     </div>
 
@@ -91,8 +139,9 @@
     <div id="feed" style="display:none;margin-top:10px;">
       <div class="user-info">You: <span id="currentUserId"></span></div>
       <div class="post-form">
-        <textarea id="postContent" placeholder="What are you thinking on Mars?"></textarea>
+        <textarea id="postContent" placeholder="Type your Twox (max 220 characters)..."></textarea>
         <div class="post-actions-row">
+          <div class="char-counter"><span id="charCount">0</span>/220</div>
           <button class="emoji-toggle" onclick="toggleEmojiPanel()">Emoji</button>
           <div id="emojiPanel" class="emoji-panel">
             <button onclick="addEmoji('👍')">👍 Like</button>
@@ -112,7 +161,10 @@
   <!-- Firebase RTDB -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { getDatabase, ref, push, set, onValue, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+    import {
+      getDatabase, ref, push, set, onValue,
+      remove, runTransaction
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB9Xz8f9v5z5v5z5v5z5v5z5v5z5v5z5",
@@ -131,9 +183,29 @@
 
     // Only YOU are moderator
     const MOD_ID = "BPC545776";
+    const MAX_CHARS = 220;
 
     function generateBPCID(){
       return `BPC${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+
+    function updateCharCount(){
+      const textarea = document.getElementById('postContent');
+      const counter = document.getElementById('charCount');
+      if (!textarea || !counter) return;
+      let val = textarea.value || "";
+      if (val.length > MAX_CHARS){
+        val = val.slice(0, MAX_CHARS);
+        textarea.value = val;
+      }
+      counter.textContent = val.length;
+    }
+
+    function setupCharCounter(){
+      const textarea = document.getElementById('postContent');
+      if(!textarea) return;
+      textarea.addEventListener('input', updateCharCount);
+      updateCharCount();
     }
 
     // Login with code (persist same code on this device)
@@ -142,34 +214,30 @@
       const typed    = (inputEl.value || "").trim().toUpperCase();
       const saved    = localStorage.getItem("bpc_user_id");
 
-      // If a code is already saved and user left input empty → reuse saved
       if(!typed && saved){
         initUser(saved);
         return;
       }
 
-      // If nothing saved & nothing typed → create one and show it
       if(!typed && !saved){
         const newId = generateBPCID();
-        alert(`Your BPC ID:\n${newId}\n\nPlease keep it safe and use it next time.`);
+        alert(`Your Twox ID:\n${newId}\n\nKeep it safe and use it next time.`);
         localStorage.setItem("bpc_user_id", newId);
         initUser(newId);
         return;
       }
 
-      // If typed → validate format or allow mod
       const isMod = (typed === MOD_ID);
       const isValidUserCode = /^BPC\d{6}$/.test(typed);
 
       if(!isMod && !isValidUserCode){
-        alert("Invalid BPC ID. Use the format: BPC123456");
+        alert("Invalid ID. Use the format: BPC123456");
         return;
       }
 
-      // If there is already a saved code & typed is different, confirm overwrite
       if(saved && saved !== typed){
         const ok = confirm(`This device already has ID: ${saved}\nReplace with: ${typed}?`);
-        if(!ok) { initUser(saved); return; }
+        if(!ok){ initUser(saved); return; }
       }
 
       localStorage.setItem("bpc_user_id", typed);
@@ -183,6 +251,7 @@
       document.getElementById('feed').style.display  = 'block';
       document.getElementById('logoutBtn').style.display = 'inline-block';
       listenToPosts();
+      setupCharCounter();
     }
 
     window.logout = function(){
@@ -192,6 +261,7 @@
 
     // Auto-login if saved
     window.onload = () => {
+      setupCharCounter();
       const saved = localStorage.getItem("bpc_user_id");
       if(saved) initUser(saved);
     };
@@ -201,28 +271,49 @@
       const p = document.getElementById('emojiPanel');
       p.style.display = (p.style.display === 'block' ? 'none' : 'block');
     };
+
     window.addEmoji = function(e){
       const t = document.getElementById('postContent');
-      t.value += (t.value ? ' ' : '') + e;
+      if(!t) return;
+      const add = (t.value ? ' ' : '') + e;
+      t.value = (t.value + add).slice(0, MAX_CHARS);
+      updateCharCount();
       toggleEmojiPanel();
     };
 
     // Create post
     window.createPost = function(){
       if(!currentUser){ alert("Login first."); return; }
-      const content = (document.getElementById('postContent').value || '').trim();
+      let content = (document.getElementById('postContent').value || '').trim();
       if(!content) return;
+      if(content.length > MAX_CHARS){
+        content = content.slice(0, MAX_CHARS);
+      }
 
       const newRef = push(postsRef);
-      set(newRef, { userId: currentUser.id, content, timestamp: Date.now(), comments:{}, reactions:{} })
-        .then(() => { document.getElementById('postContent').value = ''; })
-        .catch(err => { console.error("Post error:", err); alert("Post failed."); });
+      set(newRef, {
+        userId: currentUser.id,
+        content,
+        timestamp: Date.now(),
+        comments:{},
+        reactions:{}
+      })
+      .then(() => {
+        document.getElementById('postContent').value = '';
+        updateCharCount();
+      })
+      .catch(err => {
+        console.error("Post error:", err);
+        alert("Post failed.");
+      });
     };
 
     function listenToPosts(){
       onValue(postsRef, snap => {
         const data = snap.val();
-        const arr = data ? Object.entries(data).map(([id,p]) => ({ id, ...p })) : [];
+        const arr = data
+          ? Object.entries(data).map(([id,p]) => ({ id, ...p }))
+          : [];
         arr.sort((a,b) => b.timestamp - a.timestamp);
         renderPosts(arr);
       });
@@ -237,7 +328,8 @@
         return `
         <div class="post">
           <div class="post-header">
-            <img src="bpc-bird.png"><div>
+            <img src="bpc-bird.png" alt="">
+            <div>
               <div class="post-user">
                 ${escapeHtml(p.userId)}
                 ${p.userId === MOD_ID ? '<span class="mod-badge">MOD</span>' : ''}
@@ -257,7 +349,11 @@
           </div>
           <div id="comments-${p.id}" class="comment-section">
             ${(Object.entries(p.comments||{}).map(([cid,c])=>`
-              <div class="comment"><strong>${escapeHtml(c.userId)}:</strong> ${escapeHtml(c.text)} <small>(${c.time})</small></div>`).join(''))}
+              <div class="comment">
+                <strong>${escapeHtml(c.userId)}:</strong>
+                ${escapeHtml(c.text)}
+                <small>(${c.time})</small>
+              </div>`).join(''))}
             <div class="comment-input">
               <input id="comment-input-${p.id}" type="text" placeholder="Write a comment...">
               <button onclick="addComment('${p.id}')">Send</button>
@@ -271,28 +367,40 @@
       const el = document.getElementById(`comments-${id}`);
       el.style.display = el.style.display === 'block' ? 'none' : 'block';
     };
+
     window.addComment = function(id){
       const input = document.getElementById(`comment-input-${id}`);
       const txt = (input.value || '').trim();
       if(!txt || !currentUser) return;
-      push(ref(db,`posts/${id}/comments`), { userId: currentUser.id, text: txt, time: new Date().toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit'}) });
+      push(ref(db,`posts/${id}/comments`), {
+        userId: currentUser.id,
+        text: txt,
+        time: new Date().toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit'})
+      });
       input.value='';
     };
+
     window.addReaction = function(id,type){
       runTransaction(ref(db,`posts/${id}/reactions/${type}`), c => (c || 0) + 1);
     };
+
     window.reportPost = function(id){
       if(confirm("Are you sure you want to report this post?")){
         set(ref(db,`reports/${id}`), { userId: currentUser.id, time: Date.now() });
         alert("Reported!");
       }
     };
+
     window.deletePost = function(id){
       if(currentUser?.id !== MOD_ID) return;
       if(confirm("Delete this post?")) remove(ref(db,`posts/${id}`));
     };
 
-    function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+    function escapeHtml(t){
+      const d=document.createElement('div');
+      d.textContent=t;
+      return d.innerHTML;
+    }
   </script>
 </body>
 </html>
